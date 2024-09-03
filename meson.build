@@ -22,6 +22,29 @@ executable('tkconv', 'tkconv.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
+executable('tkgetxml', 'tkgetxml.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+
+executable('tkbot', 'tkbot.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+executable('tkindex', 'tkindex.cc', 'support.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+executable('tkpull', 'tkpull.cc', 'support.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+
+
+executable('tkserv', 'tkserv.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
 
 #executable('testrunner', 'testrunner.cc', 'support.cc', 'serv.cc',
 #	dependencies: [sqlitedep, json_dep, fmt_dep, bcryptcpp_dep, argparse_dep, sqlitewriter_dep, cpphttplib, doctest_dep, simplesockets_dep])
