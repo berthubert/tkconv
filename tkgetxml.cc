@@ -8,11 +8,20 @@
 using namespace std;
 int main(int argc, char** argv)
 {
-  vector<string> categories={
-    "Activiteit", "Agendapunt", "Besluit", "Commissie",
-    "Document", "DocumentActor", "Kamerstukdossier", "Persoon", "PersoonGeschenk",
-    "Stemming", "Toezegging", "Vergadering", "Verslag", "Zaak", "ZaakActor"};
+  vector<string> categories=
+    {"Activiteit", "ActiviteitActor", "Agendapunt", "Besluit", "Commissie",
+"CommissieContactinformatie", "CommissieZetel", "CommissieZetelVastPersoon",
+"CommissieZetelVastVacature", "CommissieZetelVervangerPersoon",
+"CommissieZetelVervangerVacature", "Document", "DocumentActor",
+"DocumentVersie", "Fractie", "FractieZetel", "FractieZetelPersoon",
+"FractieZetelVacature", "Kamerstukdossier", "Persoon",
+"PersoonContactinformatie", "PersoonGeschenk", "PersoonLoopbaan",
+"PersoonNevenfunctie", "PersoonNevenfunctieInkomsten", "PersoonOnderwijs",
+"PersoonReis", "Reservering", "Stemming", "Toezegging", "Vergadering",
+"Verslag", "Zaak", "ZaakActor", "Zaal"};
 
+
+  
   if(argc > 1) {
     categories.clear();
     for(int n = 1 ; n < argc; ++n)
@@ -88,7 +97,7 @@ int main(int argc, char** argv)
 	node.print(xml, "\t", pugi::format_raw);
 	sqlw.addValue({{"category", category},{"id", id}, {"skiptoken", skiptoken}, {"enclosure", enclosure}, {"updated", updated}, {"xml", xml.str()}}, category);
       }
-      sleep(1);
+      usleep(100000);
     }
     cout<<"Done - saw "<<entries<<" new entries"<<endl;
   }

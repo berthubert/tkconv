@@ -64,7 +64,7 @@ string textFromFile(const std::string& fname, bool pdf)
 int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
-  string limit="2024-01-01";
+  string limit="2023-01-01";
   auto wantDocs = todo.queryT("select id,titel,onderwerp from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());

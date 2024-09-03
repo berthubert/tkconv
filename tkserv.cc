@@ -17,8 +17,6 @@ static void replaceSubstring(std::string &originalString, const std::string &sea
   }
 }
 
-
-
 static string htmlEscape(const std::string& str)
 {
   vector<pair<string,string>> rep{{"&", "&amp;"}, {"<", "&lt;"}, {">", "&gt;"}, {"\"", "&quot;"}, {"'", "&#39;"}};
@@ -141,37 +139,39 @@ int main(int argc, char** argv)
       }
       content+="</ul></p>";
     }
-    string zaakId = get<string>(ret[0]["zaakId"]);
-
-    auto zactors = sqlw.queryT("select * from ZaakActor where zaakId=?", {zaakId});
-    if(!zactors.empty()) {
-      content+="<p>Zaak-gerelateerde data: <ul>";
-      for(auto& z: zactors) {
-	auto g = [&z](const string& s) {
-	  return get<string>(z[s]);
-	};
-	content += "<li>";
-	content += g("relatie") + ": " + g("naam");
-	if(!g("functie").empty())
-	  content+=", " +g("functie");
-	content += "</li>";
-	
-      }
-      content+="</ul></p>";
-
-    }
-    
-    auto besluiten = sqlw.queryT("select * from besluit where zaakid=? and verwijderd = 0 order by rowid", {zaakId});
-    set<string> agendapuntids;
-    for(auto& b: besluiten) {
-      agendapuntids.insert(get<string>(b["agendapuntId"]));
-    }
-
+    auto zlinks = sqlw.queryT("select * from Link where van=? and category='Document' and linkSoort='Zaak'", {documentId});
     set<string> actids;
-    for(auto& agendapuntid : agendapuntids) {
-      auto agendapunten = sqlw.queryT("select * from Agendapunt where id = ?", {agendapuntid});
-      for(auto& agendapunt: agendapunten)
-	actids.insert(get<string>(agendapunt["activiteitId"]));
+    for(auto& zlink : zlinks) {
+      string zaakId = get<string>(zlink["naar"]);
+
+      auto zactors = sqlw.queryT("select * from ZaakActor where zaakId=?", {zaakId});
+      if(!zactors.empty()) {
+	content+="<p>Zaak-gerelateerde data: <ul>";
+	for(auto& z: zactors) {
+	  auto g = [&z](const string& s) {
+	    return get<string>(z[s]);
+	  };
+	  content += "<li>";
+	  content += g("relatie") + ": " + g("naam");
+	  if(!g("functie").empty())
+	    content+=", " +g("functie");
+	  content += "</li>";
+	  
+	}
+	content+="</ul></p>";
+      }
+    
+      auto besluiten = sqlw.queryT("select * from besluit where zaakid=? and verwijderd = 0 order by rowid", {zaakId});
+      set<string> agendapuntids;
+      for(auto& b: besluiten) {
+	agendapuntids.insert(get<string>(b["agendapuntId"]));
+      }
+      
+      for(auto& agendapuntid : agendapuntids) {
+	auto agendapunten = sqlw.queryT("select * from Agendapunt where id = ?", {agendapuntid});
+	for(auto& agendapunt: agendapunten)
+	  actids.insert(get<string>(agendapunt["activiteitId"]));
+      }
     }
 
     content += "<p></p>Onderdeel van de volgende activiteiten:\n<ul>";

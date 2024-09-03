@@ -73,15 +73,35 @@ int main(int argc, char** argv)
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
 	  continue;
 	}
-	  
+
+	// relaties inkomend, ActiviteitActor, AgendaPunt
+	// twee-weg: Zichzelf (VoortgezetVanuit, VoortgezetIn, VervangenVanuit, VervangenDoor)
+	
 	string datum = child.child("datum").child_value();
 	string onderwerp = child.child("onderwerp").child_value();
+	string noot = child.child("noot").child_value();
 	string soort = child.child("soort").child_value();
+	string aanvangstijd = child.child("aanvangstijd").child_value();
+	string eindtijd = child.child("eindtijd").child_value();
 	string vrsNummer = child.child("vrsNummer").child_value();
 	string voortouwnaam = child.child("voortouwnaam").child_value();
+	string besloten = child.child("besloten").child_value();
+
+	string voortouwafkorting = child.child("voortouwafkorting").child_value();
 	string nummer = child.child("nummer").child_value();
-	cout<<datum<<" / "<<updated<< " -> "<<onderwerp<<" ("<<nummer<<")\n";
-	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"nummer", nummer}, {"soort", soort}, {"onderwerp", onderwerp}, {"datum", datum}, {"vrsNummer", vrsNummer}, {"voortouwNaam", voortouwnaam} , {"updated", updated}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt}}, category);
+	auto repl = [&](string name) {
+	  string lname = name;
+	  lname[0] = tolower(lname[0]);
+	  for(auto& a : child.children(lname.c_str())) {
+	    sqlw.addValue({{"skiptoken", skiptoken}, {"category", category}, {"van", id}, {"naar", a.attribute("ref").value()}, {"linkSoort", name}}, "link");
+	  }
+	};
+	repl("vervangenVanuit");
+	repl("voortgezetVanuit");
+	
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"nummer", nummer}, {"soort", soort}, {"onderwerp", onderwerp},
+		       {"aanvangstijd", aanvangstijd}, {"eindtijd", eindtijd}, {"besloten", besloten},
+		       {"datum", datum}, {"vrsNummer", vrsNummer}, {"voortouwNaam", voortouwnaam} , {"voortouwAfkorting", voortouwafkorting}, {"noot", noot}, {"updated", updated}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt}}, category);
 	  
       }
       else if(auto child = node.child("content").child("document")) {
@@ -90,32 +110,34 @@ int main(int argc, char** argv)
 	  continue;
 	}
 	string datum = child.child("datum").child_value();
-	cout<<datum<<" / "<<updated<<": (";
 	string soort = child.child("soort").child_value();
-	cout<<soort<<") ";
 	string onderwerp = child.child("onderwerp").child_value();
-	cout<< onderwerp;
 	string titel = child.child("titel").child_value();
-	cout<< " " <<titel;
-
 	string contentType = child.attribute("tk:contentType").value();
 	int64_t contentLength = atoi(child.attribute("tk:contentLength").value());;
 	string vergaderjaar = child.child("vergaderjaar").child_value();
 	string aanhangselnummer = child.child("aanhangselnummer").child_value();
-
-	  
 	string documentNummer = child.child("documentNummer").child_value();
-	cout<<" ("<<documentNummer<<") "<<enclosure<<"\n";
-
 	string citeerTitel = child.child("citeerTitel").child_value();
-	string zaakId = child.child("zaak").attribute("ref").value();
+
 	string huidigeDocumentVersieId = child.child("huidigeDocumentVersie").attribute("ref").value();
 	string bronDocument = child.child("bronDocument").attribute("ref").value();
-	string activiteitId = child.child("activiteit").attribute("ref").value();
+	string agendapuntId = child.child("agendapunt").attribute("ref").value();
 	string kamerstukdossierId = child.child("kamerstukdossier").attribute("ref").value();
 	int64_t volgnummer = atoi(child.child("volgnummer").child_value());;
 
-	sqlw.addValue({{"id", id},  {"skiptoken", skiptoken}, {"nummer", documentNummer}, {"zaakId", zaakId}, {"activiteitId", activiteitId}, {"soort", soort}, {"onderwerp", onderwerp}, {"datum", datum}, {"enclosure", enclosure}, {"bronDocument", bronDocument}, {"updated", updated}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt}, {"kamerstukdossierId", kamerstukdossierId}, {"volgnummer", volgnummer}, {"titel", titel}, {"citeerTitel", citeerTitel}, {"contentLength", contentLength}, {"contentType", contentType}, {"huidigeDocumentVersieId", huidigeDocumentVersieId}, {"vergaderjaar", vergaderjaar}, {"aanhangselnummer", aanhangselnummer}}, category);
+	auto repl = [&](string name) {
+	  string lname = name;
+	  lname[0] = tolower(lname[0]);
+	  for(auto& activiteit : child.children(lname.c_str())) {
+	    sqlw.addValue({{"skiptoken", skiptoken}, {"category", category}, {"van", id}, {"naar", activiteit.attribute("ref").value()}, {"linkSoort", name}}, "link");
+	  }
+	};
+
+	repl("Activiteit");
+	repl("Zaak");
+	
+	sqlw.addValue({{"id", id},  {"skiptoken", skiptoken}, {"nummer", documentNummer}, {"agendapuntId", agendapuntId}, {"soort", soort}, {"onderwerp", onderwerp}, {"datum", datum}, {"enclosure", enclosure}, {"bronDocument", bronDocument}, {"updated", updated}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt}, {"kamerstukdossierId", kamerstukdossierId}, {"volgnummer", volgnummer}, {"titel", titel}, {"citeerTitel", citeerTitel}, {"contentLength", contentLength}, {"contentType", contentType}, {"huidigeDocumentVersieId", huidigeDocumentVersieId}, {"vergaderjaar", vergaderjaar}, {"aanhangselnummer", aanhangselnummer}}, category);
       }
       else if(auto child = node.child("content").child("zaak")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
@@ -124,13 +146,30 @@ int main(int argc, char** argv)
 	}
 	  
 	string gestartOp = child.child("gestartOp").child_value();
-	cout<<gestartOp<<": ";
 	string onderwerp = child.child("onderwerp").child_value();
 	string titel = child.child("titel").child_value();
 	string zaakNummer = child.child("nummer").child_value();
-	cout<< onderwerp <<" ("<< zaakNummer<<")"<< " "<<titel<<endl;
+
 	string kamerstukdossierId = child.child("kamerstukdossier").attribute("ref").value();
-	// also get agendapunt refs!
+	/*
+	               x              x              
+	  Multi: {"activiteit", "agendapunt", "gerelateerdVanuit", "vervangenVanuit"}
+	  Hasref: {"activiteit", "agendapunt", "gerelateerdVanuit", "kamerstukdossier", "vervangenVanuit"}
+	                   x          x                                  x
+	*/
+
+	auto repl = [&](string name) {
+	  string lname = name;
+	  lname[0] = tolower(lname[0]);
+	  for(auto& a : child.children(lname.c_str())) {
+	    sqlw.addValue({{"skiptoken", skiptoken}, {"category", category}, {"van", id}, {"naar", a.attribute("ref").value()}, {"linkSoort", name}}, "link");
+	  }
+	};
+	repl("Activiteit");
+	repl("gerelateerdVanuit");
+	repl("vervangenVanuit");
+	repl("Agendapunt");
+	
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"nummer", zaakNummer}, {"kamerstukdossierId", kamerstukdossierId}, {"titel", titel}, {"onderwerp", onderwerp}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},{"gestartOp", gestartOp}, {"updated", updated}}, category);
 	  
       }
@@ -142,7 +181,6 @@ int main(int argc, char** argv)
 	  
 	string titel = child.child("titel").child_value();
 	int nummer = atoi(child.child("nummer").child_value());
-	cout<< nummer<< " " <<titel << endl;
 	  
 	string afgesloten = child.child("afgesloten").child_value();
 	int hoogsteVolgnummer = atoi(child.child("hoogsteVolgnummer").child_value());
@@ -153,7 +191,26 @@ int main(int argc, char** argv)
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
 	  continue;
 	}
-	  
+	/*
+{"ns1:aanmaakdatum": 100, "ns1:achternaam": 100, "ns1:achtervoegsel": 10,
+"ns1:activiteitNummer": 100, "ns1:datumNakoming": 53, "ns1:functie": 100,
+"ns1:initialen": 100, "ns1:kamerbriefNakoming": 53, "ns1:ministerie": 100,
+"ns1:naam": 100, "ns1:nummer": 100, "ns1:status": 100, "ns1:tekst": 100,
+"ns1:titulatuur": 100, "ns1:tussenvoegsel": 27, "ns1:voornaam": 100}
+
+Multi: {"ns1:isAanvullingOp", "ns1:isWijzigingVan"}
+Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWijzigingVan", "ns1:toegezegdAanFractie", "ns1:toegezegdAanPersoon"}
+	*/
+
+	auto repl = [&](string xname, string name) {
+	  for(auto& a : child.children(xname.c_str())) {
+	    sqlw.addValue({{"skiptoken", skiptoken}, {"category", category}, {"van", id}, {"naar", a.attribute("ref").value()}, {"linkSoort", name}}, "link");
+	  }
+	};
+	repl("ns1:isAanvullingOp", "aanvullingOp");
+	repl("ns1:isHerhalingVan", "herhalingVan");
+	repl("ns1:isWijzigingVan", "wijzigingVan");
+
 	string tekst = child.child("ns1:tekst").child_value();
 	string naamToezegger = child.child("ns1:naam").child_value();
 	string nummer = child.child("ns1:nummer").child_value();
@@ -162,10 +219,12 @@ int main(int argc, char** argv)
 	string status = child.child("ns1:status").child_value();
 	string datum = child.child("ns1:aanmaakdatum").child_value();
 	string datumNakoming = child.child("ns1:datumNakoming").child_value();
+	
 	string activiteitId = child.child("ns1:activiteit").attribute("ref").value();
 	string fractieId = child.child("ns1:toegezegdAanFractie").attribute("ref").value();
-	cout<< nummer<< " " <<tekst << endl;
-	  
+	string persoonId = child.child("ns1:toegezegdAanPersoon").attribute("ref").value();
+	//	Multi: {"ns1:isAanvullingOp", "ns1:isWijzigingVan"} XXX
+
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"nummer", nummer}, {"tekst", tekst},
 		       {"kamerbriefNakoming", kamerbriefNakoming}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"datum", datum}, {"ministerie", ministerie},
@@ -173,6 +232,7 @@ int main(int argc, char** argv)
 		       {"datumNakoming", datumNakoming},
 		       {"activiteitId", activiteitId},
 		       {"fractieId", fractieId},
+		       {"persoonId", persoonId},
 		       {"naamToezegger", naamToezegger},
 		       {"updated", updated}}, category);
       }
@@ -183,13 +243,10 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
 	  
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"soort", fields["ns1:soort"]},
@@ -209,16 +266,11 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
-	cout<<"enclosure "<<enclosure<<endl;
 	string vergaderingId = child2.child("ns1:vergadering").attribute("ref").value();
-	cout<<"vergaderingId "<<vergaderingId<<endl;
 	  
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"soort", fields["ns1:soort"]},
@@ -234,13 +286,10 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
 	  
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"functie", fields["functie"]},
@@ -285,10 +334,11 @@ int main(int argc, char** argv)
 	  
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"soort", fields["besluitSoort"]},
+		       {"stemmingSoort", fields["stemmingSoort"]},
 		       {"tekst", fields["besluitTekst"]},
 		       {"opmerking", fields["opmerking"]},
+		       {"agendapuntZaakBesluitVolgorde", atoi(fields["agendapuntZaakBesluitVolgorde"].c_str())},
 		       {"status", fields["status"]},
-		       {"zaakId", zaakId},
 		       {"agendapuntId", agendapuntId},
 		       {"zaakId", zaakId}},
 	  category);
@@ -302,25 +352,23 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
 	  
 	string besluitId = child2.child("besluit").attribute("ref").value();
-	string persoonId = child2.child("persoon").attribute("ref").value();
 	string fractieId = child2.child("fractie").attribute("ref").value();
+	string persoonId = child2.child("persoon").attribute("ref").value();
+
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"soort", fields["soort"]},
 		       {"actorNaam", fields["actorNaam"]},
 		       {"actorFractie", fields["actorFractie"]},
 		       {"fractieGrootte", atoi(fields["fractieGrootte"].c_str())},
 		       {"besluitId", besluitId},
-		       {"persoonId", persoonId},
 		       {"fractieId", fractieId},
+		       {"persoonId", persoonId},
 		       {"vergissing", fields["vergissing"]}
 	  },
 	  category);
@@ -334,13 +382,11 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
+
 	string documentId = child.child("document").attribute("ref").value();
 	string persoonId = child.child("persoon").attribute("ref").value();
 	string fractieId = child.child("fractie").attribute("ref").value();
@@ -364,13 +410,13 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
+
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
+
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
+
 	string zaakId = child.child("zaak").attribute("ref").value();
 	string persoonId = child.child("persoon").attribute("ref").value();
 	string fractieId = child.child("fractie").attribute("ref").value();
@@ -396,13 +442,10 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
 	string activiteitId = child.child("activiteit").attribute("ref").value();
 	  
 	// activiteit='' nummer='2008P01291' onderwerp='Beantwoording vragen commissie over het evaluatierapport Belastinguitgaven op het terrein van de accijnzen' aanvangstijd='' eindtijd='' volgorde='40' rubriek='Stukken/brieven (als eerste) ondertekend door de staatssecretaris van Financiën' noot='De antwoorden op de door de commissie gestelde vragen zijn ontvangen op 15 juli 2008 (31200-IXB, nr. 35)' status='Vrijgegeven' 
@@ -427,13 +470,10 @@ int main(int argc, char** argv)
 	}
 
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
 	string persoonId = child.child("persoon").attribute("ref").value();
 
 	sqlw.addValue({{"id", id}, {"skiptoken",skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
@@ -445,6 +485,40 @@ int main(int argc, char** argv)
 	  category);
 
       }
+      else if(auto child = node.child("content").child("activiteitActor")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+
+	string persoonId = child.child("persoon").attribute("ref").value();
+	string activiteitId = child.child("activiteit").attribute("ref").value();
+	string fractieId = child.child("fractie").attribute("ref").value();
+	string commissieId = child.child("commissie").attribute("ref").value();
+
+	sqlw.addValue({{"id", id}, {"skiptoken",skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated},
+		       {"functie", fields["functie"]},
+		       {"relatie", fields["relatie"]},
+		       {"naam", fields["actorNaam"]},
+		       {"fractie", fields["actorFractie"]},
+		       {"spreektijd", fields["spreektijd"]},
+		       {"volgorde", atoi(fields["volgorde"].c_str())},
+		       {"activiteitId", activiteitId},
+		       {"persoonId", persoonId},
+		       {"fractieId", fractieId},
+		       {"commissieId", commissieId}
+	  },
+	  category);
+
+      }
+
       else if(auto child = node.child("content").child("commissie")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
@@ -452,13 +526,10 @@ int main(int argc, char** argv)
 	}
 	  
 	auto child2 = *node.child("content").begin();
-	cout << child2.name() << endl;
 	map<string,string> fields;
 	for(const auto&c : child2) {
-	  cout << c.name() <<"='"<<c.child_value()<<"' ";
 	  fields[c.name()]= c.child_value();
 	}
-	cout<<endl;
 
 	// nummer='62750' soort='Dienst Commissieondersteuning Internationaal en Ruimtelijk' afkorting='AM' naamNl='Vaste commissie voor Asiel en Migratie' naamEn='Asylum and Migration' naamWebNl='Asiel en Migratie' naamWebEn='Asylum and Migration' inhoudsopgave='Vaste commissies' datumActief='2024-07-02' datumInactief='' 
 	sqlw.addValue({{"id", id}, {"skiptoken",skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
@@ -476,6 +547,6 @@ int main(int argc, char** argv)
 	  category);
       }
     }
-    cout<<"Done - saw "<<numentries<<" new entries"<<endl;
+    cout<<"Done with "<<category <<" - saw "<<numentries<<" new entries"<<endl;
   }
 }
