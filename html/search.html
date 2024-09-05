@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>tkconv</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <!-- opengraph -->
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+  
+  <div id="recent-docs" x-data="{
+				foundDocs: [],
+				searchQuery: 'NAFIN'
+				}" x-init="getSearchResults($data);">
+    <p></p>
+    <center>
+    <form @submit.prevent="getSearchResults($data);">
+      <input type="text" x-model="searchQuery"  >
+    </form>
+    </center>
+    <p></p>
+    <table>
+      <tr>
+        <th>Datum</th>
+	<th>Bijgewerkt</th>
+	<th>Nummer</th>
+        <th>Onderwerp</th>
+        <th>Snip</th>
+      </tr>
+      <template x-for="d in foundDocs">
+        <tr>
+          <td x-text="d.datum.substring(0,10)"></td>
+	  <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+	  <td x-text="d.onderwerp"></td>
+	  <td x-html="d.snip"></td>
+        </tr>
+      </template>
+    </table>
+  </div>
+</body>
