@@ -249,7 +249,7 @@ int main(int argc, char** argv)
   });
   
   svr.Get("/search/:term", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    string term="\""+req.path_params.at("term")+"\"";
+    string term=req.path_params.at("term");
     SQLiteWriter idx("tkindex.sqlite3");
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     cout<<"Search: '"<<term<<"'\n";
@@ -257,6 +257,29 @@ int main(int argc, char** argv)
     fmt::print("Got {} matches\n", matches.size());
     res.set_content(packResultsJsonStr(matches), "application/json");
   });
+
+  svr.Post("/search", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string term = req.get_file_value("q").content;
+    string twomonths = req.get_file_value("twomonths").content;
+    string limit = "2000-01-01";
+    if(twomonths=="true")
+      limit = "2024-07-05";
+    
+    SQLiteWriter idx("tkindex.sqlite3");
+    idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
+    cout<<"Search: '"<<term<<"'\n";
+    DTime dt;
+    dt.start();
+    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE tekst MATCH ? and docsearch.uuid = Document.id and datum > ? order by bm25(docsearch) limit 40", {term, limit});
+    auto usec = dt.lapUsec();
+    
+    fmt::print("Got {} matches\n", matches.size());
+    nlohmann::json response=nlohmann::json::object();
+    response["results"]= packResultsJson(matches);
+    response["milliseconds"] = usec/1000.0;
+    res.set_content(response.dump(), "application/json");
+  });
+
   
   svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
     auto fmt = "<h1>Error 500</h1><p>%s</p>";
@@ -273,5 +296,8 @@ int main(int argc, char** argv)
   });
 
   svr.set_mount_point("/", "./html/");
-  svr.listen("0.0.0.0", 8089);
+  int port = 8089;
+  if(argc > 1)
+    port = atoi(argv[1]);
+  svr.listen("0.0.0.0", port);
 }

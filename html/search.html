@@ -15,12 +15,17 @@
   
   <div id="recent-docs" x-data="{
 				foundDocs: [],
-				searchQuery: 'NAFIN'
-				}" x-init="getSearchResults($data);">
+				twomonths: false,
+				searchQuery: '',
+				message: ''
+				}" x-init="init($data);">
     <p></p>
     <center>
     <form @submit.prevent="getSearchResults($data);">
-      <input type="text" x-model="searchQuery"  >
+      <input name="q" size="80" placeholder="zoektekst" type="text" x-model="searchQuery" autofocus >
+      <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2 maanden</label>
+      <p></p>
+      <small>Zoeken op <strong>Joe Biden</strong> vindt alle documenten met ergens <i>Joe</i> en ergens <i>Biden</i>. Zoeken op <strong>"Joe Biden"</strong> vindt alleen die twee woorden naast elkaar. Zoeken op <strong>Hubert NOT Bruls</strong> vindt documenten met daarin Hubert maar niet Bruls. De hoofdletters in NOT zijn belangrijk.</small>
     </form>
     </center>
     <p></p>
@@ -42,5 +47,9 @@
         </tr>
       </template>
     </table>
+    <p></p>
+    <center><small>
+	<span x-text="message"></span>
+    </small></center>
   </div>
 </body>
