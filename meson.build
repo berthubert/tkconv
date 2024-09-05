@@ -44,7 +44,7 @@ executable('tkpull', 'tkpull.cc', 'support.cc',
 
 
 
-executable('tkserv', 'tkserv.cc', 
+executable('tkserv', 'tkserv.cc', 'support.cc', 
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 

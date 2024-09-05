@@ -11,29 +11,6 @@
 using namespace std;
 
 
-bool fileStartsWith(const std::string& fname, const std::string& start)
-{
-  vector<char> buf(start.size());
-  FILE* fp = fopen(fname.c_str(), "r");
-  if(!fp)
-    throw runtime_error("Can't check if "+fname+" is a PDF file, "+string(strerror(errno)));
-  shared_ptr<FILE> tfp(fp, fclose);
-  if(fread(&buf[0], 1, buf.size(), tfp.get()) != buf.size())
-    throw runtime_error("Can't read from "+fname+", "+string(strerror(errno)));
-  return (memcmp(&buf[0], start.c_str(), start.size())==0);
-}
-
-
-bool isPDF(const std::string& fname)
-{
-  return fileStartsWith(fname, "%PDF");
-}
-
-bool isDocx(const std::string& fname)
-{
-  return fileStartsWith(fname, "PK");
-}
-
 
 string textFromFile(const std::string& fname, bool pdf)
 {

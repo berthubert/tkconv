@@ -6,3 +6,6 @@ mooie open data van de Tweede Kamer.
 # Open
 2024D30849 - de kamer website weet de oorspronkelijke vraag hierbij te
 vinden, hoe dan?
+
+# cleanup 
+hoe dan? alleen nieuwste versie van een id bewaren

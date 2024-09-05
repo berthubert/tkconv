@@ -5,6 +5,7 @@
 #include "httplib.h"
 #include "sqlwriter.hh"
 #include "jsonhelper.hh"
+#include "support.hh"
 #include "pugixml.hpp"
 
 using namespace std;
@@ -26,11 +27,54 @@ static string htmlEscape(const std::string& str)
   return ret;
 }
 
+static string getHtmlForDocument(const std::string& id)
+{
+  string fname = makePathForId(id);
+  string command;
+
+  if(isDocx(fname))
+    command = fmt::format("pandoc -s -f docx -t html '{}'",
+			  fname);
+  else
+    command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
+
+  shared_ptr<FILE> fp(popen(command.c_str(), "r"), pclose);
+  if(!fp)
+    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(ferror(fp.get()))
+    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  return ret;
+}
+
 
 int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
   httplib::Server svr;
+
+  svr.Get("/getdoc/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string nummer=req.path_params.at("nummer"); // 2023D41173
+    cout<<"nummer: "<<nummer<<endl;
+
+    auto ret=sqlw.queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+    if(ret.empty()) {
+      res.set_content("Found nothing!!", "text/plain");
+      return;
+    }
+    string id = get<string>(ret[0]["id"]);
+    fmt::print("'{}'\n", id);
+    string content = getHtmlForDocument(id);
+    res.set_content(content, "text/html");
+  });
+  
   svr.Get("/get/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
         cout<<"nummer: "<<nummer<<endl;
@@ -139,7 +183,7 @@ int main(int argc, char** argv)
       }
       content+="</ul></p>";
     }
-    auto zlinks = sqlw.queryT("select * from Link where van=? and category='Document' and linkSoort='Zaak'", {documentId});
+    auto zlinks = sqlw.queryT("select distinct(naar) as naar from Link where van=? and category='Document' and linkSoort='Zaak'", {documentId});
     set<string> actids;
     for(auto& zlink : zlinks) {
       string zaakId = get<string>(zlink["naar"]);
@@ -158,6 +202,11 @@ int main(int argc, char** argv)
 	  content += "</li>";
 	  
 	}
+	auto reldocs = sqlw.queryT("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId});
+	for(auto& rd : reldocs) {
+	  if(get<string>(rd["id"]) != documentId)
+	    content+= "<li>"+get<string>(rd["soort"])+ " <a href='"+get<string>(rd["nummer"])+"'>" +get<string>(rd["onderwerp"]) +" (" + get<string>(rd["nummer"])+")</a></li>";
+	}
 	content+="</ul></p>";
       }
     
@@ -173,32 +222,38 @@ int main(int argc, char** argv)
 	  actids.insert(get<string>(agendapunt["activiteitId"]));
       }
     }
-
-    content += "<p></p>Onderdeel van de volgende activiteiten:\n<ul>";
-    if(actids.empty())
-      content+="<li>Geen</li>";
-    
-    for(auto& actid : actids) {
-      auto activiteit = sqlw.queryT("select * from Activiteit where id = ? order by rowid desc limit 1", {actid});
-      auto g = [&activiteit](const string& s) {
-	return get<string>(activiteit[0][s]);
-      };
-      string datum = g("datum");
-      datum[10]=' ';
-      content += "<li><a href='https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id="+g("nummer")+ "'>"+ g("soort")+" " + datum +" &rarr; '"+g("onderwerp");
-	content += "', "+g("voortouwNaam")+" ("+g("nummer")+")</a></li> ";
+    if(!actids.empty()) {
+      content += "<p></p>Onderdeel van de volgende activiteiten:\n<ul>";
+      for(auto& actid : actids) {
+	auto activiteit = sqlw.queryT("select * from Activiteit where id = ? order by rowid desc limit 1", {actid});
+	auto g = [&activiteit](const string& s) {
+	  return get<string>(activiteit[0][s]);
+	};
+	string datum = g("datum");
+	datum[10]=' ';
+	content += "<li><a href='https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id="+g("nummer")+ "'>"+ g("soort")+" " + datum +" &rarr; '"+g("onderwerp");
+	  content += "', "+g("voortouwNaam")+" ("+g("nummer")+")</a></li> ";
+      }
+      content += "</ul>";
     }
-    content += "</ul>";
+    content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
+    
     content += "</body></html>";
     res.set_content(content, "text/html");
   });
 
+  svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto docs = sqlw.queryT("select * from Document where bronDocument='' order by datum desc limit 80");
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} docs\n", docs.size());
+  });
+  
   svr.Get("/search/:term", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string term="\""+req.path_params.at("term")+"\"";
     SQLiteWriter idx("tkindex.sqlite3");
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
-    
-    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 10) as snip FROM docsearch,meta.Document WHERE tekst MATCH ? and docsearch.uuid = Document.id order by bm25(docsearch)", {term});
+    cout<<"Search: '"<<term<<"'\n";
+    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE tekst MATCH ? and docsearch.uuid = Document.id order by bm25(docsearch) limit 40", {term});
     fmt::print("Got {} matches\n", matches.size());
     res.set_content(packResultsJsonStr(matches), "application/json");
   });
@@ -216,6 +271,7 @@ int main(int argc, char** argv)
     res.set_content(buf, "text/html");
     res.status = 500; 
   });
-  
+
+  svr.set_mount_point("/", "./html/");
   svr.listen("0.0.0.0", 8089);
 }

@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 	string onderwerp = child.child("onderwerp").child_value();
 	string titel = child.child("titel").child_value();
 	string contentType = child.attribute("tk:contentType").value();
-	int64_t contentLength = atoi(child.attribute("tk:contentLength").value());;
+	int64_t contentLength = atoi(child.attribute("tk:contentLength").value());
 	string vergaderjaar = child.child("vergaderjaar").child_value();
 	string aanhangselnummer = child.child("aanhangselnummer").child_value();
 	string documentNummer = child.child("documentNummer").child_value();
@@ -271,10 +271,12 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	  fields[c.name()]= c.child_value();
 	}
 	string vergaderingId = child2.child("ns1:vergadering").attribute("ref").value();
-	  
+	int64_t contentLength = atoi(child.attribute("ns1:contentLength").value());;
+	string contentType = child.attribute("ns1:contentType").value();
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"soort", fields["ns1:soort"]},
-		       {"status", fields["ns1:status"]},
+		       {"status", fields["ns1:status"]}, {"contentLength", contentLength},
+		       {"contentType", contentType},
 		       {"enclosure", enclosure},
 		       {"vergaderingId", vergaderingId}},
 	  category);
@@ -547,6 +549,12 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	  category);
       }
     }
+    cout<<"Cleanup.."<<endl;
+    sqlw.query(fmt::format("delete from {} where skiptoken in (select skiptoken from {} v,(select id,max(skiptoken) as mskiptoken,count(1) as c from {} group by id having c > 1) as d where v.id = d.id and v.skiptoken < d.mskiptoken)", category, category, category));
+    sqlw.query(fmt::format("delete from {} where verwijderd=1", category));
     cout<<"Done with "<<category <<" - saw "<<numentries<<" new entries"<<endl;
   }
+  cout<<"Link cleanup.."<<endl;
+  sqlw.query("delete from Link where rowid in(select Link.rowid from Link,(select van,naar,linkSoort,max(rowid) as mrowid, count(1) c from Link group by 1,2,3 having c > 1) as t where Link.van=t.van and Link.naar=t.naar and link.linkSoort=t.linkSoort and Link.rowid < mrowid)");
+
 }
