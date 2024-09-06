@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 {
   vector<string> categories={
     "Activiteit", "Agendapunt", "Besluit", "Commissie",
-    "Document", "DocumentActor", "Kamerstukdossier", "Persoon", "PersoonGeschenk",
+    "Document", "DocumentActor", "DocumentVersie", "Kamerstukdossier", "Persoon", "PersoonGeschenk",
     "Stemming", "Toezegging", "Vergadering", "Verslag", "Zaak", "ZaakActor"};
 
   if(argc > 1) {
@@ -487,6 +487,33 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	  category);
 
       }
+      else if(auto child = node.child("content").child("documentVersie")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	string documentId = child.child("document").attribute("ref").value();
+
+	sqlw.addValue({{"id", id}, {"skiptoken",skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, 
+		       {"datum", fields["datum"]},
+		       {"extensie", fields["extensie"]},
+		       {"externeidentifier", fields["externeidentifier"]},
+		       {"status", fields["status"]},
+		       {"versienummer", atoi(fields["versienummer"].c_str())},
+		       {"bestandsgrootte", atoi(fields["bestandsgrootte"].c_str())},
+		       {"documentId", documentId}
+	  },
+	  category);
+
+      }
+
       else if(auto child = node.child("content").child("activiteitActor")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
@@ -520,7 +547,6 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	  category);
 
       }
-
       else if(auto child = node.child("content").child("commissie")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
