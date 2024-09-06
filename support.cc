@@ -53,3 +53,13 @@ bool isPresentNonEmpty(const std::string& id)
     return false;
   return true;
 }
+
+bool isPresentRightSize(const std::string& id, int64_t size)
+{
+  struct stat sb;
+  string fname = makePathForId(id);
+  int ret = stat(fname.c_str(), &sb);
+  if(ret < 0 || sb.st_size != size)
+    return false;
+  return true;
+}

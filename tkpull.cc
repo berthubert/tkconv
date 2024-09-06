@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     cout<<"Starting from a store, got "<<store->size()<<" docs to go"<<endl;
     set<RetStore> toRetrieve;
     for(auto& d : *store) {
-      if(isPresentNonEmpty(get<string>(d["id"])))
+      if(isPresentRightSize(get<string>(d["id"]), get<int64_t>(d["contentLength"]))  )
 	present++;
       else {
 	auto contentLength = get_if<int64_t>(&d["contentLength"]);

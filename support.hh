@@ -64,5 +64,6 @@ struct LockedSqw
 
 std::string makePathForId(const std::string& id);
 bool isPresentNonEmpty(const std::string& id);
+bool isPresentRightSize(const std::string& id, int64_t size);
 bool isPDF(const std::string& fname);
 bool isDocx(const std::string& fname);
