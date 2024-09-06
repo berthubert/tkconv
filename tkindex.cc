@@ -10,15 +10,19 @@
 
 using namespace std;
 
-
-
-string textFromFile(const std::string& fname, bool pdf)
+string textFromFile(const std::string& fname)
 {
   string command;
-  if(pdf)
+  if(isPDF(fname)) {
     command = string("pdftotext -q -nopgbrk - < '") + fname + "' -";
-  else
+  }
+  else if(isDocx(fname)) {
     command = string("pandoc -f docx '"+fname+"' -t plain");
+  }
+  else if(isDoc(fname))
+    command = "catdoc - < '" + fname +"'";
+  else
+    return "";
 
   shared_ptr<FILE> fp(popen(command.c_str(), "r"), pclose);
   if(!fp)
@@ -78,15 +82,9 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	notpresent++;
 	continue;
       }
-      string text;
+      string text = textFromFile(fname);
       
-      if(isPDF(fname)) {
-	text = textFromFile(fname, true);
-      }
-      else if(isDocx(fname)) {
-	text = textFromFile(fname, false);
-      }
-      else {
+      if(text.empty()) {
 	fmt::print("{} is not a file we can deal with\n", fname);
 	wrong++;
 	continue;
