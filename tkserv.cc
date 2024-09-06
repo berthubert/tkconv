@@ -35,6 +35,9 @@ static string getHtmlForDocument(const std::string& id)
   if(isDocx(fname))
     command = fmt::format("pandoc -s -f docx -t html '{}'",
 			  fname);
+  else if(isDoc(fname))
+    command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
+			  fname);
   else
     command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
 
