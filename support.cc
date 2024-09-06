@@ -30,6 +30,11 @@ bool isDocx(const std::string& fname)
   return fileStartsWith(fname, "PK");
 }
 
+bool isDoc(const std::string& fname)
+{
+  return fileStartsWith(fname, "\xd0\xcf\x11\xe0");
+}
+
 
 string makePathForId(const std::string& id)
 {
