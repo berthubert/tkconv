@@ -1,11 +1,16 @@
+function recentInit(f)
+{
+    setInterval(getRecentDocs, 60000, f);
+    getRecentDocs(f);
+}
+
 async function getRecentDocs(f) {
+    
     const response = await fetch('recent-docs');
     if (response.ok === true) {
         const data = await response.json();
         f.recentDocs = data;
-	console.log("It worked!");
-	console.log(f.recentDocs);
-	console.log(data);
+	console.log("Update!");
     }
 }
 
