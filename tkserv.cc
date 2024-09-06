@@ -159,7 +159,8 @@ int main(int argc, char** argv)
 			     get<string>(ret[0]["nummer"]));
 
     
-    string content = R"(<html><meta charset="utf-8">)";
+    string content = "<!doctype html>\n";
+    content += R"(<html><meta charset="utf-8">)";
 
     content += fmt::format(R"(<meta property='og:title' content='{}'>
 <meta property='og:description' content='{}'>
