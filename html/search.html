@@ -21,6 +21,8 @@
 				}" x-init="init($data);">
     <p></p>
     <center>
+      <small>Documenten vanaf 2020-01-01</small>
+      <br/>
     <form @submit.prevent="getSearchResults($data);">
       <input name="q" size="80" placeholder="zoektekst" type="text" x-model="searchQuery" autofocus >
       <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2 maanden</label>

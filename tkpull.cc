@@ -36,8 +36,9 @@ int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
 
-  string limit="2022-01-01";
-  auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ?", {limit});
+  int sizlim = 1600000;
+  string limit="2019-09-01";
+  auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
   limit="2023-01-01";
   auto wantVerslagen = sqlw.queryT("select Verslag.id,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ?", {limit});
 
@@ -53,10 +54,13 @@ int main(int argc, char** argv)
       return id < rhs.id;
     }
   };
-  set<RetStore> toRetrieve;
-  int present=0;
 
+  int present=0;
+  int toolarge=0, retrieved=0;
+  
   for(auto store : {&wantDocs, &wantVerslagen}) {
+    cout<<"Starting from a store, got "<<store->size()<<" docs to go"<<endl;
+    set<RetStore> toRetrieve;
     for(auto& d : *store) {
       if(isPresentNonEmpty(get<string>(d["id"])))
 	present++;
@@ -67,29 +71,32 @@ int main(int argc, char** argv)
       }
     }
     fmt::print("We have {} files to retrieve, {} are already present\n", toRetrieve.size(), present);
-    
+
     for(const auto& need : toRetrieve) {
-      if(!need.contentLength || need.contentLength > 1500000) {
+      if(!need.contentLength || need.contentLength > sizlim) {
+	toolarge++;
 	fmt::print("Skipping {}, too large for server ({}) or unknown\n",
 		   need.id, need.contentLength);
 	continue;
       }
       
       httplib::Client cli("https://gegevensmagazijn.tweedekamer.nl");
-	cli.set_connection_timeout(10, 0); 
-	cli.set_read_timeout(10, 0); 
-	cli.set_write_timeout(10, 0); 
-	
-	fmt::print("Retrieving from {} (expect {} bytes)\n", need.enclosure, need.contentLength);
-	auto res = cli.Get(need.enclosure);
-	
-	if(!res) {
-	  auto err = res.error();
-	  throw runtime_error("Oops retrieving from "+ need.enclosure +" -> "+httplib::to_string(err));
-	}
-	fmt::print("Got {} bytes\n", res->body.size());
-	storeDocument(need.id, res->body);
-	usleep(1000000);
+      cli.set_connection_timeout(10, 0); 
+      cli.set_read_timeout(10, 0); 
+      cli.set_write_timeout(10, 0); 
+      
+      fmt::print("Retrieving from {} (expect {} bytes)\n", need.enclosure, need.contentLength);
+      auto res = cli.Get(need.enclosure);
+      
+      if(!res) {
+	auto err = res.error();
+	throw runtime_error("Oops retrieving from "+ need.enclosure +" -> "+httplib::to_string(err));
+      }
+      fmt::print("Got {} bytes\n", res->body.size());
+      storeDocument(need.id, res->body);
+      retrieved++;
+      usleep(100000);
     }
+    fmt::print("Retrieved {} documents, {} were too large\n", retrieved, toolarge);
   }
 }

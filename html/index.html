@@ -21,7 +21,7 @@
 	<th>Bijgewerkt</th>
 	<th>Nummer</th>
         <th>Onderwerp</th>
-        <th>Titel</th>
+        <th>Titel/Soort</th>
       </tr>
       <template x-for="d in recentDocs">
         <tr>
@@ -29,7 +29,7 @@
 	  <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
 	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
 	  <td x-text="d.onderwerp"></td>
-	  <td x-text="d.titel"></td>
+	  <td x-text="d.titel=='' ? d.soort : d.titel"></td>
         </tr>
       </template>
     </table>

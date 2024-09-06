@@ -55,16 +55,40 @@ static string getHtmlForDocument(const std::string& id)
 }
 
 
+static string getRawDocument(const std::string& id)
+{
+  string fname = makePathForId(id);
+
+  shared_ptr<FILE> fp(fopen(fname.c_str(), "r"), fclose);
+  if(!fp)
+    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(ferror(fp.get()))
+    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  return ret;
+}
+
+
 int main(int argc, char** argv)
 {
-  SQLiteWriter sqlw("tk.sqlite3");
+  SQLiteWriter unlockedsqlw("tk.sqlite3");
+  std::mutex sqwlock;
+  LockedSqw sqlw{unlockedsqlw, sqwlock};
+
   httplib::Server svr;
 
   svr.Get("/getdoc/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"nummer: "<<nummer<<endl;
 
-    auto ret=sqlw.queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+    auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
     if(ret.empty()) {
       res.set_content("Found nothing!!", "text/plain");
       return;
@@ -74,12 +98,28 @@ int main(int argc, char** argv)
     string content = getHtmlForDocument(id);
     res.set_content(content, "text/html");
   });
+
+  svr.Get("/getraw/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string nummer=req.path_params.at("nummer"); // 2023D41173
+    cout<<"nummer: "<<nummer<<endl;
+
+    auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+    if(ret.empty()) {
+      res.set_content("Found nothing!!", "text/plain");
+      return;
+    }
+    string id = get<string>(ret[0]["id"]);
+    fmt::print("'{}'\n", id);
+    string content = getRawDocument(id);
+    res.set_content(content, get<string>(ret[0]["contentType"]));
+  });
+
   
   svr.Get("/get/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
         cout<<"nummer: "<<nummer<<endl;
 
-    auto ret=sqlw.queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+    auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
     if(ret.empty()) {
       res.set_content("Found nothing!!", "text/plain");
       return;
@@ -90,7 +130,7 @@ int main(int argc, char** argv)
     string kamerstuktitel;
     try {
       kamerstukdossierId = get<string>(ret[0]["kamerstukdossierId"]);
-      auto kamerstuk = sqlw.queryT("select * from kamerstukdossier where id=? order by rowid desc limit 1", {kamerstukdossierId});
+      auto kamerstuk = sqlw.query("select * from kamerstukdossier where id=? order by rowid desc limit 1", {kamerstukdossierId});
       if(!kamerstuk.empty()) {
 	kamerstuknummer = get<int64_t>(kamerstuk[0]["nummer"]);
 	kamerstuktitel = get<string>(kamerstuk[0]["titel"]);
@@ -149,7 +189,7 @@ int main(int argc, char** argv)
 
     string documentId=get<string>(ret[0]["id"]);
     try {
-      auto actors = sqlw.queryT("select * from DocumentActor where documentId=?", {documentId});
+      auto actors = sqlw.query("select * from DocumentActor where documentId=?", {documentId});
     if(!actors.empty()) {
       content += "Gerelateerde personen: <ul>";
       for(auto& a: actors)
@@ -165,12 +205,12 @@ int main(int argc, char** argv)
     }
     
     if(!bronDocument.empty()) {
-      auto brondocument = sqlw.queryT("select * from document where id=? order by rowid desc limit 1", {bronDocument});
+      auto brondocument = sqlw.query("select * from document where id=? order by rowid desc limit 1", {bronDocument});
       if(!brondocument.empty())
 	content += "<p>Dit document is een bijlage bij <a href='"+get<string>(brondocument[0]["nummer"])+"'> " + get<string>(brondocument[0]["nummer"])+ "</a> '"+get<string>(brondocument[0]["onderwerp"])+"'</p>";
     }
 
-    auto bijlagen = sqlw.queryT("select * from document where bronDocument=?", {documentId});
+    auto bijlagen = sqlw.query("select * from document where bronDocument=?", {documentId});
     if(!bijlagen.empty()) {
       content+="<p>Dit document heeft de volgende bijlagen: <ul>";
       for(auto& b: bijlagen) {
@@ -183,12 +223,12 @@ int main(int argc, char** argv)
       }
       content+="</ul></p>";
     }
-    auto zlinks = sqlw.queryT("select distinct(naar) as naar from Link where van=? and category='Document' and linkSoort='Zaak'", {documentId});
+    auto zlinks = sqlw.query("select distinct(naar) as naar from Link where van=? and category='Document' and linkSoort='Zaak'", {documentId});
     set<string> actids;
     for(auto& zlink : zlinks) {
       string zaakId = get<string>(zlink["naar"]);
 
-      auto zactors = sqlw.queryT("select * from ZaakActor where zaakId=?", {zaakId});
+      auto zactors = sqlw.query("select * from ZaakActor where zaakId=?", {zaakId});
       if(!zactors.empty()) {
 	content+="<p>Zaak-gerelateerde data: <ul>";
 	for(auto& z: zactors) {
@@ -202,7 +242,7 @@ int main(int argc, char** argv)
 	  content += "</li>";
 	  
 	}
-	auto reldocs = sqlw.queryT("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId});
+	auto reldocs = sqlw.query("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId});
 	for(auto& rd : reldocs) {
 	  if(get<string>(rd["id"]) != documentId)
 	    content+= "<li>"+get<string>(rd["soort"])+ " <a href='"+get<string>(rd["nummer"])+"'>" +get<string>(rd["onderwerp"]) +" (" + get<string>(rd["nummer"])+")</a></li>";
@@ -210,14 +250,14 @@ int main(int argc, char** argv)
 	content+="</ul></p>";
       }
     
-      auto besluiten = sqlw.queryT("select * from besluit where zaakid=? and verwijderd = 0 order by rowid", {zaakId});
+      auto besluiten = sqlw.query("select * from besluit where zaakid=? and verwijderd = 0 order by rowid", {zaakId});
       set<string> agendapuntids;
       for(auto& b: besluiten) {
 	agendapuntids.insert(get<string>(b["agendapuntId"]));
       }
       
       for(auto& agendapuntid : agendapuntids) {
-	auto agendapunten = sqlw.queryT("select * from Agendapunt where id = ?", {agendapuntid});
+	auto agendapunten = sqlw.query("select * from Agendapunt where id = ?", {agendapuntid});
 	for(auto& agendapunt: agendapunten)
 	  actids.insert(get<string>(agendapunt["activiteitId"]));
       }
@@ -225,7 +265,7 @@ int main(int argc, char** argv)
     if(!actids.empty()) {
       content += "<p></p>Onderdeel van de volgende activiteiten:\n<ul>";
       for(auto& actid : actids) {
-	auto activiteit = sqlw.queryT("select * from Activiteit where id = ? order by rowid desc limit 1", {actid});
+	auto activiteit = sqlw.query("select * from Activiteit where id = ? order by rowid desc limit 1", {actid});
 	auto g = [&activiteit](const string& s) {
 	  return get<string>(activiteit[0][s]);
 	};
@@ -236,41 +276,44 @@ int main(int argc, char** argv)
       }
       content += "</ul>";
     }
-    content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
+    //     https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Resources/ceac1329-435f-4235-b5c4-410f135b74cf
+    if(get<string>(ret[0]["contentType"])=="application/pdf")
+      content += "<iframe width='95%'  height='1024' src='../getraw/"+nummer+"'></iframe>";
+    else
+      content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
+
     
     content += "</body></html>";
     res.set_content(content, "text/html");
   });
 
   svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.queryT("select * from Document where bronDocument='' order by datum desc limit 80");
+    auto docs = sqlw.query("select * from Document where bronDocument='' order by datum desc limit 80");
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} docs\n", docs.size());
   });
-  
-  svr.Get("/search/:term", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    string term=req.path_params.at("term");
-    SQLiteWriter idx("tkindex.sqlite3");
-    idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
-    cout<<"Search: '"<<term<<"'\n";
-    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE tekst MATCH ? and docsearch.uuid = Document.id order by bm25(docsearch) limit 40", {term});
-    fmt::print("Got {} matches\n", matches.size());
-    res.set_content(packResultsJsonStr(matches), "application/json");
-  });
+
 
   svr.Post("/search", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string term = req.get_file_value("q").content;
     string twomonths = req.get_file_value("twomonths").content;
-    string limit = "2000-01-01";
+    string limit = "2019-11-01";
     if(twomonths=="true")
-      limit = "2024-07-05";
+      limit = "2024-07-06";
+
+    // turn COVID-19 into "COVID-19" and A.W.R. Hubert into "A.W.R. Hubert"
+    if(term.find_first_of(".-") != string::npos  && term.find('"')==string::npos) {
+      cout<<"fixing up"<<endl;
+      term = "\"" + term + "\"";
+    }
+
     
     SQLiteWriter idx("tkindex.sqlite3");
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     cout<<"Search: '"<<term<<"'\n";
     DTime dt;
     dt.start();
-    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE tekst MATCH ? and docsearch.uuid = Document.id and datum > ? order by bm25(docsearch) limit 40", {term, limit});
+    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by bm25(docsearch) limit 40", {term, limit});
     auto usec = dt.lapUsec();
     
     fmt::print("Got {} matches\n", matches.size());
@@ -291,6 +334,7 @@ int main(int argc, char** argv)
     } catch (...) { // See the following NOTE
       snprintf(buf, sizeof(buf), fmt, "Unknown Exception");
     }
+    cout<<"Error: '"<<buf<<"'"<<endl;
     res.set_content(buf, "text/html");
     res.status = 500; 
   });

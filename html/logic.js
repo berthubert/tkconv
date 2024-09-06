@@ -14,11 +14,12 @@ function init(f)
 {
     let url = new URL(window.location.href)
     f.searchQuery = url.searchParams.get("q");
-    if(url.searchParams.get("twomonths")=="on")
+    if(url.searchParams.get("twomonths")=="true")
 	f.twomonths=true;
     else
 	f.twomonths=false;
-    getSearchResults(f);
+    if(f.searchQuery != null)
+	getSearchResults(f);
 }
 
 async function getSearchResults(f)
@@ -39,5 +40,9 @@ async function getSearchResults(f)
 	
 	f.message = `${data["milliseconds"]} milliseconden`;
 	console.log(data);
+    }
+    else {
+	f.foundDocs=[];
+	f.message = `Geen resultaten - probeer "${f.searchQuery}"`;
     }
 }

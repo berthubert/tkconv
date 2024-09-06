@@ -16,7 +16,7 @@ string textFromFile(const std::string& fname, bool pdf)
 {
   string command;
   if(pdf)
-    command = string("pdftotext - < '") + fname + "' -";
+    command = string("pdftotext -q -nopgbrk - < '") + fname + "' -";
   else
     command = string("pandoc -f docx '"+fname+"' -t plain");
 
@@ -41,14 +41,16 @@ string textFromFile(const std::string& fname, bool pdf)
 int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
-  string limit="2023-01-01";
+  string limit="2019-10-01";
   auto wantDocs = todo.queryT("select id,titel,onderwerp from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());
   
   SQLiteWriter sqlw("tkindex.sqlite3");
 
-  sqlw.queryT("CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, uuid UNINDEXED)");
+  sqlw.queryT(R"(
+CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, uuid UNINDEXED, tokenize="unicode61 tokenchars '_'")
+)");
 
   auto already = sqlw.queryT("select uuid from docsearch");
   unordered_set<string> skipids;
@@ -66,13 +68,13 @@ int main(int argc, char** argv)
     for(unsigned int n = ctr++; n < wantDocs.size(); n = ctr++) {
       string id = get<string>(wantDocs[n]["id"]);
       if(skipids.count(id)) {
-	fmt::print("{} indexed already, skipping\n", id);
+	//	fmt::print("{} indexed already, skipping\n", id);
 	skipped++;
 	continue;
       }
       string fname = makePathForId(id);
       if(!isPresentNonEmpty(id)) {
-	fmt::print("{} is not present\n", id);
+	//	fmt::print("{} is not present\n", id);
 	notpresent++;
 	continue;
       }

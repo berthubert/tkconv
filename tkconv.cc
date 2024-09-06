@@ -295,7 +295,7 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	  
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"functie", fields["functie"]},
-		       {"intialen", fields["initialen"]},
+		       {"initialen", fields["initialen"]},
 		       {"tussenvoegsel", fields["tussenvoegsel"]},
 		       {"achternaam", fields["achternaam"]},
 		       {"voornamen", fields["voornamen"]},
