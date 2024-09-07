@@ -41,9 +41,11 @@ static string getHtmlForDocument(const std::string& id)
   else
     command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
 
-  shared_ptr<FILE> fp(popen(command.c_str(), "r"), pclose);
-  if(!fp)
-    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  FILE* pfp = popen(command.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to perform conversion for '"+command+"': "+string(strerror(errno)));
+  
+  shared_ptr<FILE> fp(pfp, pclose);
   char buffer[4096];
   string ret;
   for(;;) {
@@ -61,10 +63,11 @@ static string getHtmlForDocument(const std::string& id)
 static string getRawDocument(const std::string& id)
 {
   string fname = makePathForId(id);
+  FILE* pfp = fopen(fname.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to get raw document "+id+": "+string(strerror(errno)));
 
-  shared_ptr<FILE> fp(fopen(fname.c_str(), "r"), fclose);
-  if(!fp)
-    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  shared_ptr<FILE> fp(pfp, fclose);
   char buffer[4096];
   string ret;
   for(;;) {
@@ -291,8 +294,31 @@ int main(int argc, char** argv)
     res.set_content(content, "text/html");
   });
 
+
+  svr.Get("/open-toezeggingen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    
+    auto docs = sqlw.query("select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger,activiteit.datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} docs\n", docs.size());
+  });
+
+  
   svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select * from Document where bronDocument='' order by datum desc limit 80");
+    
+    auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document,Link,Zaak,ZaakActor where bronDocument='' and Document.id=link.van and zaak.id = link.naar and ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' order by datum desc limit 80");
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} docs\n", docs.size());
+  });
+
+  svr.Get("/unplanned-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto docs = sqlw.query("select * from Activiteit where datum='' order by updated desc"); // XXX hardcoded date
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} docs\n", docs.size());
+  });
+
+  svr.Get("/future-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-07' order by datum asc"); // XX hardcoded date
+
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} docs\n", docs.size());
   });

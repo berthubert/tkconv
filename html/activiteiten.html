@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>tkconv</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <!-- opengraph -->
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]</small></center>
+
+  <div id="recent-docs" x-data="{
+				recentActiviteiten: []
+				}" x-init="getRecentActiviteiten($data);">
+    <table>
+      <tr>
+        <th>Datum</th>
+	<th>Zaal</th>
+	<th>Commissie</th>
+        <th>Onderwerp</th>
+        <th>Titel/Soort</th>
+      </tr>
+      <template x-for="d in recentActiviteiten">
+        <tr>
+          <td x-text="d.datum.replace('T', '&nbsp;')"></td>
+	  <td x-text="d.naam"></td>
+	  <!--<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td> -->
+	  <!--	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td> -->
+	  <td x-text="d.voortouwAfkorting"></td>
+	  <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.nummer + '>' + d.onderwerp +'</a>'"></td>	  
+	  <td x-html="d.noot"></td>
+        </tr>
+      </template>
+    </table>
+  </div>
+</body>

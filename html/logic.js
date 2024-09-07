@@ -14,6 +14,34 @@ async function getRecentDocs(f) {
     }
 }
 
+async function getRecentActiviteiten(f) {
+    
+    const response = await fetch('future-activities');
+    if (response.ok === true) {
+        const data = await response.json();
+        f.recentActiviteiten = data;
+    }
+}
+
+async function getOngeplandeActiviteiten(f) {
+    
+    const response = await fetch('unplanned-activities');
+    if (response.ok === true) {
+        const data = await response.json();
+        f.ongeplandeActiviteiten = data;
+    }
+}
+
+
+async function getOpenToezeggingen(f) {
+    
+    const response = await fetch('open-toezeggingen');
+    if (response.ok === true) {
+        const data = await response.json();
+        f.openToezeggingen = data;
+    }
+}
+
 
 function init(f)
 {

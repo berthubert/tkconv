@@ -12,6 +12,7 @@
 </head>
 
 <body>
+  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="activiteiten.html">activiteiten</a>]</small></center>
   <div id="recent-docs" x-data="{
 				recentDocs: []
 				}" x-init="recentInit($data);">
@@ -19,6 +20,7 @@
       <tr>
         <th>Datum</th>
 	<th>Bijgewerkt</th>
+	<th>Commissie</th>
 	<th>Nummer</th>
         <th>Onderwerp</th>
         <th>Titel/Soort</th>
@@ -27,6 +29,7 @@
         <tr>
           <td x-text="d.datum.substring(0,10)"></td>
 	  <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+	  <td x-text="d.afkorting"></td>
 	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
 	  <td x-text="d.onderwerp"></td>
 	  <td x-text="d.titel=='' ? d.soort : d.titel"></td>

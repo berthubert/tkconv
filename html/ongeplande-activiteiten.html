@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>tkconv</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <!-- opengraph -->
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="activiteiten.html">geplande activiteiten</a>]</small><br/><big>Activiteiten (nog) zonder geplande datum</big></center>
+<p></p></center>
+
+  <div id="recent-docs" x-data="{
+				ongeplandeActiviteiten: []
+				}" x-init="getOngeplandeActiviteiten($data);">
+    <table>
+      <tr>
+        <th>Bijgewerkt</th>
+	<th>Commissie</th>
+	<th>Soort</th>
+        <th>Onderwerp</th>
+        <th>Titel</th>
+      </tr>
+      <template x-for="d in ongeplandeActiviteiten">
+        <tr>
+          <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+
+	  <td x-text="d.voortouwAfkorting"></td>
+	  <td x-text="d.soort"></td>
+	  <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.nummer + '>' + d.onderwerp +'</a>'"></td>	  
+	  <td x-html="d.noot"></td>
+        </tr>
+      </template>
+    </table>
+  </div>
+</body>

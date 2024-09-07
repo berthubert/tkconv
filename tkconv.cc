@@ -10,8 +10,12 @@ int main(int argc, char** argv)
 {
   vector<string> categories={
     "Activiteit", "Agendapunt", "Besluit", "Commissie",
-    "Document", "DocumentActor", "DocumentVersie", "Kamerstukdossier", "Persoon", "PersoonGeschenk",
-    "Stemming", "Toezegging", "Vergadering", "Verslag", "Zaak", "ZaakActor"};
+    "Document", "DocumentActor", "DocumentVersie", "Fractie",
+    "Kamerstukdossier", "Persoon",
+    "PersoonGeschenk", "Reservering",
+    "Stemming", "Toezegging", "Vergadering", "Verslag", "Zaak", "ZaakActor",
+    "Zaal"
+  };
 
   if(argc > 1) {
     categories.clear();
@@ -315,6 +319,33 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	    
 	  category);
       }
+      else if(auto child = node.child("content").child("fractie")) { 
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	  
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	// {"aantalStemmen": 66, "aantalZetels": 62, "afkorting": 100, "datumActief": 100, "datumInactief": 73, "naamEn": 100, "naamNl": 100, "nummer": 100}
+ 
+	
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, 
+		       {"afkorting", fields["afkorting"]},
+		       {"datumActief", fields["datumActief"]},
+		       {"datumInactief", fields["datumInactief"]},
+		       {"naamEn", fields["naamEn"]},
+		       {"naam", fields["naamNl"]},
+		       {"nummer", atoi(fields["nummer"].c_str())},		       
+		       {"aantalStemmen", atoi(fields["aantalStemmen"].c_str())},
+		       {"aantalZetels", atoi(fields["aantalZetels"].c_str())}
+	  },	    
+	  category);
+      }
       else if(auto child = node.child("content").child("besluit")) { 
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
@@ -374,8 +405,53 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 		       {"vergissing", fields["vergissing"]}
 	  },
 	  category);
+      }
+      else if(auto child = node.child("content").child("reservering")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
 	  
+	string activiteitId = child2.child("activiteit").attribute("ref").value();
+	string zaalId = child2.child("zaal").attribute("ref").value();
+
+	// {"activiteitNummer": 100, "nummer": 100, "statusCode": 38, "statusNaam": 38}
+	
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, {"nummer", fields["nummer"]},
+		       {"statusCode", fields["statusCode"]},
+		       {"statusNaam", fields["statusNaam"]},
+		       {"activiteitId", activiteitId},
+		       {"zaalId", zaalId},
+		       {"activiteitNummer", fields["activiteitNummer"]}
+	  },
+	  category);
+      }
+      else if(auto child = node.child("content").child("zaal")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
 	  
+	// {"naam": 100, "sysCode": 100}
+
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, {"naam", fields["naam"]},
+		       {"sysCode", fields["sysCode"]}
+	  },
+	  category);
       }
       else if(auto child = node.child("content").child("documentActor")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
