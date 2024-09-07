@@ -32,6 +32,16 @@ async function getOngeplandeActiviteiten(f) {
     }
 }
 
+async function getGen(orig, dest, f) {
+    
+    const response = await fetch(orig);
+    if (response.ok === true) {
+        const data = await response.json();
+        f[dest] = data;
+    }
+}
+
+
 
 async function getOpenToezeggingen(f) {
     

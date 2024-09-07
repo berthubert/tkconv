@@ -310,8 +310,17 @@ int main(int argc, char** argv)
     fmt::print("Returned {} docs\n", docs.size());
   });
 
+  // select * from persoonGeschenk, Persoon where Persoon.id=persoonId order by Datum desc
+
+  svr.Get("/geschenken", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto docs = sqlw.query("select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by Datum desc"); 
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} geschenken\n", docs.size());
+  });
+
+  
   svr.Get("/unplanned-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select * from Activiteit where datum='' order by updated desc"); // XXX hardcoded date
+    auto docs = sqlw.query("select * from Activiteit where datum='' order by updated desc"); 
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} docs\n", docs.size());
   });
