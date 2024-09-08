@@ -1,5 +1,5 @@
 # Tools om de Tweede Kamer open data te gebruiken
-bert@hubertnet.nl / https://berthub.eu/
+bert hubert / bert@hubertnet.nl / https://berthub.eu/
 
 Om te beginnen grote dank aan het [Team Open Data van Tweede Kamer](https://opendata.tweedekamer.nl/) voor het
 beschikbaar stellen van zulke overweldigende hoeveelheden open data!  Ook
@@ -55,6 +55,13 @@ Dit project bestaat uit de volgende tools:
  * tkserve: steelt de data uit de sqlite database beschikbaar, en voert
    zoekslagen uit op de database gemaakt door tkindex
  * tkbot: nog experimenteler dan de rest, detecteert "nieuwe" documenten
+
+# Toegang tot de data
+Je kan de software zelf compileren en draaien en dan haalt hij alles op bij
+de Tweede Kamer. Ik kan je ook een kopie geven van de sqlite database zodat
+je je eigen onderzoek kan doen zonder software. Weet me te vinden!
+bert@hubertnet.nl - let wel op, m'n gratis hulp is alleen voor organisaties
+van publiek belang. 
 
 # Architectuur
 Vrijwel al het zware werk wordt gedaan door sqlite3, inclusief de
