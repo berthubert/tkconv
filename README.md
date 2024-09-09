@@ -49,12 +49,32 @@ Dit project bestaat uit de volgende tools:
 
  * tkgetxml: volgt de SyncFeed API en slaat XML entries op voor alle
    categorieen data
- * tkconv: zet de meeste typen entries om tot regels in een sqlite database
+ * tkconv: zet de meeste typen entries om tot regels in een sqlite database, en voert ook onderhoud op om gewiste documenten ook echt te verwijderen. Voert ook wat zwaardere queries uit zodat ze klaar zijn voor tkserve (zie beneden).
  * tkpull: haalt de 'enclosures' uit de entries met daarin documenten op
  * tkindex: indexeert alle Document entries waarvan we een enclosure hebben
- * tkserve: steelt de data uit de sqlite database beschikbaar, en voert
+ * tkserve: stelt de data uit de sqlite database beschikbaar, en voert
    zoekslagen uit op de database gemaakt door tkindex
  * tkbot: nog experimenteler dan de rest, detecteert "nieuwe" documenten
+
+# Pagina's
+
+ * index.html: nieuwste documenten, minus de bijlagen 
+ * search.html: zoeken
+ * geschenken.html: de nieuwste geschenken
+ * ongeplande-activiteiten.html: activiteiten nog zonder datum
+ * activiteiten.html: komende activiteiten, met datum
+ * toezeggingen.html: alle openstaande toezeggingen van regering
+
+# Syntax voor de zoekmachine
+Losse woorden: moeten allemaal aanwezig zijn, maar niet noodzakelijk naast elkaar.
+
+"Ieder" "woord" "mag" ook tussen aanhalingstekens. Dit is verplicht bij "woorden-met-een-streepje". Als je zoekt op alleen F-35 dan voegt de software de " voor je toe.
+
+Als je twee woorden bij elkaar in de buurt wil, zoek dan op NEAR(prof Smeeets)
+
+Woorden kunnen geschakeld worden met AND, OR en NOT. Bijvoorbeeld: Hubert NOT Bruls
+
+Ook kan er gezocht worden op prefixes, bijvoorbeeld: HOL0\* 
 
 # Toegang tot de data
 Je kan de software zelf compileren en draaien en dan haalt hij alles op bij
@@ -62,6 +82,13 @@ de Tweede Kamer. Ik kan je ook een kopie geven van de sqlite database zodat
 je je eigen onderzoek kan doen zonder software. Weet me te vinden!
 bert@hubertnet.nl - let wel op, m'n gratis hulp is alleen voor organisaties
 van publiek belang. 
+
+# Compileren
+Vergt een moderne linux/unix met een sqlite installatie, plus libnlohmann
+Begin met: meson setup build
+En dan bouwen als: meson compile -C build
+
+TBC
 
 # Architectuur
 Vrijwel al het zware werk wordt gedaan door sqlite3, inclusief de
@@ -89,5 +116,3 @@ vinden, hoe dan?
 Een motie is een Document, met ALTIJD een kamerstukdossierid
 
 
-# cleanup 
-hoe dan? alleen nieuwste versie van een id bewaren
