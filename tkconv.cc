@@ -11,8 +11,10 @@ int main(int argc, char** argv)
   vector<string> categories={
     "Activiteit", "Agendapunt", "Besluit", "Commissie",
     "Document", "DocumentActor", "DocumentVersie", "Fractie",
+    "FractieZetel", "FractieZetelPersoon",
     "Kamerstukdossier", "Persoon",
-    "PersoonGeschenk", "Reservering",
+    "PersoonGeschenk", "PersoonNevenfunctie", "PersoonNevenfunctieInkomsten",
+    "PersoonReis", "Reservering",
     "Stemming", "Toezegging", "Vergadering", "Verslag", "Zaak", "ZaakActor",
     "Zaal"
   };
@@ -123,7 +125,8 @@ int main(int argc, char** argv)
 	string aanhangselnummer = child.child("aanhangselnummer").child_value();
 	string documentNummer = child.child("documentNummer").child_value();
 	string citeerTitel = child.child("citeerTitel").child_value();
-
+	string datumRegistratie = child.child("datumRegistratie").child_value();
+	string datumOntvangst = child.child("datumOntvangst").child_value();
 	string huidigeDocumentVersieId = child.child("huidigeDocumentVersie").attribute("ref").value();
 	string bronDocument = child.child("bronDocument").attribute("ref").value();
 	string agendapuntId = child.child("agendapunt").attribute("ref").value();
@@ -141,7 +144,7 @@ int main(int argc, char** argv)
 	repl("Activiteit");
 	repl("Zaak");
 	
-	sqlw.addValue({{"id", id},  {"skiptoken", skiptoken}, {"nummer", documentNummer}, {"agendapuntId", agendapuntId}, {"soort", soort}, {"onderwerp", onderwerp}, {"datum", datum}, {"enclosure", enclosure}, {"bronDocument", bronDocument}, {"updated", updated}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt}, {"kamerstukdossierId", kamerstukdossierId}, {"volgnummer", volgnummer}, {"titel", titel}, {"citeerTitel", citeerTitel}, {"contentLength", contentLength}, {"contentType", contentType}, {"huidigeDocumentVersieId", huidigeDocumentVersieId}, {"vergaderjaar", vergaderjaar}, {"aanhangselnummer", aanhangselnummer}}, category);
+	sqlw.addValue({{"id", id},  {"skiptoken", skiptoken}, {"nummer", documentNummer}, {"agendapuntId", agendapuntId}, {"soort", soort}, {"onderwerp", onderwerp}, {"datum", datum}, {"enclosure", enclosure}, {"bronDocument", bronDocument}, {"updated", updated}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt}, {"kamerstukdossierId", kamerstukdossierId}, {"volgnummer", volgnummer}, {"titel", titel}, {"citeerTitel", citeerTitel}, {"contentLength", contentLength}, {"contentType", contentType}, {"huidigeDocumentVersieId", huidigeDocumentVersieId}, {"vergaderjaar", vergaderjaar}, {"aanhangselnummer", aanhangselnummer},{"datumRegistratie", datumRegistratie}, {"datumOntvangst", datumOntvangst}}, category);
       }
       else if(auto child = node.child("content").child("zaak")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
@@ -453,6 +456,134 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	  },
 	  category);
       }
+      else if(auto child = node.child("content").child("persoonReis")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	  
+	//	{"bestemming": 100, "betaaldDoor": 99, "doel": 99, "gewicht": 100, "totEnMet": 99, "van": 99}
+	string persoonId = child2.child("persoon").attribute("ref").value();
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, {"bestemming", fields["bestemming"]},
+		       {"betaaldDoor", fields["betaaldDoor"]},
+		       {"doel", fields["doel"]},
+		       {"gewicht", atoi(fields["gewicht"].c_str())},
+		       {"van", fields["van"]},
+		       {"totEnMet", fields["totEnMet"]},
+		       {"persoonId", persoonId}
+
+		       
+	  },
+	  category);
+      }
+      else if(auto child = node.child("content").child("persoonNevenfunctie")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	//{"gewicht": 100, "isActief": 9, "omschrijving": 100}
+	//Hasref: {"persoon"}
+
+	string persoonId = child2.child("persoon").attribute("ref").value();
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, {"omschrijving", fields["omschrijving"]},
+		       {"gewicht", atoi(fields["gewicht"].c_str())},
+		       {"isActief", fields["isActief"]},
+		       {"persoonId", persoonId}
+	  },
+	  category);
+      }
+      else if(auto child = node.child("content").child("persoonNevenfunctieInkomsten")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	/*
+{"bedrag": 75, "bedragAchtervoegsel": 0, "bedragSoort": 69, "bedragValuta": 96, "bedragVoorvoegsel": 12, "frequentie": 52, "frequentieBeschrijving": 2, "jaar": 100, "opmerking": 33}
+Multi: {}
+Hasref: {"persoonNevenfunctie"}
+	*/
+	//Hasref: {"persoon"}
+
+	string persoonNevenFunctieId = child2.child("persoonNevenfunctie").attribute("ref").value();
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, {"bedrag", atof(fields["bedrag"].c_str())},
+		       {"bedragAchtervoegsel", fields["bedragAchtervoegsel"]},
+		       {"bedragVoorvoegsel", fields["bedragVoorvoegsel"]},
+		       {"bedragSoort", fields["bedragSoort"]},
+		       {"bedragValuta", fields["bedragValuta"]},
+		       {"frequentie", fields["frequentie"]},
+		       {"frequentieBeschrijving", fields["frequentieBeschrijving"]},
+		       {"jaar", atoi(fields["jaar"].c_str())},
+		       {"opmerking", fields["opmerking"]},
+		       {"persoonNevenFunctieId", persoonNevenFunctieId}
+	  },
+	  category);
+      }
+      else if(auto child = node.child("content").child("fractieZetel")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	//{"gewicht": 100}
+	// Hasref: {"fractie"}
+
+	string fractieId = child2.child("fractie").attribute("ref").value();
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, 
+		       {"gewicht", atoi(fields["gewicht"].c_str())},
+		       {"fractieId", fractieId}
+	  },
+	  category);
+      }
+      else if(auto child = node.child("content").child("fractieZetelPersoon")) {
+	if(child.attribute("tk:verwijderd").value() == string("true")) {
+	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
+	  continue;
+	}
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	//{"functie": 100, "totEnMet": 86, "van": 100}
+	//Hasref: {"fractieZetel", "persoon"}
+
+	string fractieZetelId = child2.child("fractieZetel").attribute("ref").value();
+	string persoonId = child2.child("persoon").attribute("ref").value();
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, 
+		       {"gewicht", atoi(fields["gewicht"].c_str())},
+		       {"functie", fields["functie"]},
+		       {"van", fields["van"]},
+		       {"totEnMet", fields["totEnMet"]},
+		       {"fractieZetelId", fractieZetelId},
+		       {"persoonId", persoonId}
+	  },
+	  category);
+      }
+
       else if(auto child = node.child("content").child("documentActor")) {
 	if(child.attribute("tk:verwijderd").value() == string("true")) {
 	  sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", true}, {"updated", updated}}, category);
@@ -659,4 +790,8 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
   cout<<"Link cleanup.."<<endl;
   sqlw.query("delete from Link where rowid in(select Link.rowid from Link,(select van,naar,linkSoort,max(rowid) as mrowid, count(1) c from Link group by 1,2,3 having c > 1) as t where Link.van=t.van and Link.naar=t.naar and link.linkSoort=t.linkSoort and Link.rowid < mrowid)");
 
+  cout<<"Render queries.. "<<endl;
+  sqlw.query("drop table openvragen");
+  sqlw.query(R"(create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort="Schriftelijke vragen") as numvragen, count(1) filter (where Document.soort like "Antwoord schriftelijke vragen%" or (Document.soort="Mededeling" and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden, count(1) filter (where Document.soort like '%uitstel%') as numuitstel  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > '2019-09-09' group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc)");
+  
 }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>tkconv</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <!-- opengraph -->
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+    <div id="recent-docs" x-data="{
+				besluiten: []
+				}" x-init="getGen('future-besluiten', 'besluiten', $data);">
+      
+  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big>Aankomende besluiten
+  </big></center>
+<p></p></center>
+
+    <table>
+      <tr>
+        <th>Datum</th>
+	<th>Nummer</th>
+	<th>Titel</th>
+	<th>Zaak</th>
+	<th>Indiener</th>
+      </tr>
+      <template x-for="d in besluiten">
+        <tr>
+          <td x-text="d.datum.substring(0,10)"></td>
+	  <td x-text="`${d.anummer}-${d.volg}`"></td>
+	  <td x-html="d.aonderwerp"></td>
+	  <td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
+	  <td x-text="d.indiener"></td>
+        </tr>
+      </template>
+    </table>
+  </div>
+</body>

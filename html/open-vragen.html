@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>tkconv</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <!-- opengraph -->
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+    <div id="recent-docs" x-data="{
+				openVragen: []
+				}" x-init="getGen('open-vragen', 'openVragen', $data);">
+      
+  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big><span x-text="openVragen.length"></span> nog open kamervragen afgelopen 5 jaar
+  </big></center>
+<p></p></center>
+
+    <table>
+      <tr>
+        <th>Datum</th>
+	<th>Onderwerp</th>
+	<th>1e Indiener</th>
+	<th>Aan</th>
+	<th>Uitstel</th>
+      </tr>
+      <template x-for="d in openVragen">
+        <tr>
+          <td x-text="d.gestartOp.substring(0,10)"></td>
+	  <td x-html="'<a href=get/'+d.docunummer+'>' + d.onderwerp +'</a>'"></td>
+	  <td x-text="d.indiener"></td>
+	  <td x-text="d.aan.replace('minister van', '').replace('minister voor', '').replace('staatssecretaris van', '')"></td>
+	  <td x-text="d.numuitstel > 0 ? 'Ja' : ''"></td>
+        </tr>
+      </template>
+    </table>
+  </div>
+</body>

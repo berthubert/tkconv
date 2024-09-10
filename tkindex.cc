@@ -13,8 +13,10 @@ using namespace std;
 string textFromFile(const std::string& fname)
 {
   string command;
+  bool ispdf = false;
   if(isPDF(fname)) {
     command = string("pdftotext -q -nopgbrk - < '") + fname + "' -";
+    ispdf = true;
   }
   else if(isDocx(fname)) {
     command = string("pandoc -f docx '"+fname+"' -t plain");
@@ -23,20 +25,29 @@ string textFromFile(const std::string& fname)
     command = "catdoc - < '" + fname +"'";
   else
     return "";
-
-  shared_ptr<FILE> fp(popen(command.c_str(), "r"), pclose);
-  if(!fp)
-    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
-  char buffer[4096];
   string ret;
-  for(;;) {
-    int len = fread(buffer, 1, sizeof(buffer), fp.get());
-    if(!len)
+  for(int tries = 0; tries < 1; ++tries) {
+    FILE* pfp = popen(command.c_str(), "r");
+    if(!pfp)
+      throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+    shared_ptr<FILE> fp(pfp, pclose);
+
+    char buffer[4096];
+
+    for(;;) {
+      int len = fread(buffer, 1, sizeof(buffer), fp.get());
+      if(!len)
+	break;
+      ret.append(buffer, len);
+    }
+    if(ferror(fp.get()))
+      throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+    if(!ispdf || !ret.empty())
       break;
-    ret.append(buffer, len);
+    fmt::print("Doing attempt to OCR this PDF {}\n", fname);
+    command = fmt::format("ocrmypdf -l nld+eng -j 1 {} - | pdftotext - -", fname);
   }
-  if(ferror(fp.get()))
-    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  
   return ret;
 }
 
@@ -45,7 +56,7 @@ string textFromFile(const std::string& fname)
 int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
-  string limit="2018-01-01";
+  string limit="2008-01-01";
   auto wantDocs = todo.queryT("select id,titel,onderwerp from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());

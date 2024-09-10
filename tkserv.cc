@@ -105,6 +105,9 @@ int main(int argc, char** argv)
     res.set_content(content, "text/html");
   });
 
+  // hoe je de fractienaam krijgt bij een persoonId:
+  //  select f.afkorting from FractieZetelPersoon fzp,FractieZetel fz,Fractie f, Persoon p where fzp.fractieZetelId = fz.id and fzp.persoonId = p.id and p.id = ?
+  
   svr.Get("/getraw/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"nummer: "<<nummer<<endl;
@@ -118,6 +121,58 @@ int main(int argc, char** argv)
     fmt::print("'{}'\n", id);
     string content = getRawDocument(id);
     res.set_content(content, get<string>(ret[0]["contentType"]));
+  });
+
+
+  svr.Get("/zaak/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string nummer = req.path_params.at("nummer");
+    nlohmann::json z = nlohmann::json::object();
+    auto zaken = sqlw.query("select * from zaak where nummer=?", {nummer});
+    if(zaken.empty()) {
+      res.status = 404;
+      return;
+    }
+    z["zaak"] = packResultsJson(zaken)[0];
+    string zaakid = z["zaak"]["id"];
+    cout<<"Id: '"<<zaakid<<"'\n";
+    z["actors"] = sqlw.queryJRet("select * from zaakactor where zaakId=?", {zaakid});
+
+    // Multi: {"activiteit", "agendapunt", "gerelateerdVanuit", "vervangenVanuit"}
+    // Hasref: {"activiteit", "agendapunt", "gerelateerdVanuit", "kamerstukdossier", "vervangenVanuit"}
+
+
+    z["activiteiten"] = sqlw.queryJRet("select * from Activiteit,Link where Link.van=? and Activiteit.id=link.naar", {zaakid});
+    z["agendapunten"] = sqlw.queryJRet("select * from Agendapunt,Link where Link.van=? and Agendapunt.id=link.naar", {zaakid});
+    for(auto &d : z["agendapunten"]) {
+      d["activiteit"] = sqlw.queryJRet("select * from Activiteit where id=?", {(string)d["activiteitId"]})[0];
+    }
+
+    z["gerelateerd"] = sqlw.queryJRet("select * from Zaak,Link where Link.van=? and Zaak.id=link.naar and linkSoort='gerelateerdVanuit'", {zaakid});
+    z["vervangenVanuit"] = sqlw.queryJRet("select * from Zaak,Link where Link.van=? and Zaak.id=link.naar and linkSoort='vervangenVanuit'", {zaakid});
+    z["vervangenDoor"] = sqlw.queryJRet("select * from Zaak,Link where Link.naar=? and Zaak.id=link.van and linkSoort='vervangenVanuit'", {zaakid});
+    
+    z["docs"] = sqlw.queryJRet("select * from Document,Link where Link.naar=? and Document.id=link.van order by datum desc", {zaakid});
+    for(auto &d : z["docs"]) {
+      cout<< d["id"] << endl;
+      string docid = d["id"];
+      d["actors"]=sqlw.queryJRet("select * from DocumentActor where documentId=?", {docid});
+    }
+
+    z["kamerstukdossier"]=sqlw.queryJRet("select * from kamerstukdossier where id=?",
+					 {(string)z["zaak"]["kamerstukdossierId"]});
+    
+    // XXX kamerstuk
+    // XXX agendapunt multi
+    
+    res.set_content(z.dump(), "application/json");
+  });    
+
+  
+  svr.Get("/ksd/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    int nummer=atoi(req.path_params.at("nummer").c_str()); // 36228
+    auto docs = sqlw.query("select document.nummer docnummer,* from Document,Kamerstukdossier where kamerstukdossier.nummer=? and Document.kamerstukdossierid = kamerstukdossier.id order by volgnummer desc", {nummer});
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} docs for kamerstuk {}\n", docs.size(), nummer);
   });
 
   
@@ -166,7 +221,7 @@ int main(int argc, char** argv)
 
     
     string content = "<!doctype html>\n";
-    content += R"(<html><meta charset="utf-8">)";
+    content += R"(<html><meta charset="utf-8">   <link rel='stylesheet' href='../style.css'>)";
 
     content += fmt::format(R"(<meta property='og:title' content='{}'>
 <meta property='og:description' content='{}'>
@@ -176,7 +231,7 @@ int main(int argc, char** argv)
 			   "https://www.tweedekamer.nl/themes/contrib/tk_theme/assets/favicon/favicon.svg"
 			   );
     
-    content += fmt::format(R"(<body><h1>{}</h1><h2>{}</h2>
+    content += fmt::format(R"(<body><center><small>[<a href="../search.html">zoekmachine</a>] [<a href="../">documenten</a>] [<a href="../ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="../activiteiten.html">activiteiten</a>] [<a href="../geschenken.html">geschenken</a>] [<a href="../toezeggingen.html">toezeggingen</a>] [<a href="../open-vragen.html">open vragen</a>] [<a href="../kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken">wat is dit?</a>]</small></center><h1>{}</h1><h2>{}</h2>
 <p>Datum: <b>{}</b>, bijgewerkt: {}, updated: {}.</p>
 <p>Nummer: <b>{}</b>, Soort: <b>{}</b>.</p>
 <p>
@@ -206,8 +261,8 @@ int main(int argc, char** argv)
     }catch(exception& e) { cout << e.what() << endl;}
 
     if(kamerstuknummer> 0) {
-      content += fmt::format("<p>Deel van kamerstukdossier '{}', {}-{}</p>",
-			     kamerstuktitel, kamerstuknummer, kamerstukvolgnummer);
+      content += fmt::format("<p>Deel van kamerstukdossier '<a href='../ksd.html?ksd={}'>{}, {}</a>-{}</p>",
+			     kamerstuknummer, kamerstuktitel, kamerstuknummer, kamerstukvolgnummer);
 			     
     }
     
@@ -302,10 +357,31 @@ int main(int argc, char** argv)
     fmt::print("Returned {} docs\n", docs.size());
   });
 
+
+  // create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort="Schriftelijke vragen") as numvragen, count(1) filter (where Document.soort like "Antwoord schriftelijke vragen%" or (Document.soort="Mededeling" and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > '2019-09-09' group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc
+
+  svr.Get("/open-vragen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    
+    auto docs = sqlw.query("select *, max(functie) filter (where relatie='Gericht aan') as aan, max(naam) filter (where relatie='Indiener') as indiener from openvragen,zaakactor where zaakactor.zaakid = openvragen.id group by openvragen.id order by gestartOp desc");
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} open-vragen\n", docs.size());
+  });
+
+  svr.Get("/recent-kamerstukdossiers", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    
+    auto docs = sqlw.query("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2023-09-09' group by kamerstukdossier.id order by 2 desc");
+    // XXX hardcoded date
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} kamerstukdossiers\n", docs.size());
+  });
+
+
+
+  
   
   svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     
-    auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document,Link,Zaak,ZaakActor where bronDocument='' and Document.id=link.van and zaak.id = link.naar and ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' order by datum desc limit 80");
+    auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' order by datum desc limit 80");
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} docs\n", docs.size());
   });
@@ -322,23 +398,33 @@ int main(int argc, char** argv)
   svr.Get("/unplanned-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     auto docs = sqlw.query("select * from Activiteit where datum='' order by updated desc"); 
     res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} docs\n", docs.size());
+    fmt::print("Returned {} unplanned activities\n", docs.size());
   });
 
+
+  svr.Get("/future-besluiten", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-10' and datum < '2024-09-17' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+    
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} besluiten\n", docs.size());
+  });
+
+
+  
   svr.Get("/future-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-07' order by datum asc"); // XX hardcoded date
+    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-10' order by datum asc"); // XX hardcoded date
 
     res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} docs\n", docs.size());
+    fmt::print("Returned {} activities\n", docs.size());
   });
 
 
   svr.Post("/search", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string term = req.get_file_value("q").content;
     string twomonths = req.get_file_value("twomonths").content;
-    string limit = "2019-11-01";
+    string limit = "";
     if(twomonths=="true")
-      limit = "2024-07-06";
+      limit = "2024-07-10";
 
     // turn COVID-19 into "COVID-19" and A.W.R. Hubert into "A.W.R. Hubert"
     if(term.find_first_of(".-") != string::npos  && term.find('"')==string::npos) {
@@ -352,7 +438,7 @@ int main(int argc, char** argv)
     cout<<"Search: '"<<term<<"'\n";
     DTime dt;
     dt.start();
-    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by bm25(docsearch) limit 40", {term, limit});
+    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by bm25(docsearch) limit 80", {term, limit});
     auto usec = dt.lapUsec();
     
     fmt::print("Got {} matches\n", matches.size());

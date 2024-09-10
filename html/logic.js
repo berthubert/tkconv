@@ -65,6 +65,49 @@ function init(f)
 	getSearchResults(f);
 }
 
+function ksdinit(f)
+{
+    let url = new URL(window.location.href)
+    f.nummer = url.searchParams.get("ksd");
+    getKSDDocs(f);
+}
+
+async function getKSDDocs(f)
+{
+//    const url = new URL(window.location.href);
+ //   url.searchParams.set("ksd", f.nummer);
+   // history.pushState({}, "", url);
+
+    const response = await fetch('ksd/'+f.nummer);
+    if (response.ok === true) {
+        const data = await response.json();
+        f["docs"] = data;
+    }
+}
+
+async function zaakinit(f)
+{
+    let url = new URL(window.location.href)
+    f.nummer = url.searchParams.get("nummer");
+    getZAAKDocs(f);
+}
+
+async function getZAAKDocs(f)
+{
+//    const url = new URL(window.location.href);
+ //   url.searchParams.set("zaak", f.nummer);
+   // history.pushState({}, "", url);
+
+    const response = await fetch('zaak/'+f.nummer);
+    if (response.ok === true) {
+        const data = await response.json();
+        f["zaak"] = data;
+	console.log(data);
+    }
+}
+
+
+
 async function getSearchResults(f)
 {
     const url = new URL(window.location.href);

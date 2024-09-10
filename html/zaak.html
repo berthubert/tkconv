@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>tkconv</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <link rel='stylesheet' href='style.css'>
+  <!-- opengraph -->
+  <script defer src="logic.js"></script>
+  <script defer src="alpine.min.js"></script>
+</head>
+
+<body>
+  
+  <div id="recent-docs" x-data="{
+				nummer: '',
+				zaak: {'zaak': {}},
+				}" x-init="zaakinit($data);">
+    <p></p>
+    <center>
+      <small>[<a href="./">overzicht</a>] - [<a href="./activiteiten.html">activiteiten</a>] [<a href="toezeggingen.html">toezeggingen</a>] [<a href="kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="geschenken.html">geschenken</a>]</small>
+      <br/>
+      <!--
+    <form @submit.prevent="getSearchResults($data);">
+      <input name="q" size="80" placeholder="zoektekst" type="text" x-model="searchQuery" autofocus >
+      <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2 maanden</label>
+      <p></p>
+    </form> -->
+    </center>
+    <p></p>
+    <h1 x-text="zaak['zaak'].nummer"></h1>
+    <h2 x-text="zaak['zaak'].titel"></h2>
+    <h3 x-text="zaak['zaak'].onderwerp"></h3>
+    Betrokkenen:
+    <ul>
+      <template x-for="a in zaak['actors']">
+	<li x-text="`${a.relatie}: ${a.functie} ${a.naam}`"></li>
+	</li>
+      </template>
+    </ul>
+    Documenten:
+    <ul>
+      <template x-for="a in zaak['docs']">
+	<li>
+	  <span x-text="`${a.datum.substr(0,10)}:`"></span>
+	  <a x-text="a.onderwerp" x-bind:href=`get/${a.nummer}`></a>
+	  <span x=text="a.titel"></span>
+	</li>
+	</li>
+      </template>
+    </ul>
+    Agendapunten:
+    <ul>
+      <template x-for="a in zaak['agendapunten']">
+	<li>
+	  <span x-text="`${a.activiteit.aanvangstijd.replace('T','&nbsp;')}: ${a.activiteit.onderwerp} (${a.activiteit.soort})`"></span>
+	</li>
+	</li>
+      </template>
+    </ul>
+	      
+    
+  </div>
+</body>
