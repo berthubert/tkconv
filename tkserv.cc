@@ -1,5 +1,6 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
+#include <fmt/os.h>
 #include <fmt/ranges.h>
 #include <iostream>
 #include "httplib.h"
@@ -59,6 +60,64 @@ static string getHtmlForDocument(const std::string& id)
   return ret;
 }
 
+static string getPDFForDocx(const std::string& id)
+{
+  if(isPresentNonEmpty(id, "doccache", ".pdf")) {
+    string fname = makePathForId(id, "doccache", ".pdf");
+    FILE* pfp = fopen(fname.c_str(), "r");
+    if(!pfp)
+      throw runtime_error("Unable to get cached document "+id+": "+string(strerror(errno)));
+    
+    shared_ptr<FILE> fp(pfp, fclose);
+    char buffer[4096];
+    string ret;
+    for(;;) {
+      int len = fread(buffer, 1, sizeof(buffer), fp.get());
+      if(!len)
+	break;
+      ret.append(buffer, len);
+    }
+    if(!ferror(fp.get())) {
+      fmt::print("Had a cache hit for {} PDF\n", id);
+      return ret;
+    }
+    // otherwise fall back to normal process
+  }
+  
+  string fname = makePathForId(id);
+  string command = fmt::format("pandoc -s --metadata \"margin-left:1cm\" --metadata \"margin-right:1cm\" -V fontfamily=\"dejavu\" -f docx -t pdf '{}'",
+			  fname);
+  FILE* pfp = popen(command.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to perform conversion for '"+command+"': "+string(strerror(errno)));
+  
+  shared_ptr<FILE> fp(pfp, pclose);
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(ferror(fp.get()))
+    throw runtime_error("Unable to perform pandoc: "+string(strerror(errno)));
+
+  string rsuffix ="."+to_string(getRandom64());
+  string oname = makePathForId(id, "doccache", "", true);
+  {
+    auto out = fmt::output_file(oname+rsuffix);
+    out.print("{}", ret);
+  }
+  if(rename((oname+rsuffix).c_str(), (oname+".pdf").c_str()) < 0) {
+    unlink((oname+rsuffix).c_str());
+    fmt::print("Rename of cached PDF failed\n");
+  }
+  
+  return ret;
+}
+
+
 
 static string getRawDocument(const std::string& id)
 {
@@ -100,9 +159,16 @@ int main(int argc, char** argv)
       return;
     }
     string id = get<string>(ret[0]["id"]);
-    fmt::print("'{}'\n", id);
-    string content = getHtmlForDocument(id);
-    res.set_content(content, "text/html");
+    string contentType = get<string>(ret[0]["contentType"]);
+    fmt::print("'{}' {}\n", id, contentType);
+    if(contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      string content = getPDFForDocx(id);
+      res.set_content(content, "application/pdf");
+    }
+    else {
+      string content = getHtmlForDocument(id);
+      res.set_content(content, "text/html");
+    }
   });
 
   // hoe je de fractienaam krijgt bij een persoonId:
@@ -166,6 +232,25 @@ int main(int argc, char** argv)
     
     res.set_content(z.dump(), "application/json");
   });    
+
+
+  svr.Get("/persoonplus/:id", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string id = req.path_params.at("id"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
+    cout<<"Lookup for "<<id<<endl;
+    auto persoon = sqlw.query("select * from Persoon where id=?", {id});
+
+    if(persoon.empty()) {
+      res.status = 404;
+      return;
+    }
+
+    nlohmann::json j = nlohmann::json::object();
+    j["persoon"] = packResultsJson(persoon)[0];
+
+    j["docs"] = sqlw.queryJRet("select datum,nummer,soort,onderwerp from Document,DocumentActor where relatie like '%ondertekenaar%' and DocumentActor.DocumentId = Document.id and persoonId=? order by 1 desc", {id});
+    
+    res.set_content(j.dump(), "application/json");
+  });
 
   
   svr.Get("/ksd/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
@@ -380,7 +465,7 @@ int main(int argc, char** argv)
   
   
   svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    
+    // als een document in twee zaken zit komt hij hier dubbel uit! deduppen?
     auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' order by datum desc limit 80");
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} docs\n", docs.size());
@@ -394,6 +479,66 @@ int main(int argc, char** argv)
     fmt::print("Returned {} geschenken\n", docs.size());
   });
 
+  /* stemmingen. Poeh. Een stemming is eigenlijk een Stem, en ze zijn allemaal gekoppeld aan een besluit.
+     een besluit heeft een Zaak en een Agendapunt
+     een agendapunt hoort weer bij een activiteit, en daar vinden we eindelijk een datum
+
+     
+  */
+
+  svr.Get("/stemmingen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto besluiten = sqlw.query("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum < '2024-09-13' and datum > '2024-08-13' order by datum desc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+
+    nlohmann::json j = nlohmann::json::array();
+
+    for(auto& b : besluiten) {
+      cout<<"Besluit "<<get<string>(b["zonderwerp"])<<endl;
+      auto votes = sqlw.query("select * from Stemming where besluitId=?", {get<string>(b["besluitid"])});
+      if(votes.empty())
+	continue;
+      cout<<"Got "<<votes.size()<<" votes\n";
+      if(!get<string>(votes[0]["persoonId"]).empty())
+	continue; // we kunnen nog niks met hoofdelijke stemmingen
+
+
+      set<string> voorpartij, tegenpartij, nietdeelgenomenpartij;
+      int voorstemmen=0, tegenstemmen=0, nietdeelgenomen=0;
+      for(auto& v : votes) {
+	string soort = get<string>(v["soort"]);
+	string partij = get<string>(v["actorFractie"]);
+	int zetels = get<int64_t>(v["fractieGrootte"]);
+	if(soort == "Voor") {
+	  voorstemmen += zetels;
+	  voorpartij.insert(partij);
+	}
+	else if(soort == "Tegen") {
+	  tegenstemmen += zetels;
+	  tegenpartij.insert(partij);
+	}
+	else if(soort=="Niet deelgenomen") {
+	  nietdeelgenomen+= zetels;
+	  nietdeelgenomenpartij.insert(partij);
+	}
+      }
+      fmt::print("{}, voor: {} ({}), tegen: {} ({}), niet deelgenomen: {} ({})\n",
+		 get<string>(b["besluitid"]),
+		 voorpartij, voorstemmen, tegenpartij, tegenstemmen, nietdeelgenomenpartij, nietdeelgenomen);
+
+      decltype(besluiten) tmp{b};
+      nlohmann::json jtmp = packResultsJson(tmp)[0];
+      jtmp["voorpartij"] = voorpartij;
+      jtmp["tegenpartij"] = tegenpartij;
+      jtmp["voorstemmen"] = voorstemmen;
+      jtmp["tegenstemmen"] = tegenstemmen;
+      jtmp["nietdeelgenomenstemmen"] = nietdeelgenomen;
+      j.push_back(jtmp);
+      
+    }
+    
+    res.set_content(j.dump(), "application/json");
+    fmt::print("Returned {} besluiten\n", j.size());
+  });
+
   
   svr.Get("/unplanned-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     auto docs = sqlw.query("select * from Activiteit where datum='' order by updated desc"); 
@@ -403,7 +548,7 @@ int main(int argc, char** argv)
 
 
   svr.Get("/future-besluiten", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-10' and datum < '2024-09-17' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-13' and datum < '2024-09-19' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
     
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} besluiten\n", docs.size());
@@ -412,7 +557,7 @@ int main(int argc, char** argv)
 
   
   svr.Get("/future-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-10' order by datum asc"); // XX hardcoded date
+    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-11' order by datum asc"); // XX hardcoded date
 
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} activities\n", docs.size());
@@ -424,7 +569,7 @@ int main(int argc, char** argv)
     string twomonths = req.get_file_value("twomonths").content;
     string limit = "";
     if(twomonths=="true")
-      limit = "2024-07-10";
+      limit = "2024-07-11";
 
     // turn COVID-19 into "COVID-19" and A.W.R. Hubert into "A.W.R. Hubert"
     if(term.find_first_of(".-") != string::npos  && term.find('"')==string::npos) {

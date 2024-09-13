@@ -45,7 +45,7 @@ string textFromFile(const std::string& fname)
     if(!ispdf || !ret.empty())
       break;
     fmt::print("Doing attempt to OCR this PDF {}\n", fname);
-    command = fmt::format("ocrmypdf -l nld+eng -j 1 {} - | pdftotext - -", fname);
+    command = fmt::format("ocrmypdf -f -l nld+eng -j 1 {} - | pdftotext - -", fname);
   }
   
   return ret;

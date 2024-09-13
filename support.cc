@@ -3,9 +3,9 @@
 #include <fmt/printf.h>
 #include <sys/stat.h>
 #include <vector>
+#include <random>
 
 using namespace std;
-
 
 static bool fileStartsWith(const std::string& fname, const std::string& start)
 {
@@ -36,7 +36,8 @@ bool isDoc(const std::string& fname)
 }
 
 
-string makePathForId(const std::string& id)
+// we add the slash to prefix
+string makePathForId(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
 {
   if(id.size() < 10)
     throw runtime_error("Incomplete ID requested");
@@ -46,13 +47,29 @@ string makePathForId(const std::string& id)
   
   string a = id.substr(0,2);
   string b = id.substr(2,2);
-  return fmt::sprintf("docs/%s/%s/%s", a, b, id);
+
+  if(makepath) {
+    string dir = prefix;
+    int err = mkdir(dir.c_str(), 0770);
+    if(err < 0 && errno != EEXIST)
+      throw runtime_error("Could not mkdir prefix dir "+dir+": "+strerror(errno));
+    dir += "/"+a;
+    err = mkdir(dir.c_str(), 0770);
+    if(err < 0 && errno != EEXIST)
+      throw runtime_error("Could not mkdir storage dir "+dir);
+    dir += "/"+b;
+    err = mkdir(dir.c_str(), 0770);
+    if(err < 0 && errno != EEXIST)
+      throw runtime_error("Could not mkdir storage dir "+dir);
+  }
+  
+  return fmt::sprintf("%s/%s/%s/%s%s", prefix,a, b, id, suffix);
 }
 
-bool isPresentNonEmpty(const std::string& id)
+bool isPresentNonEmpty(const std::string& id, const std::string& prefix, const std::string& suffix)
 {
   struct stat sb;
-  string fname = makePathForId(id);
+  string fname = makePathForId(id, prefix, suffix);
   int ret = stat(fname.c_str(), &sb);
   if(ret < 0 || sb.st_size == 0)
     return false;
@@ -67,4 +84,10 @@ bool isPresentRightSize(const std::string& id, int64_t size)
   if(ret < 0 || sb.st_size != size)
     return false;
   return true;
+}
+
+uint64_t getRandom64()
+{
+  static std::random_device rd; // 32 bits at a time. At least on recent Linux and gcc this does not block
+  return ((uint64_t)rd() << 32) | rd();
 }
