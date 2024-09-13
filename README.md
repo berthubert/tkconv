@@ -83,12 +83,28 @@ je je eigen onderzoek kan doen zonder software. Weet me te vinden!
 bert@hubertnet.nl - let wel op, m'n gratis hulp is alleen voor organisaties
 van publiek belang. 
 
+
 # Compileren
 Vergt een moderne linux/unix met een sqlite installatie, plus libnlohmann
 Begin met: meson setup build
 En dan bouwen als: meson compile -C build
 
 TBC
+
+# Draaien
+
+Draai de tkgetxml en tkconv eerst met de hand, en doe daarna:
+
+```bash
+sqlite3 tk.sqlite3 < maak-indexen
+```
+
+En daarna voor productie:
+
+```bash
+while true; do ./build/tkgetxml ; ./build/tkconv  ; ./build/tkpull;  ./build/tkindex; sleep 60; done
+```
+
 
 # Architectuur
 Vrijwel al het zware werk wordt gedaan door sqlite3, inclusief de
