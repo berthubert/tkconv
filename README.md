@@ -105,6 +105,13 @@ En daarna voor productie:
 while true; do ./build/tkgetxml ; ./build/tkconv  ; ./build/tkpull;  ./build/tkindex; sleep 60; done
 ```
 
+En parallel:
+
+```bash
+./build/tkserv
+```
+
+Voor de website.
 
 # Architectuur
 Vrijwel al het zware werk wordt gedaan door sqlite3, inclusief de
