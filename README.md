@@ -85,15 +85,20 @@ van publiek belang.
 
 
 # Compileren
-Vergt een moderne linux/unix met een sqlite installatie, plus libnlohmann
+Vergt een moderne linux/unix met diverse dependencies:
+
+```bash
+apt-get install nlohmann-json3-dev libsqlite3-dev libpugixml-dev libssl-dev \
+zlib1g-dev poppler-utils catdoc pandoc
+```
+
 Begin met: meson setup build
 En dan bouwen als: meson compile -C build
 
-TBC
-
 # Draaien
+Alles wil draaien vanuit de root directory van het project.
 
-Draai de tkgetxml en tkconv eerst met de hand, en doe daarna:
+Draai ./build/tkgetxml en ./build/tkconv eerst met de hand, en doe daarna:
 
 ```bash
 sqlite3 tk.sqlite3 < maak-indexen
@@ -111,7 +116,9 @@ En parallel:
 ./build/tkserv
 ```
 
-Voor de website.
+Voor de website. tkserv is een eigen webserver op poort 8089 of een andere
+poort als je die opgeeft op de commandline. Aanrader is om er bijvoorbeeld
+nginx voor te zetten voor de TLS.
 
 # Architectuur
 Vrijwel al het zware werk wordt gedaan door sqlite3, inclusief de
