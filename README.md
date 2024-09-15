@@ -89,7 +89,7 @@ Vergt een moderne linux/unix met diverse dependencies:
 
 ```bash
 apt-get install nlohmann-json3-dev libsqlite3-dev libpugixml-dev libssl-dev \
-zlib1g-dev poppler-utils catdoc pandoc
+zlib1g-dev poppler-utils catdoc pandoc ttf-mscorefonts-installer
 ```
 
 Begin met: meson setup build

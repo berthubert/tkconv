@@ -30,11 +30,33 @@ static string htmlEscape(const std::string& str)
 
 static string getHtmlForDocument(const std::string& id)
 {
+  if(isPresentNonEmpty(id, "doccache", ".html")) {
+    string fname = makePathForId(id, "doccache", ".html");
+    FILE* pfp = fopen(fname.c_str(), "r");
+    if(!pfp)
+      throw runtime_error("Unable to get cached document "+id+": "+string(strerror(errno)));
+    
+    shared_ptr<FILE> fp(pfp, fclose);
+    char buffer[4096];
+    string ret;
+    for(;;) {
+      int len = fread(buffer, 1, sizeof(buffer), fp.get());
+      if(!len)
+	break;
+      ret.append(buffer, len);
+    }
+    if(!ferror(fp.get())) {
+      fmt::print("Had a cache hit for {} HTML\n", id);
+      return ret;
+    }
+    // otherwise fall back to normal process
+  }
+  
   string fname = makePathForId(id);
   string command;
 
   if(isDocx(fname))
-    command = fmt::format("pandoc -s -f docx -t html '{}'",
+    command = fmt::format("pandoc -s -f docx   --embed-resources  --variable maxwidth=72em -t html '{}'",
 			  fname);
   else if(isDoc(fname))
     command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
@@ -57,6 +79,19 @@ static string getHtmlForDocument(const std::string& id)
   }
   if(ferror(fp.get()))
     throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+
+  string rsuffix ="."+to_string(getRandom64());
+  string oname = makePathForId(id, "doccache", "", true);
+  {
+    auto out = fmt::output_file(oname+rsuffix);
+    out.print("{}", ret);
+  }
+  if(rename((oname+rsuffix).c_str(), (oname+".html").c_str()) < 0) {
+    unlink((oname+rsuffix).c_str());
+    fmt::print("Rename of cached HTML failed\n");
+  }
+
+  
   return ret;
 }
 
@@ -83,9 +118,9 @@ static string getPDFForDocx(const std::string& id)
     }
     // otherwise fall back to normal process
   }
-  
+  // 
   string fname = makePathForId(id);
-  string command = fmt::format("pandoc -s --metadata \"margin-left:1cm\" --metadata \"margin-right:1cm\" -V fontfamily=\"dejavu\" -f docx -t pdf '{}'",
+  string command = fmt::format("pandoc -s --metadata \"margin-left:1cm\" --metadata \"margin-right:1cm\" -V fontfamily=\"dejavu\"  --variable mainfont=\"DejaVu Serif\" --variable sansfont=Arial --pdf-engine=xelatex -f docx -t pdf '{}'",
 			  fname);
   FILE* pfp = popen(command.c_str(), "r");
   if(!pfp)
@@ -140,6 +175,42 @@ static string getRawDocument(const std::string& id)
   return ret;
 }
 
+struct VoteResult
+{
+  set<string> voorpartij, tegenpartij, nietdeelgenomenpartij;
+  int voorstemmen=0, tegenstemmen=0, nietdeelgenomen=0;
+  
+};
+bool getVoteDetail(LockedSqw& sqlw, const std::string& besluitId, VoteResult& vr)
+{
+  auto votes = sqlw.query("select * from Stemming where besluitId=?", {besluitId});
+  if(votes.empty())
+    return false;
+  cout<<"Got "<<votes.size()<<" votes\n";
+  if(!get<string>(votes[0]["persoonId"]).empty()) {
+    fmt::print("Hoofdelijke stemming, lukt niet\n");
+    return false; // we kunnen nog niks met hoofdelijke stemmingen
+  }
+  
+  for(auto& v : votes) {
+    string soort = get<string>(v["soort"]);
+    string partij = get<string>(v["actorFractie"]);
+    int zetels = get<int64_t>(v["fractieGrootte"]);
+    if(soort == "Voor") {
+      vr.voorstemmen += zetels;
+      vr.voorpartij.insert(partij);
+    }
+    else if(soort == "Tegen") {
+      vr.tegenstemmen += zetels;
+      vr.tegenpartij.insert(partij);
+    }
+    else if(soort=="Niet deelgenomen") {
+      vr.nietdeelgenomen+= zetels;
+      vr.nietdeelgenomenpartij.insert(partij);
+    }
+  }
+  return true;
+}
 
 int main(int argc, char** argv)
 {
@@ -161,7 +232,9 @@ int main(int argc, char** argv)
     string id = get<string>(ret[0]["id"]);
     string contentType = get<string>(ret[0]["contentType"]);
     fmt::print("'{}' {}\n", id, contentType);
-    if(contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    // docx to pdf is better for embedded images it appears
+    // XXX disabled
+    if(0 && contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       string content = getPDFForDocx(id);
       res.set_content(content, "application/pdf");
     }
@@ -248,6 +321,22 @@ int main(int argc, char** argv)
     j["persoon"] = packResultsJson(persoon)[0];
 
     j["docs"] = sqlw.queryJRet("select datum,nummer,soort,onderwerp from Document,DocumentActor where relatie like '%ondertekenaar%' and DocumentActor.DocumentId = Document.id and persoonId=? order by 1 desc", {id});
+
+    j["moties"] = sqlw.queryJRet("select document.nummer, besluit.id besluitid, zaak.id zaakid, zaak.nummer zaaknummer, Document.id, Document.datum,document.soort,document.onderwerp,document.titel,besluit.soort,besluit.tekst,besluit.opmerking from Document,DocumentActor,Link,Zaak,besluit where Document.soort like 'Motie%' and DocumentId=Document.id and relatie like '%ondertekenaar' and persoonid=? and link.van = document.id and link.linkSoort='Zaak' and zaak.id=link.naar and besluit.zaakid=zaak.id order by datum desc", {id});
+    
+    for(auto& m : j["moties"]) {
+      VoteResult vr;
+      if(!getVoteDetail(sqlw, m["besluitid"], vr))
+	continue;
+      m["voorpartij"] = vr.voorpartij;
+      m["tegenpartij"] = vr.tegenpartij;
+      m["voorstemmen"] = vr.voorstemmen;
+      m["tegenstemmen"] = vr.tegenstemmen;
+      m["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
+      m["aangenomen"] = vr.voorstemmen > vr.tegenstemmen;
+    }
+    // hier kan een mooie URL van gebakken worden
+    //  https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2024Z10238&did=2024D24219
     
     res.set_content(j.dump(), "application/json");
   });
@@ -375,9 +464,18 @@ int main(int argc, char** argv)
     for(auto& zlink : zlinks) {
       string zaakId = get<string>(zlink["naar"]);
 
-      auto zactors = sqlw.query("select * from ZaakActor where zaakId=?", {zaakId});
+      auto zactors = sqlw.query("select * from Zaak,ZaakActor where zaak.id=?  and ZaakActor.zaakId = zaak.id", {zaakId});
       if(!zactors.empty()) {
-	content+="<p>Zaak-gerelateerde data: <ul>";
+	content+="<p>Zaak-gerelateerde data (";
+	set<string> znummers;
+	for(auto& z: zactors) 
+	  znummers.insert(get<string>(z["nummer"]));
+	for(auto iter = znummers.begin(); iter != znummers.end(); ++iter) {
+	  if(iter != znummers.begin())
+	    content+= ", ";
+	  content += "<a href='../zaak.html?nummer=" + *iter +"'>" + *iter +"</a>";
+	}
+	content +="): <ul>";
 	for(auto& z: zactors) {
 	  auto g = [&z](const string& s) {
 	    return get<string>(z[s]);
@@ -454,7 +552,7 @@ int main(int argc, char** argv)
 
   svr.Get("/recent-kamerstukdossiers", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     
-    auto docs = sqlw.query("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2023-09-09' group by kamerstukdossier.id order by 2 desc");
+    auto docs = sqlw.query("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2020-01-01' group by kamerstukdossier.id order by 2 desc");
     // XXX hardcoded date
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} kamerstukdossiers\n", docs.size());
@@ -483,6 +581,8 @@ int main(int argc, char** argv)
      een besluit heeft een Zaak en een Agendapunt
      een agendapunt hoort weer bij een activiteit, en daar vinden we eindelijk een datum
 
+     Er zijn vaak twee besluiten per motie, eentje "ingediend" en dan nog een besluit waarop
+     gestemd wordt.
      
   */
 
@@ -493,47 +593,27 @@ int main(int argc, char** argv)
 
     for(auto& b : besluiten) {
       cout<<"Besluit "<<get<string>(b["zonderwerp"])<<endl;
-      auto votes = sqlw.query("select * from Stemming where besluitId=?", {get<string>(b["besluitid"])});
-      if(votes.empty())
+      VoteResult vr;
+      if(!getVoteDetail(sqlw, get<string>(b["besluitid"]), vr))
 	continue;
-      cout<<"Got "<<votes.size()<<" votes\n";
-      if(!get<string>(votes[0]["persoonId"]).empty())
-	continue; // we kunnen nog niks met hoofdelijke stemmingen
-
-
-      set<string> voorpartij, tegenpartij, nietdeelgenomenpartij;
-      int voorstemmen=0, tegenstemmen=0, nietdeelgenomen=0;
-      for(auto& v : votes) {
-	string soort = get<string>(v["soort"]);
-	string partij = get<string>(v["actorFractie"]);
-	int zetels = get<int64_t>(v["fractieGrootte"]);
-	if(soort == "Voor") {
-	  voorstemmen += zetels;
-	  voorpartij.insert(partij);
-	}
-	else if(soort == "Tegen") {
-	  tegenstemmen += zetels;
-	  tegenpartij.insert(partij);
-	}
-	else if(soort=="Niet deelgenomen") {
-	  nietdeelgenomen+= zetels;
-	  nietdeelgenomenpartij.insert(partij);
-	}
-      }
+      
       fmt::print("{}, voor: {} ({}), tegen: {} ({}), niet deelgenomen: {} ({})\n",
 		 get<string>(b["besluitid"]),
-		 voorpartij, voorstemmen, tegenpartij, tegenstemmen, nietdeelgenomenpartij, nietdeelgenomen);
+		 vr.voorpartij, vr.voorstemmen,
+		 vr.tegenpartij, vr.tegenstemmen,
+		 vr.nietdeelgenomenpartij, vr.nietdeelgenomen);
 
       decltype(besluiten) tmp{b};
       nlohmann::json jtmp = packResultsJson(tmp)[0];
-      jtmp["voorpartij"] = voorpartij;
-      jtmp["tegenpartij"] = tegenpartij;
-      jtmp["voorstemmen"] = voorstemmen;
-      jtmp["tegenstemmen"] = tegenstemmen;
-      jtmp["nietdeelgenomenstemmen"] = nietdeelgenomen;
+      jtmp["voorpartij"] = vr.voorpartij;
+      jtmp["tegenpartij"] = vr.tegenpartij;
+      jtmp["voorstemmen"] = vr.voorstemmen;
+      jtmp["tegenstemmen"] = vr.tegenstemmen;
+      jtmp["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
       j.push_back(jtmp);
-      
     }
+    // als document er bij komt kan je deze aantrekkelijke url gebruiken
+    // https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2024Z10238&did=2024D24219
     
     res.set_content(j.dump(), "application/json");
     fmt::print("Returned {} besluiten\n", j.size());

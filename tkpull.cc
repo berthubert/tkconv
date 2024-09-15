@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
 
-  int sizlim = 7500000;
+  int sizlim = 12500000;
   string limit="2008-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
   limit="2023-01-01";

@@ -1,40 +1,44 @@
 <!doctype html>
 <html>
-
-<head>
-  <title>tkconv</title>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
-  <!-- opengraph -->
-  <script defer src="logic.js"></script>
-  <script defer src="alpine.min.js"></script>
-</head>
-
-<body>
+  
+  <head>
+    <title>tkconv</title>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+    <link rel='stylesheet' href='style.css'>
+    <link rel='stylesheet' href='autoComplete.css'>
+    <!-- opengraph -->
+    <script defer src="logic.js"></script>
+    <script defer src="alpine.min.js"></script>
+    <script src="autoComplete.min.js"></script>
+  </head>
+  
+  <body>
     <div id="recent-docs" x-data="{
-				kamerstukdossiers: []
-				}" x-init="getGen('recent-kamerstukdossiers', 'kamerstukdossiers', $data);">
+				  kamerstukdossiers: []
+				  }" x-init="getGenKSD('recent-kamerstukdossiers', 'kamerstukdossiers', $data);">
       
-  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big>Kamerstukdossiers
-  </big></center>
-<p></p></center>
+      <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big>Kamerstukdossiers</big>
+	<br/>
+	<input style="width: 90%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
+	<p></p></center>
 
-    <table>
-      <tr>
-        <th>Datum</th>
-	<th>Nummer</th>
-	<th>Titel</th>
-	<th>#</th>
-      </tr>
-      <template x-for="d in kamerstukdossiers">
-        <tr>
-          <td x-text="d.mdatum.substring(0,10)"></td>
-	  <td x-text="d.nummer"></td>
-	  <td x-html="'<a href=ksd.html?ksd='+d.nummer+'>' + d.titel +'</a>'"></td>
-	  <td x-text="d.hoogsteVolgnummer"></td>
-        </tr>
-      </template>
-    </table>
-  </div>
-</body>
+      <table>
+	<tr>
+          <th>Datum</th>
+	  <th>Nummer</th>
+	  <th>Titel</th>
+	  <th>#</th>
+	</tr>
+	<template x-for="d in kamerstukdossiers">
+          <tr>
+            <td x-text="d.mdatum.substring(0,10)"></td>
+	    <td x-text="d.nummer"></td>
+	    <td x-html="'<a href=ksd.html?ksd='+d.nummer+'>' + d.titel +'</a>'"></td>
+	    <td x-text="d.hoogsteVolgnummer"></td>
+          </tr>
+	</template>
+      </table>
+    </div>
+  </body>
+</html>

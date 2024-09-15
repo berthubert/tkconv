@@ -24,6 +24,7 @@ CREATE INDEX besluitagendapunt on besluit(agendapuntId);
 
 CREATE INDEX docactorpersoonidx on DocumentActor(persoonId);
 create index stemmingbesluitidx on Stemming(besluitId);
+create index zaakbesluitidx on besluit(zaakid);
 
 analyze;
 

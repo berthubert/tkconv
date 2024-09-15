@@ -41,6 +41,57 @@ async function getGen(orig, dest, f) {
     }
 }
 
+async function getGenKSD(orig, dest, f)
+{
+    const response = await fetch(orig);
+    if (response.ok === true) {
+        const data = await response.json();
+        f[dest] = data;
+	var ksdnamen=[]
+	for (const element of data) {
+	    ksdnamen.push(element.nummer +" " +element.titel);
+	}
+	config= {
+	    placeHolder: "Kamerstukdossier titel",
+	    data: {
+		src: ksdnamen
+	    },
+	    diacritics: true,
+
+	    resultItem: {
+		highlight: {
+		    render: true
+		},
+		submit: true
+	    },
+	    resultsList: {
+		maxResults: 100,
+		element: (list, data) => {
+		    const info = document.createElement("p");
+		    if (data.results.length) {
+			info.innerHTML = `Displaying <strong>${data.results.length}</strong> out of <strong>${data.matches.length}</strong> results`;
+		    } else {
+			info.innerHTML = `Found <strong>${data.matches.length}</strong> matching results for <strong>"${data.query}"</strong>`;
+		    }
+		    list.prepend(info);
+		    
+		}
+	    },
+	    events: {
+		input: {
+		    selection: (event) => {
+			const selection = event.detail.selection.value;
+			autoCompleteJS.input.value = selection;
+			selected = selection.split(" ")[0];
+			// https://berthub.eu/tkconv/ksd.html?ksd=25424
+			window.location.href = "ksd.html?ksd="+selected;
+		    }
+		}
+	    }
+	};
+    }
+    const autoCompleteJS = new autoComplete(config);
+}
 
 
 async function getOpenToezeggingen(f) {
