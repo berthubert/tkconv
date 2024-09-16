@@ -21,6 +21,9 @@ string textFromFile(const std::string& fname)
   else if(isDocx(fname)) {
     command = string("pandoc -f docx '"+fname+"' -t plain");
   }
+  else if(isXML(fname)) {
+    command = string("xmlstarlet tr tk.xslt < '"+fname+"' | sed 's:<[^>]*>: :g'");
+  }
   else if(isDoc(fname))
     command = "catdoc - < '" + fname +"'";
   else

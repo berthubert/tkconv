@@ -29,6 +29,10 @@ bool isDocx(const std::string& fname)
 {
   return fileStartsWith(fname, "PK");
 }
+bool isXML(const std::string& fname)
+{
+  return fileStartsWith(fname, "<?xml") || fileStartsWith(fname, "\xef\xbb\xbf<?xml");
+}
 
 bool isDoc(const std::string& fname)
 {

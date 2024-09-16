@@ -61,9 +61,14 @@ static string getHtmlForDocument(const std::string& id)
   else if(isDoc(fname))
     command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
 			  fname);
+  else if(isXML(fname))
+    command = fmt::format("xmlstarlet tr tk.xslt < '{}'",
+			  fname);
+
   else
     command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
 
+  fmt::print("Command: {} {} \n", command, isXML(fname));
   FILE* pfp = popen(command.c_str(), "r");
   if(!pfp)
     throw runtime_error("Unable to perform conversion for '"+command+"': "+string(strerror(errno)));
@@ -224,14 +229,35 @@ int main(int argc, char** argv)
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"nummer: "<<nummer<<endl;
 
-    auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
-    if(ret.empty()) {
-      res.set_content("Found nothing!!", "text/plain");
-      return;
+    string id, contentType;
+    if(nummer.length()==36 && nummer.find_first_not_of("0123456789abcdef-") == string::npos) {
+      id = nummer;
+      auto ret = sqlw.query("select contentType from Document where id=?", {id});
+      if(!ret.empty()) {
+	contentType = get<string>(ret[0]["contentType"]);
+      }
+      else {
+	ret = sqlw.query("select contentType from Verslag where id=?", {id});
+	if(ret.empty()) {
+	  fmt::print("Kon {} niet vinden, niet als document, niet als verslag\n", id);
+	  res.set_content("Found nothing!!", "text/plain");
+	  res.status=404;
+	  return;
+	}
+	contentType = get<string>(ret[0]["contentType"]);
+      }
     }
-    string id = get<string>(ret[0]["id"]);
-    string contentType = get<string>(ret[0]["contentType"]);
-    fmt::print("'{}' {}\n", id, contentType);
+    else {
+      auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+      if(ret.empty()) {
+	res.set_content("Found nothing!!", "text/plain");
+	res.status=404;
+	return;
+      }
+      id = get<string>(ret[0]["id"]);
+      contentType = get<string>(ret[0]["contentType"]);
+      fmt::print("'{}' {}\n", id, contentType);
+    }
     // docx to pdf is better for embedded images it appears
     // XXX disabled
     if(0 && contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
@@ -240,7 +266,7 @@ int main(int argc, char** argv)
     }
     else {
       string content = getHtmlForDocument(id);
-      res.set_content(content, "text/html");
+      res.set_content(content, "text/html; charset=utf-8");
     }
   });
 

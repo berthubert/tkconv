@@ -68,4 +68,5 @@ bool isPresentRightSize(const std::string& id, int64_t size);
 bool isPDF(const std::string& fname);
 bool isDocx(const std::string& fname);
 bool isDoc(const std::string& fname);
+bool isXML(const std::string& fname);
 uint64_t getRandom64();
