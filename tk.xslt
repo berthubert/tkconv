@@ -1,37 +1,164 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   version="1.0"
   xmlns:vv="http://www.tweedekamer.nl/ggm/vergaderverslag/v1.0"
+  exclude-result-prefixes="vv"
 >
-<xsl:output method="html" encoding="UTF-8" />
+  <xsl:output method="html"
+    version="5.0"
+    doctype-system="about:legacy-compat"
+    encoding="UTF-8"
+    indent="yes"
+  />
 
-<xsl:template match="/">
-<xsl:text disable-output-escaping="yes">&lt;!DOCTYPE html&gt;</xsl:text>
-<html>
-	<body>
-    	<xsl:apply-templates select="//vv:alineaitem"/>
-	</body>
-</html>
-</xsl:template>
+  <!-- This XSLT converts Dutch parliamentary documents into HTML. The input vocabulary is
+  documented in https://github.com/TweedeKamerDerStaten-Generaal/OpenDataPortaal/tree/master/xsd/vlos -->
 
-  <!-- change nadruk to strong -->
-  <xsl:template match="vv:nadruk">
+  <xsl:template match="/*">
+    <html>
+      <head>
+        <title>
+          <xsl:apply-templates select="*" mode="title" />
+        </title>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+        />
+        <style>
+          .interrumpant {
+          background-color: var(--pico-mark-background-color);
+          }
+        </style>
+      </head>
+      <body>
+        <main class="container">
+          <xsl:apply-templates select="*" />
+        </main>
+      </body>
+    </html>
+  </xsl:template>
+
+  <xsl:template match="vv:vergadering">
+    <h1>
+      <xsl:value-of select="vv:titel" />
+    </h1>
+    <xsl:apply-templates select="vv:activiteit" />
+  </xsl:template>
+
+  <xsl:template match="vv:activiteit">
+    <section class="activiteit">
+      <xsl:apply-templates select="vv:activiteithoofd" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:activiteithoofd">
+    <section class="activiteithoofd">
+      <h2>
+        <xsl:value-of select="vv:titel" />
+      </h2>
+      <xsl:apply-templates select="vv:tekst|vv:activiteitdeel" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:tekst">
+    <section class="tekst">
+      <xsl:apply-templates select="*" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:activiteitdeel">
+    <section class="activiteitdeel">
+      <xsl:apply-templates select="vv:tekst|vv:activiteititem" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:activiteititem">
+    <section class="activiteititem">
+      <xsl:apply-templates select="vv:woordvoerder|vv:stemmingen" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:woordvoerder">
+    <section class="woordvoerder">
+      <xsl:apply-templates select="vv:tekst|vv:interrumpant" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:interrumpant">
+    <section class="interrumpant">
+      <xsl:apply-templates select="vv:tekst" />
+    </section>
+  </xsl:template>
+
+  <xsl:template match="vv:nadruk[@type='Vet']">
     <strong>
-      <xsl:copy-of select="./text()" />
+      <xsl:apply-templates />
     </strong>
   </xsl:template>
 
-  <!-- change alineaitem to p -->
-  <xsl:template match="vv:alineaitem">
+  <xsl:template match="vv:nadruk[@type='Schuin']">
+    <em>
+      <xsl:apply-templates />
+    </em>
+  </xsl:template>
+
+  <xsl:template match="vv:nadruk[@type='Bovenschrift']">
+    <sup>
+      <xsl:apply-templates />
+    </sup>
+  </xsl:template>
+
+  <xsl:template match="vv:nadruk[@type='Onderschrift']">
+    <sub>
+      <xsl:apply-templates />
+    </sub>
+  </xsl:template>
+
+  <xsl:template match="vv:dossiernummer|vv:stuknummer">
+    <xsl:apply-templates />
+  </xsl:template>
+
+  <xsl:template match="vv:alinea">
+    <div class="alinea">
+      <xsl:apply-templates select="*" />
+    </div>
+  </xsl:template>
+
+  <xsl:template match="vv:alinea/vv:alineaitem">
     <p>
-      <xsl:apply-templates select="node() | @*"/>  
+      <xsl:apply-templates />
     </p>
   </xsl:template>
 
-                                                                                                                                                           
-  <xsl:template match="node() | @*">                                                                                                                                                                    
-    <xsl:copy>                                                                                                                                                                                          
-      <xsl:apply-templates select="node() | @*"/>  
-    </xsl:copy>
+  <xsl:template match="vv:lijst">
+    <ul>
+      <xsl:apply-templates />
+    </ul>
   </xsl:template>
 
+  <xsl:template match="vv:lijst/vv:alineaitem">
+    <li>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="vv:vergadering" mode="title">
+    <xsl:choose>
+      <xsl:when test="@soort='Commissie'">Commissievergadering</xsl:when>
+      <xsl:when test="@soort='Plenair'">Plenaire vergadering</xsl:when>
+      <xsl:otherwise>Vergadering</xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>; </xsl:text>
+    <xsl:value-of
+      select="vv:titel" />
+    <!-- What else do we want in the title?-->
+  </xsl:template>
+
+  <!-- Helps the author of this xslt to see what still needs to be done -->
+  <xsl:template match="vv:*">
+    <xsl:message terminate="no">
+      <xsl:text>Unhandled element </xsl:text>
+      <xsl:value-of select="local-name()" />
+    </xsl:message>
+    <xsl:apply-templates />
+  </xsl:template>
 </xsl:stylesheet>
