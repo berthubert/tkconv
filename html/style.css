@@ -68,8 +68,9 @@ body {
     color: var(--clr-primary-fg);
 }
 
+
 a {
-    text-decoration: underline dashed;
+    text-decoration: underline;
 }
 
 h1>a {

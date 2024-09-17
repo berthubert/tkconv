@@ -103,7 +103,26 @@ async function getOpenToezeggingen(f) {
     }
 }
 
+function orderByDate(f)
+{
+    console.log("We gaan sorteren!");
+    f.foundDocs=f.foundDocs.sort(function(a,b) {
+	if(a.datum < b.datum)
+	    return 1;
+	if(a.datum > b.datum)
+	    return -1;
+	return 0;
+    });
+}
 
+function orderByScore(f)
+{
+    f.foundDocs=f.foundDocs.sort(function(a,b) {
+	return a.score - b.score;
+    });
+}
+
+// for search
 function init(f)
 {
     let url = new URL(window.location.href)

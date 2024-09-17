@@ -63,6 +63,9 @@ int main(int argc, char** argv)
   auto wantDocs = todo.queryT("select id,titel,onderwerp from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());
+
+  // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
+  // en sterker nog alle oude versies wissen
   
   SQLiteWriter sqlw("tkindex.sqlite3");
 

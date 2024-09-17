@@ -276,13 +276,19 @@ int main(int argc, char** argv)
   svr.Get("/getraw/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"nummer: "<<nummer<<endl;
-
+    string id;
     auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+
     if(ret.empty()) {
-      res.set_content("Found nothing!!", "text/plain");
-      return;
+      ret = sqlw.query("select * from Verslag where id=? order by rowid desc limit 1", {nummer});
+      if(ret.empty()) {
+	res.set_content("Found nothing!!", "text/plain");
+	return;
+      }
+      id=nummer;
     }
-    string id = get<string>(ret[0]["id"]);
+    else
+      id = get<string>(ret[0]["id"]);
     fmt::print("'{}'\n", id);
     string content = getRawDocument(id);
     res.set_content(content, get<string>(ret[0]["contentType"]));
@@ -689,7 +695,7 @@ int main(int argc, char** argv)
     cout<<"Search: '"<<term<<"'\n";
     DTime dt;
     dt.start();
-    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by bm25(docsearch) limit 80", {term, limit});
+    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by score limit 280", {term, limit});
     auto usec = dt.lapUsec();
     
     fmt::print("Got {} matches\n", matches.size());

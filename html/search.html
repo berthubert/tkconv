@@ -33,11 +33,11 @@
     <p></p>
     <table>
       <tr>
-        <th>Datum</th>
+        <th><a @click.prevent="orderByDate($data)" href="#">Datum</a></th>
 	<th>Bijgewerkt</th>
 	<th>Nummer</th>
         <th>Onderwerp</th>
-        <th>Snip</th>
+	<th><a @click.prevent="orderByScore($data)" href="#">Snip</a></th>
       </tr>
       <template x-for="d in foundDocs">
         <tr>
