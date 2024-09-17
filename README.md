@@ -38,6 +38,10 @@ dan de tweedekamer.nl website laat zien. Dit geldt met name voor documenten
 van de kamer zelf. Deze worden wel weergegeven op de site, maar er staat
 niet bij waar het document bijhoort, welke vergadering, welke activiteit.
 
+# Met dank aan
+
+Veel dank aan Bart Schuller, Peter Peerdeman voor hun open source bijdragen!
+
 # Bronnen
 Op https://opendata.tweedekamer.nl/ is alle informatie te vinden over de
 mooie open data van de Tweede Kamer.
