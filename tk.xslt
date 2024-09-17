@@ -21,7 +21,7 @@
         </title>
         <link
           rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+          href="../pico.min.css"
         />
         <style>
           .interrumpant {
