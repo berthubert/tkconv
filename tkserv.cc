@@ -222,7 +222,7 @@ int main(int argc, char** argv)
   SQLiteWriter unlockedsqlw("tk.sqlite3");
   std::mutex sqwlock;
   LockedSqw sqlw{unlockedsqlw, sqwlock};
-
+  signal(SIGPIPE, SIG_IGN); // every TCP application needs this
   httplib::Server svr;
 
   svr.Get("/getdoc/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
@@ -374,11 +374,21 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/ksd/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+  svr.Get("/ksd/:nummer/:toevoeging", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     int nummer=atoi(req.path_params.at("nummer").c_str()); // 36228
-    auto docs = sqlw.query("select document.nummer docnummer,* from Document,Kamerstukdossier where kamerstukdossier.nummer=? and Document.kamerstukdossierid = kamerstukdossier.id order by volgnummer desc", {nummer});
-    res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} docs for kamerstuk {}\n", docs.size(), nummer);
+    string toevoeging=req.path_params.at("toevoeging").c_str();
+    auto docs = sqlw.query("select document.nummer docnummer,* from Document,Kamerstukdossier where kamerstukdossier.nummer=? and kamerstukdossier.toevoeging=? and Document.kamerstukdossierid = kamerstukdossier.id order by volgnummer desc", {nummer, toevoeging});
+    nlohmann::json r = nlohmann::json::object();
+    r["documents"] = packResultsJson(docs);
+
+    auto meta = sqlw.query("select * from kamerstukdossier where nummer=? and toevoeging=?",
+			   {nummer, toevoeging});
+
+    if(!meta.empty())
+      r["meta"] = packResultsJson(meta)[0];
+    
+    res.set_content(r.dump(), "application/json");
+    fmt::print("Returned {} docs for kamerstuk {} toevoeging {}\n", docs.size(), nummer, toevoeging);
   });
 
   
@@ -584,7 +594,7 @@ int main(int argc, char** argv)
 
   svr.Get("/recent-kamerstukdossiers", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     
-    auto docs = sqlw.query("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2020-01-01' group by kamerstukdossier.id order by 2 desc");
+    auto docs = sqlw.query("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,kamerstukdossier.toevoeging,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2020-01-01' group by kamerstukdossier.id,toevoeging order by 2 desc");
     // XXX hardcoded date
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} kamerstukdossiers\n", docs.size());
@@ -669,7 +679,7 @@ int main(int argc, char** argv)
 
   
   svr.Get("/future-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-11' order by datum asc"); // XX hardcoded date
+    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-18' order by datum asc"); // XX hardcoded date
 
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} activities\n", docs.size());
@@ -721,9 +731,14 @@ int main(int argc, char** argv)
     res.status = 500; 
   });
 
-  svr.set_mount_point("/", "./html/");
+  string root = "./html/";
+  if(argc > 2)
+    root = argv[2];
+  svr.set_mount_point("/", root);
   int port = 8089;
   if(argc > 1)
     port = atoi(argv[1]);
+  fmt::print("Listening on port {} serving html from {}\n",
+	     port, root);
   svr.listen("0.0.0.0", port);
 }

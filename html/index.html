@@ -1,40 +1,71 @@
 <!doctype html>
 <html>
+  <head>
+    <title>tkconv</title>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+    <link rel='stylesheet' href='pico.min.css'>
+    <style>
+      tr,td {
+	  vertical-align: top;
+	  font-size: 90%;
+      }
+    </style>
+    <!-- opengraph -->
+    <script defer src="logic.js"></script>
+    <script defer src="alpine.min.js"></script>
+  </head>
+  
+  <body>
+    <div id="recent-docs" x-data="{
+				    recentDocs: []
+				    }" x-init="recentInit($data);">
 
-<head>
-  <title>tkconv</title>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
-  <!-- opengraph -->
-  <script defer src="logic.js"></script>
-  <script defer src="alpine.min.js"></script>
-</head>
+    <header class="container">
+      <center>
+	<small>
+	  [<a href="index.html">overzicht</a>]
+	  [<a href="activiteiten.html">activiteiten</a>]
+	  [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	  [<a href="besluiten.html">besluiten</a>]
+	  [<a href="geschenken.html">geschenken</a>]
+	  [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	  [<a href="open-vragen.html">open vragen</a>]
+	  [<a href="toezeggingen.html">toezeggingen</a>]
+	  [<a href="stemmingen.html">stemmingen</a>]
+	  [<a href="search.html">🔍 zoekmachine</a>]
+	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	</small>
+	<h4>Meest recente documenten</h4>
+      </center>
+    </header>
+    <main class="container">
+	<table>
+	  <thead>
+	    <tr>
+              <th>Datum</th>
+	      <th>Bijgewerkt</th>
+	      <th>Commissie</th>
+	      <th>Nummer</th>
+              <th>Onderwerp</th>
+              <th>Titel/Soort</th>
+	    </tr>
+	  </thead>
+	  <tbody>
+	    <template x-for="d in recentDocs">
+              <tr>
+		<td x-text="d.datum.substring(0,10)"></td>
+		<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+		<td x-text="d.afkorting"></td>
+		<td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+		<td x-text="d.onderwerp"></td>
+		<td x-text="d.titel=='' ? d.soort : d.titel"></td>
+              </tr>
+	    </template>
+	  </tbody>
+	</table>
 
-<body>
-  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">activiteiten</a>] [<a href="geschenken.html">geschenken</a>] [<a href="toezeggingen.html">toezeggingen</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="besluiten.html">besluiten</a>] [<a href="stemmingen.html">stemmingen</a>] [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken">wat is dit?</a>]</small><br/><big>Documenten</big></center>
-  <div id="recent-docs" x-data="{
-				recentDocs: []
-				}" x-init="recentInit($data);">
-    <table>
-      <tr>
-        <th>Datum</th>
-	<th>Bijgewerkt</th>
-	<th>Commissie</th>
-	<th>Nummer</th>
-        <th>Onderwerp</th>
-        <th>Titel/Soort</th>
-      </tr>
-      <template x-for="d in recentDocs">
-        <tr>
-          <td x-text="d.datum.substring(0,10)"></td>
-	  <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
-	  <td x-text="d.afkorting"></td>
-	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
-	  <td x-text="d.onderwerp"></td>
-	  <td x-text="d.titel=='' ? d.soort : d.titel"></td>
-        </tr>
-      </template>
-    </table>
-  </div>
-</body>
+    </main>
+    </div>
+  </body>
+</html>

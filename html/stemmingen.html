@@ -1,52 +1,68 @@
 <!doctype html>
 <html>
+  <head>
+    <title>tkconv</title>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+    <link rel='stylesheet' href='pico.min.css'>
+    <link rel='stylesheet' href='custom.css'>
+    <script defer src="logic.js"></script>
+    <script defer src="alpine.min.js"></script>
+  </head>
 
-<head>
-  <title>tkconv</title>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
-  <!-- opengraph -->
-  <script defer src="logic.js"></script>
-  <script defer src="alpine.min.js"></script>
-</head>
-
-<body>
+  <body>
     <div id="recent-docs" x-data="{
-				stemmingen: []
-				}" x-init="getGen('stemmingen', 'stemmingen', $data);">
-      
-  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big>Recente stemmingen  </big></center>
-<p></p></center>
-
-<table>
-  <thead>
-    <tr>
-      <th>Datum</th>
-      <th>Zaak</th>
-	<th>Indiener</th>
-      <th>Resultaat</th>
-      <th>Voor</th><th>Tegen</th>
-    </tr>
-  </thead>
-      <template x-for="d in stemmingen">
-	<tbody>
-          <tr>
-          <td x-text="d.datum.substring(0,10)"></td>
-	  <td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
-	  <td x-text="d.indiener"></td>
-	  <td x-text="d.besluittekst"></td>	  
-	  
-	  <td x-text="d.voorstemmen"></td>
-	  <td x-text="d.tegenstemmen"></td>
-          </tr>
-	  <tr>
-	    <td></td>
-	    <td x-text="'Voor: ' + d.voorpartij.join(', ')"></td>
-	    <td colspan="4" x-text="'Tegen: ' + d.tegenpartij.join(', ')"></td>
-	  </tr>
-	</tbody>
-      </template>
-    </table>
-  </div>
-</body>
+				  stemmingen: []
+				  }" x-init="getGen('stemmingen', 'stemmingen', $data);">
+      <header class="container">
+	<center>
+	  <small>
+	    [<a href="index.html">overzicht</a>]
+	    [<a href="activiteiten.html">activiteiten</a>]
+	    [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	    [<a href="besluiten.html">besluiten</a>]
+	    [<a href="geschenken.html">geschenken</a>]
+	    [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	    [<a href="open-vragen.html">open vragen</a>]
+	    [<a href="toezeggingen.html">toezeggingen</a>]
+	    [<a href="stemmingen.html">stemmingen</a>]
+	    [<a href="search.html">🔍 zoekmachine</a>]
+	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	  </small>
+	  <h4>Recente stemmingen</h4>
+	</center>
+      </header>
+      <main class="container">
+	<table class="striped">
+	  <thead>
+	    <tr>
+	      <th>Datum</th>
+	      <th>Zaak</th>
+	      <th>Indiener</th>
+	      <th>Resultaat</th>
+	      <th>Voor</th><th>Tegen</th>
+	    </tr>
+	  </thead>
+	  <template x-for="d in stemmingen">
+	    <tbody>
+	      <tr>
+		<td x-text="d.datum.substring(0,10)"></td>
+		<td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
+		<td x-text="d.indiener"></td>
+		<td x-text="d.besluittekst"></td>	  
+		
+		<td x-text="d.voorstemmen"></td>
+		<td x-text="d.tegenstemmen"></td>
+	      </tr>
+	      <tr>
+		<td></td>
+		<td x-text="'Voor: ' + d.voorpartij.join(', ')"></td>
+		<td colspan="4" x-text="'Tegen: ' + d.tegenpartij.join(', ')"></td>
+	      </tr>
+	    </tbody>
+	  </template>
+	</table>
+      </main>
+    </div>
+  </body>
+</html>

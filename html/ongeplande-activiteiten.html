@@ -5,37 +5,61 @@
   <title>tkconv</title>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
-  <!-- opengraph -->
+  <link rel='stylesheet' href='pico.min.css'>
+  <link rel='stylesheet' href='custom.css'>
   <script defer src="logic.js"></script>
   <script defer src="alpine.min.js"></script>
 </head>
 
 <body>
-  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="activiteiten.html">geplande activiteiten</a>]</small><br/><big>Activiteiten (nog) zonder geplande datum</big></center>
-<p></p></center>
-
-  <div id="recent-docs" x-data="{
+      <div id="recent-docs" x-data="{
 				ongeplandeActiviteiten: []
 				}" x-init="getOngeplandeActiviteiten($data);">
-    <table>
-      <tr>
-        <th>Bijgewerkt</th>
-	<th>Commissie</th>
-	<th>Soort</th>
-        <th>Onderwerp</th>
-        <th>Titel</th>
-      </tr>
-      <template x-for="d in ongeplandeActiviteiten">
-        <tr>
-          <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
 
-	  <td x-text="d.voortouwAfkorting"></td>
-	  <td x-text="d.soort"></td>
-	  <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.nummer + '>' + d.onderwerp +'</a>'"></td>	  
-	  <td x-html="d.noot"></td>
-        </tr>
-      </template>
-    </table>
-  </div>
+  <header class="container">
+    <center>
+      <small>
+	[<a href="index.html">overzicht</a>]
+	[<a href="activiteiten.html">activiteiten</a>]
+	[<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	[<a href="besluiten.html">besluiten</a>]
+	[<a href="geschenken.html">geschenken</a>]
+	[<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	[<a href="open-vragen.html">open vragen</a>]
+	[<a href="toezeggingen.html">toezeggingen</a>]
+	[<a href="stemmingen.html">stemmingen</a>]
+	[<a href="search.html">🔍 zoekmachine</a>]
+	[<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+      </small>
+      <h4>Activiteiten nog zonder geplande datum</h4>
+    </center>
+  </header>
+
+  <main class="container">
+      <table>
+	<thead>
+	  <tr>
+            <th>Bijgewerkt</th>
+	    <th>Commissie</th>
+	    <th>Soort</th>
+            <th>Onderwerp</th>
+            <th>Titel</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <template x-for="d in ongeplandeActiviteiten">
+            <tr>
+              <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+	      
+	      <td x-text="d.voortouwAfkorting"></td>
+	      <td x-text="d.soort"></td>
+	      <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.nummer + '>' + d.onderwerp +'</a>'"></td>	  
+	      <td x-html="d.noot"></td>
+            </tr>
+	  </template>
+	</tbody>
+      </table>
+
+  </main>
+      </div>
 </body>

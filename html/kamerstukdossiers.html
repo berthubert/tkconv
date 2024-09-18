@@ -4,8 +4,9 @@
   <head>
     <title>tkconv</title>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-    <link rel='stylesheet' href='style.css'>
+
+    <link rel='stylesheet' href='pico.min.css'>
+    <link rel='stylesheet' href='custom.css'>
     <link rel='stylesheet' href='autoComplete.css'>
     <!-- opengraph -->
     <script defer src="logic.js"></script>
@@ -17,28 +18,49 @@
     <div id="recent-docs" x-data="{
 				  kamerstukdossiers: []
 				  }" x-init="getGenKSD('recent-kamerstukdossiers', 'kamerstukdossiers', $data);">
-      
-      <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big>Kamerstukdossiers</big>
-	<br/>
-	<input style="width: 90%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
-	<p></p></center>
 
-      <table>
+      <header class="container">
+	<center>
+	  <small>
+	    [<a href="index.html">overzicht</a>]
+	    [<a href="activiteiten.html">activiteiten</a>]
+	    [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	    [<a href="besluiten.html">besluiten</a>]
+	    [<a href="geschenken.html">geschenken</a>]
+	    [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	    [<a href="open-vragen.html">open vragen</a>]
+	    [<a href="toezeggingen.html">toezeggingen</a>]
+	    [<a href="stemmingen.html">stemmingen</a>]
+	    [<a href="search.html">🔍 zoekmachine</a>]
+	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	  </small>
+	  <input style="width: 90%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
+	  <h4>Kamerstukdossiers</h4>
+	</center>
+      </header>
+	
+      <main class="container">
+	<table class="striped">
+	  <thead>
 	<tr>
           <th>Datum</th>
 	  <th>Nummer</th>
 	  <th>Titel</th>
 	  <th>#</th>
 	</tr>
-	<template x-for="d in kamerstukdossiers">
-          <tr>
-            <td x-text="d.mdatum.substring(0,10)"></td>
-	    <td x-text="d.nummer"></td>
-	    <td x-html="'<a href=ksd.html?ksd='+d.nummer+'>' + d.titel +'</a>'"></td>
-	    <td x-text="d.hoogsteVolgnummer"></td>
-          </tr>
-	</template>
-      </table>
+	  </thead>
+	  <tbody>
+	    <template x-for="d in kamerstukdossiers">
+              <tr>
+		<td x-text="d.mdatum.substring(0,10)"></td>
+		<td x-text="d.nummer + '&nbsp;' + d.toevoeging"></td>
+		<td x-html="'<a href=ksd.html?ksd='+d.nummer+'&toevoeging='+d.toevoeging+'>' + d.titel +'</a>'"></td>
+		<td x-text="d.hoogsteVolgnummer"></td>
+              </tr>
+	    </template>
+	  </tbody>
+	</table>
+      </main>
     </div>
   </body>
 </html>

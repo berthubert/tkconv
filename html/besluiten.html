@@ -5,38 +5,56 @@
   <title>tkconv</title>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
-  <!-- opengraph -->
+  <link rel='stylesheet' href='pico.min.css'>
+  <link rel='stylesheet' href='custom.css'>
   <script defer src="logic.js"></script>
   <script defer src="alpine.min.js"></script>
 </head>
 
 <body>
-    <div id="recent-docs" x-data="{
+  <div id="recent-docs" x-data="{
 				besluiten: []
 				}" x-init="getGen('future-besluiten', 'besluiten', $data);">
-      
-  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="open-vragen.html">open vragen</a>] [<a href="toezeggingen.html">toezeggingen</a>]</small><br/><big>Aankomende besluiten
-  </big></center>
-<p></p></center>
-
-    <table>
-      <tr>
-        <th>Datum</th>
-	<th>Nummer</th>
-	<th>Titel</th>
-	<th>Zaak</th>
-	<th>Indiener</th>
-      </tr>
-      <template x-for="d in besluiten">
-        <tr>
-          <td x-text="d.datum.substring(0,10)"></td>
-	  <td x-text="`${d.anummer}-${d.volg}`"></td>
-	  <td x-html="d.aonderwerp"></td>
-	  <td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
-	  <td x-text="d.indiener"></td>
-        </tr>
-      </template>
+    <header class="container">
+      <center>
+	<small>
+	  [<a href="index.html">overzicht</a>]
+	  [<a href="activiteiten.html">activiteiten</a>]
+	  [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	  [<a href="besluiten.html">besluiten</a>]
+	  [<a href="geschenken.html">geschenken</a>]
+	  [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	  [<a href="open-vragen.html">open vragen</a>]
+	  [<a href="toezeggingen.html">toezeggingen</a>]
+	  [<a href="stemmingen.html">stemmingen</a>]
+	  [<a href="search.html">🔍 zoekmachine</a>]
+	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	</small>
+	<h4>Besluiten</h4>
+      </center>
+    </header>
+    <main class="container">
+      <table class="striped">
+	<thead>
+	  <tr>
+            <th>Datum</th>
+	    <th>Nummer</th>
+	    <th>Titel</th>
+	    <th>Zaak</th>
+	    <th>Indiener</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <template x-for="d in besluiten">
+            <tr>
+              <td x-text="d.datum.substring(0,10)"></td>
+	      <td x-text="`${d.anummer}-${d.volg}`"></td>
+	      <td x-html="d.aonderwerp"></td>
+	      <td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
+	      <td x-text="d.indiener"></td>
+            </tr>
+	  </template>
+	</tbody>
     </table>
   </div>
 </body>

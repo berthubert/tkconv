@@ -188,10 +188,11 @@ int main(int argc, char** argv)
 	  
 	string titel = child.child("titel").child_value();
 	int nummer = atoi(child.child("nummer").child_value());
-	  
+	string toevoeging = child.child("toevoeging").child_value();
+	string citeertitel = child.child("citeertitel").child_value();
 	string afgesloten = child.child("afgesloten").child_value();
 	int hoogsteVolgnummer = atoi(child.child("hoogsteVolgnummer").child_value());
-	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"nummer", nummer}, {"titel", titel}, {"afgesloten", afgesloten}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},{"hoogsteVolgnummer", hoogsteVolgnummer}, {"updated", updated}}, category);
+	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"nummer", nummer}, {"titel", titel}, {"afgesloten", afgesloten}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},{"hoogsteVolgnummer", hoogsteVolgnummer}, {"updated", updated}, {"toevoeging", toevoeging}, {"citeertitel", citeertitel}}, category);
       }
       else if(auto child = node.child("content").child("ns1:toezegging")) {
 	if(child.attribute("ns1:verwijderd").value() == string("true")) {

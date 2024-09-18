@@ -139,6 +139,7 @@ function ksdinit(f)
 {
     let url = new URL(window.location.href)
     f.nummer = url.searchParams.get("ksd");
+    f.toevoeging = url.searchParams.get("toevoeging");
     getKSDDocs(f);
 }
 
@@ -148,10 +149,11 @@ async function getKSDDocs(f)
  //   url.searchParams.set("ksd", f.nummer);
    // history.pushState({}, "", url);
 
-    const response = await fetch('ksd/'+f.nummer);
+    const response = await fetch('ksd/'+f.nummer+'/'+f.toevoeging);
     if (response.ok === true) {
         const data = await response.json();
-        f["docs"] = data;
+        f["docs"] = data["documents"];
+	f["meta"] = data["meta"];
     }
 }
 

@@ -5,8 +5,8 @@
   <title>tkconv</title>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
-  <!-- opengraph -->
+  <link rel='stylesheet' href='pico.min.css'>
+  <link rel='stylesheet' href='custom.css'>
   <script defer src="logic.js"></script>
   <script defer src="alpine.min.js"></script>
 </head>
@@ -15,36 +15,39 @@
   
   <div id="recent-docs" x-data="{
 				docs: [],
-				nummer: ''
+				meta: {},
+				nummer: '',
+				toevoeging: ''
 				}" x-init="ksdinit($data);">
-    <p></p>
-    <center>
-      <small>[<a href="./">overzicht</a>] - [<a href="./activiteiten.html">activiteiten</a>] [<a href="toezeggingen.html">toezeggingen</a>] [<a href="kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="geschenken.html">geschenken</a>]</small>
-      <br/>
-      <!--
-    <form @submit.prevent="getSearchResults($data);">
-      <input name="q" size="80" placeholder="zoektekst" type="text" x-model="searchQuery" autofocus >
-      <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2 maanden</label>
-      <p></p>
-    </form> -->
-    </center>
-    <p></p>
-    <p></p>
-    <table>
-      <tr>
-        <th>Datum</th>
-	<th>Volgnummer</th>
-	<th>Nummer</th>
-        <th>Onderwerp</th>
-      </tr>
-      <template x-for="d in docs">
-        <tr>
-          <td x-text="d.datum.substring(0,10)"></td>
-	  <td x-text="d.volgnummer"></td>
-	  <td><a x-text="d.docnummer" x-bind:href="'get/'+d.docnummer"></a></td>
-	  <td><a x-text="d.onderwerp" x-bind:href="'get/'+d.docnummer"></a></td>
-        </tr>
-      </template>
-    </table>
+    <header class="container">
+      <center>
+	<small>[<a href="./">overzicht</a>] - [<a href="./activiteiten.html">activiteiten</a>] [<a href="toezeggingen.html">toezeggingen</a>] [<a href="kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="geschenken.html">geschenken</a>]</small>
+	<br/>
+      </center>
+      <h2 x-text="meta.titel"></h2>
+      <h3 x-text="'Kamerstuk '+nummer + ' ' +toevoeging"></h3>
+    </header>
+    <main class="container">
+      <table class="striped">
+	<thead>
+	  <tr>
+            <th>Datum</th>
+	    <th>Volgnummer</th>
+	    <th>Nummer</th>
+            <th>Onderwerp</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <template x-for="d in docs">
+            <tr>
+              <td x-text="d.datum.substring(0,10)"></td>
+	      <td x-text="d.volgnummer"></td>
+	      <td><a x-text="d.docnummer" x-bind:href="'get/'+d.docnummer"></a></td>
+	      <td><a x-text="d.onderwerp" x-bind:href="'get/'+d.docnummer"></a></td>
+            </tr>
+	  </template>
+	</tbody>
+      </table>
+    </main>
   </div>
 </body>

@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 "PersoonReis", "Reservering", "Stemming", "Toezegging", "Vergadering",
 "Verslag", "Zaak", "ZaakActor", "Zaal"};
 
-
+  signal(SIGPIPE, SIG_IGN); // every TCP application needs this
   
   if(argc > 1) {
     categories.clear();
@@ -36,6 +36,9 @@ int main(int argc, char** argv)
       if(!ret.empty()) { 
 	skiptoken = get<int64_t>(ret[0]["skiptoken"]);
         next = fmt::format("https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Feed?skiptoken={}&category={}", skiptoken, category);
+      }
+      else {
+	fmt::print("Could not get a skiptoken for category {}??\n", category);
       }
     }
     catch(std::exception& e) {

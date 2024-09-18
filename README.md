@@ -41,6 +41,13 @@ niet bij waar het document bijhoort, welke vergadering, welke activiteit.
 # Met dank aan
 
 Veel dank aan Bart Schuller, Peter Peerdeman voor hun open source bijdragen!
+Verder bouwt dit project op de noeste arbeid van de Tweede Kamer, zonder hun
+werk was er niks weer te geven.
+
+De software leunt verder zwaar op [SQLite](https://sqlite.org), [Pico CSS](https://picocss.com/),
+[Pugixml](https://pugixml.org/), [nlohmann-json](https://json.nlohmann.me/),
+[cpp-httplib](https://github.com/yhirose/cpp-httplib) en
+[fmt](https://fmt.dev).
 
 # Bronnen
 Op https://opendata.tweedekamer.nl/ is alle informatie te vinden over de

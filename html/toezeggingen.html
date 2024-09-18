@@ -5,39 +5,63 @@
   <title>tkconv</title>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
-  <link rel='stylesheet' href='style.css'>
+  <link rel='stylesheet' href='pico.min.css'>
+  <link rel='stylesheet' href='custom.css'>
   <!-- opengraph -->
   <script defer src="logic.js"></script>
   <script defer src="alpine.min.js"></script>
 </head>
 
 <body>
-  <center><small>[<a href="search.html">zoekmachine</a>] [<a href="./">overzicht</a>] [<a href="activiteiten.html">geplande activiteiten</a>] [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]</small><br/><big>Openstaande toezeggingen door het kabinet</big></center>
-<p></p>
   <div id="recent-docs" x-data="{
 				openToezeggingen: []
 				}" x-init="getOpenToezeggingen($data);">
-    <table>
-      <tr>
-        <th>Datum</th>
-	<th>Status</th>
-	<th>Commissie</th>
-        <th>Tekst</th>
-	<th>Toezegger</th>
-	<th>Ministerie</th>
-	<th>Aan</th>
-      </tr>
-      <template x-for="d in openToezeggingen">
-        <tr>
-          <td x-text="d.datum.replace('T', '&nbsp;')"></td>
-	  <td x-text="d.status"></td>
-	  <td x-text="d.voortouwAfkorting"></td>
-	  <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.activiteitNummer + '>' + d.tekst +'</a>'"></td>	  
-	  <td x-text="d.naamToezegger"></td>
-	  <td x-text="d.ministerie"></td>
-	  <td x-text="d['achternaam'] != null  ? (`${d.initialen} ${d.tussenvoegsel} ${d.achternaam}`) : d['fractienaam']"></td>
-        </tr>
-      </template>
-    </table>
+    
+    <header class="container">
+      <center>
+	<small>
+	  [<a href="index.html">overzicht</a>]
+	  [<a href="activiteiten.html">activiteiten</a>]
+	  [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	  [<a href="besluiten.html">besluiten</a>]
+	  [<a href="geschenken.html">geschenken</a>]
+	  [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	  [<a href="open-vragen.html">open vragen</a>]
+	  [<a href="toezeggingen.html">toezeggingen</a>]
+	  [<a href="stemmingen.html">stemmingen</a>]
+	  [<a href="search.html">🔍 zoekmachine</a>]
+	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	</small>
+	<h4>Openstaande toezeggingen door kabinet</h4>
+      </center>
+    </header>
+    <main class="container">
+      <table class="striped">
+	<thead>
+	  <tr>
+            <th>Datum</th>
+	    <th>Status</th>
+	    <th>Commissie</th>
+            <th>Tekst</th>
+	    <th>Toezegger</th>
+	    <th>Ministerie</th>
+	    <th>Aan</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <template x-for="d in openToezeggingen">
+            <tr>
+              <td x-text="d.datum.replace('T', '&nbsp;')"></td>
+	      <td x-text="d.status"></td>
+	      <td x-text="d.voortouwAfkorting"></td>
+	      <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.activiteitNummer + '>' + d.tekst +'</a>'"></td>	  
+	      <td x-text="d.naamToezegger"></td>
+	      <td x-text="d.ministerie"></td>
+	      <td x-text="d['achternaam'] != null  ? (`${d.initialen} ${d.tussenvoegsel} ${d.achternaam}`) : d['fractienaam']"></td>
+            </tr>
+	  </template>
+	</tbody>
+      </table>
+    </main>
   </div>
 </body>
