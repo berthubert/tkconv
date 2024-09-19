@@ -14,11 +14,8 @@
 <body>
   
   <div id="recent-docs" x-data="{
-				docs: [],
-				meta: {},
-				nummer: '',
-				toevoeging: ''
-				}" x-init="ksdinit($data);">
+				meta: {}
+				}" x-init="verslaginit($data);">
     <header class="container">
       <center>
 	<small>
@@ -35,30 +32,12 @@
 	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	</small>
       </center>
-      <h3 x-text="meta.titel"></h3>
-      <h4 x-text="'Kamerstuk '+nummer + ' ' +toevoeging"></h4>
+      <h4 x-text="'Datum ' +meta.datum.substr(0, 10) + '. Laatste update: ' +meta.updated.replace('T', '&nbsp;').substr(0, 16) "></h4>
+      <h4 x-text="meta.zaal"></h4>
+      <h4 x-text="meta.soort + '/' + meta.status"></h4>
     </header>
     <main class="container">
-      <table class="striped">
-	<thead>
-	  <tr>
-            <th>Datum</th>
-	    <th>Volgnummer</th>
-	    <th>Nummer</th>
-            <th>Onderwerp</th>
-	  </tr>
-	</thead>
-	<tbody>
-	  <template x-for="d in docs">
-            <tr>
-              <td x-text="d.datum.substring(0,10)"></td>
-	      <td x-text="d.volgnummer"></td>
-	      <td><a x-text="d.docnummer" x-bind:href="'get/'+d.docnummer"></a></td>
-	      <td><a x-text="d.onderwerp" x-bind:href="'get/'+d.docnummer"></a></td>
-            </tr>
-	  </template>
-	</tbody>
-      </table>
+      <iframe x-bind:src="'getdoc/' + meta.id" width="100%" height="1024px"></iframe>
     </main>
   </div>
 </body>

@@ -1,6 +1,7 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
 #include <fmt/os.h>
+#include <fmt/chrono.h>
 #include <fmt/ranges.h>
 #include <iostream>
 #include "httplib.h"
@@ -64,7 +65,6 @@ static string getHtmlForDocument(const std::string& id)
   else if(isXML(fname))
     command = fmt::format("xmlstarlet tr tk.xslt < '{}'",
 			  fname);
-
   else
     command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
 
@@ -394,7 +394,7 @@ int main(int argc, char** argv)
   
   svr.Get("/get/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
-        cout<<"nummer: "<<nummer<<endl;
+    cout<<"/get/:nummer: "<<nummer<<endl;
 
     auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
     if(ret.empty()) {
@@ -402,7 +402,7 @@ int main(int argc, char** argv)
       return;
     }
 
-    string kamerstukdossierId;
+    string kamerstukdossierId, kamerstuktoevoeging;
     int kamerstuknummer=0, kamerstukvolgnummer=0;
     string kamerstuktitel;
     try {
@@ -410,6 +410,7 @@ int main(int argc, char** argv)
       auto kamerstuk = sqlw.query("select * from kamerstukdossier where id=? order by rowid desc limit 1", {kamerstukdossierId});
       if(!kamerstuk.empty()) {
 	kamerstuknummer = get<int64_t>(kamerstuk[0]["nummer"]);
+	kamerstuktoevoeging = get<string>(kamerstuk[0]["toevoeging"]);
 	kamerstuktitel = get<string>(kamerstuk[0]["titel"]);
 	kamerstukvolgnummer = get<int64_t>(ret[0]["volgnummer"]);
       }
@@ -448,7 +449,7 @@ int main(int argc, char** argv)
 			   );
     
     content += fmt::format(R"(<body><center><small>[<a href="../search.html">zoekmachine</a>] [<a href="../">documenten</a>] [<a href="../ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="../activiteiten.html">activiteiten</a>] [<a href="../geschenken.html">geschenken</a>] [<a href="../toezeggingen.html">toezeggingen</a>] [<a href="../open-vragen.html">open vragen</a>] [<a href="../kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken">wat is dit?</a>]</small></center><h1>{}</h1><h2>{}</h2>
-<p>Datum: <b>{}</b>, bijgewerkt: {}, updated: {}.</p>
+<p>Datum: <b>{}</b>, bijgewerkt: {}</p>
 <p>Nummer: <b>{}</b>, Soort: <b>{}</b>.</p>
 <p>
 <a href="{}">Directe link naar document</a>, <a href="{}">link naar pagina op de Tweede Kamer site</a>.</p>
@@ -457,7 +458,6 @@ int main(int argc, char** argv)
 			   titel,
 				 get<string>(ret[0]["datum"]),
 				 get<string>(ret[0]["bijgewerkt"]),
-				 get<string>(ret[0]["updated"]),
 				 get<string>(ret[0]["nummer"]),
 				 soort,
 				 get<string>(ret[0]["enclosure"]),
@@ -477,8 +477,8 @@ int main(int argc, char** argv)
     }catch(exception& e) { cout << e.what() << endl;}
 
     if(kamerstuknummer> 0) {
-      content += fmt::format("<p>Deel van kamerstukdossier '<a href='../ksd.html?ksd={}'>{}, {}</a>-{}</p>",
-			     kamerstuknummer, kamerstuktitel, kamerstuknummer, kamerstukvolgnummer);
+      content += fmt::format("<p>Deel van kamerstukdossier '<a href='../ksd.html?ksd={}&toevoeging={}'>{}, {}</a>-{}</p>",
+			     kamerstuknummer, kamerstuktoevoeging, kamerstuktitel, kamerstuknummer, kamerstukvolgnummer);
 			     
     }
     
@@ -564,8 +564,17 @@ int main(int argc, char** argv)
       content += "</ul>";
     }
     //     https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Resources/ceac1329-435f-4235-b5c4-410f135b74cf
-    if(get<string>(ret[0]["contentType"])=="application/pdf")
-      content += "<iframe width='95%'  height='1024' src='../getraw/"+nummer+"'></iframe>";
+    if(get<string>(ret[0]["contentType"])=="application/pdf") {
+      string agent;
+      if (req.has_header("User-Agent")) {
+	agent = req.get_header_value("User-Agent");
+      }
+      cout<<agent<<endl;
+      if(agent.find("Firefox") == string::npos && (agent.find("iPhone") != string::npos || agent.find("Android") != string::npos ))
+	content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
+      else
+	content += "<iframe width='95%'  height='1024' src='../getraw/"+nummer+"'></iframe>";
+    }
     else
       content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
 
@@ -574,7 +583,50 @@ int main(int argc, char** argv)
     res.set_content(content, "text/html");
   });
 
+  svr.Get("/vergadering/:vergaderingid", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string id = req.path_params.at("vergaderingid"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
+    auto verslagen = sqlw.query("select * from vergadering,verslag where verslag.vergaderingid=vergadering.id and status != 'Casco' and vergadering.id=? order by datum desc, verslag.updated desc limit 1", {id});
+    if(verslagen.empty()) {
+      res.status = 404;
+      res.set_content("Geen vergadering gevonden", "text/plain");
+      return;
+    }
+    
+    // 2024-09-19T12:19:10.3141655Z
+    string updated = get<string>(verslagen[0]["updated"]);
+    struct tm tm;
+    strptime(updated.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+    time_t then = timegm(&tm);
+    verslagen[0]["updated"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
+    auto ret = packResultsJson(verslagen);
+    res.set_content(ret[0].dump(), "application/json");
+  });
 
+
+  svr.Get("/verslagen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    
+    auto verslagen = sqlw.query("select * from vergadering,verslag where verslag.vergaderingid=vergadering.id and datum > '2023-01-01' and status != 'Casco' order by datum desc, verslag.updated desc");
+
+    set<string> seen;
+    decltype(verslagen) tmp;
+    for(auto& v: verslagen) {
+      string vid = get<string>(v["vergaderingId"]);
+      if(seen.count(vid))
+	continue;
+      tmp.push_back(v);
+
+      seen.insert(vid);
+    }
+    sort(tmp.begin(), tmp.end(), [](auto&a, auto&b)
+    {
+      return std::tie(get<string>(a["datum"]), get<string>(a["aanvangstijd"])) >
+	std::tie(get<string>(b["datum"]), get<string>(b["aanvangstijd"]));
+    });
+    res.set_content(packResultsJsonStr(tmp), "application/json");
+    fmt::print("Returned {} vergaderverslagen\n", tmp.size());
+  });
+
+  
   svr.Get("/open-toezeggingen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     
     auto docs = sqlw.query("select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger,activiteit.datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");

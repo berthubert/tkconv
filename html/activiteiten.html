@@ -49,7 +49,7 @@
 	<tbody>
 	  <template x-for="d in recentActiviteiten">
             <tr>
-              <td x-text="d.datum.replace('T', '&nbsp;')"></td>
+              <td x-text="d.datum.replace('T', '&nbsp;').substr(0, 16)"></td>
 	      <td x-text="d.naam"></td>
 	      <!--<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td> -->
 	      <!--	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td> -->

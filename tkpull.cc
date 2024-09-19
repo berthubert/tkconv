@@ -39,7 +39,7 @@ int main(int argc, char** argv)
   int sizlim = 12500000;
   string limit="2008-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
-  limit="2023-01-01";
+  limit="2022-01-01";
   auto wantVerslagen = sqlw.queryT("select Verslag.id,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ?", {limit});
 
   

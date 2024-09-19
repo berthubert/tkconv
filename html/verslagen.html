@@ -12,13 +12,10 @@
 </head>
 
 <body>
-  
-  <div id="recent-docs" x-data="{
-				docs: [],
-				meta: {},
-				nummer: '',
-				toevoeging: ''
-				}" x-init="ksdinit($data);">
+  <div id="recent-verslagen" x-data="{
+				  recenteVerslagen: []
+				  }" x-init="getGen('verslagen', 'recenteVerslagen', $data);">
+    
     <header class="container">
       <center>
 	<small>
@@ -34,27 +31,34 @@
 	  [<a href="search.html">🔍 zoekmachine</a>]
 	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	</small>
+	<h4>Verslagen</h4>
       </center>
-      <h3 x-text="meta.titel"></h3>
-      <h4 x-text="'Kamerstuk '+nummer + ' ' +toevoeging"></h4>
     </header>
+    
     <main class="container">
-      <table class="striped">
+      <table>
 	<thead>
 	  <tr>
             <th>Datum</th>
-	    <th>Volgnummer</th>
-	    <th>Nummer</th>
-            <th>Onderwerp</th>
+	    <th>Aanvangstijd</th>
+	    <th>Titel</th>
+	    <th>Zaal</th>
+            <th>Soort</th>
+            <th>Status</th>
 	  </tr>
 	</thead>
 	<tbody>
-	  <template x-for="d in docs">
+	  <template x-for="d in recenteVerslagen">
             <tr>
-              <td x-text="d.datum.substring(0,10)"></td>
-	      <td x-text="d.volgnummer"></td>
-	      <td><a x-text="d.docnummer" x-bind:href="'get/'+d.docnummer"></a></td>
-	      <td><a x-text="d.onderwerp" x-bind:href="'get/'+d.docnummer"></a></td>
+              <td x-text="d.datum.replace('T', '&nbsp;').substr(0, 10)"></td>
+	      <td x-text="d.aanvangstijd.substr(11,5)"></td>
+	      <td><a x-text="d.titel" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></td>	  
+	      <!--<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td> -->
+	      <!--	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td> -->
+	      <td x-text="d.zaal"></td>
+
+	      <td x-html="d.soort"></td>
+	      <td x-html="d.status"></td>
             </tr>
 	  </template>
 	</tbody>

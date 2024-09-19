@@ -37,6 +37,9 @@
 	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	</small>
 	<h4>Meest recente documenten</h4>
+	<!--
+	    <p style="color: red"><a href="https://opendata.tweedekamer.nl/nieuws/storing-apis">De Tweede Kamer data-service ligt eruit</a>, dus helaas even geen updates!</p>.
+	    -->
       </center>
     </header>
     <main class="container">
@@ -54,7 +57,7 @@
 	  <tbody>
 	    <template x-for="d in recentDocs">
               <tr>
-		<td x-text="d.datum.substring(0,10)"></td>
+		<td x-text="d.datum.substring(0,10).replace(' ', '&nbsp;')"></td>
 		<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
 		<td x-text="d.afkorting"></td>
 		<td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>

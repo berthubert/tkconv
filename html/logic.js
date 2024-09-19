@@ -84,7 +84,7 @@ async function getGenKSD(orig, dest, f)
 			autoCompleteJS.input.value = selection;
 			selected = selection.split(" ")[0];
 			// https://berthub.eu/tkconv/ksd.html?ksd=25424
-			window.location.href = "ksd.html?ksd="+selected;
+			window.location.href = "ksd.html?ksd="+selected+"&toevoeging=";
 		    }
 		}
 	    }
@@ -154,6 +154,17 @@ async function getKSDDocs(f)
         const data = await response.json();
         f["docs"] = data["documents"];
 	f["meta"] = data["meta"];
+    }
+}
+
+async function verslaginit(f)
+{
+    let url = new URL(window.location.href)
+    let vergaderingid = url.searchParams.get("vergaderingid");
+    const response = await fetch('vergadering/' + vergaderingid);
+    if (response.ok === true) {
+        const data = await response.json();
+	f["meta"] = data;
     }
 }
 
