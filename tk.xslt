@@ -73,7 +73,7 @@
 
   <xsl:template match="vv:activiteititem">
     <section class="activiteititem">
-      <xsl:apply-templates select="vv:woordvoerder|vv:stemmingen" />
+      <xsl:apply-templates select="vv:tekst|vv:woordvoerder" />
     </section>
   </xsl:template>
 
@@ -154,11 +154,11 @@
   </xsl:template>
 
   <!-- Helps the author of this xslt to see what still needs to be done -->
-  <xsl:template match="vv:*">
+  <!-- <xsl:template match="vv:*">
     <xsl:message terminate="no">
       <xsl:text>Unhandled element </xsl:text>
       <xsl:value-of select="local-name()" />
     </xsl:message>
     <xsl:apply-templates />
-  </xsl:template>
+  </xsl:template> -->
 </xsl:stylesheet>
