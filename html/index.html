@@ -5,12 +5,8 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
     <link rel='stylesheet' href='pico.min.css'>
-    <style>
-      tr,td {
-	  vertical-align: top;
-	  font-size: 90%;
-      }
-    </style>
+    <link rel='stylesheet' href='custom.css'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- opengraph -->
     <script defer src="logic.js"></script>
     <script defer src="alpine.min.js"></script>
@@ -18,38 +14,38 @@
   
   <body>
     <div id="recent-docs" x-data="{
-				    recentDocs: []
-				    }" x-init="recentInit($data);">
-
-    <header class="container">
-      <center>
-	<small>
-	  [<a href="index.html">overzicht</a>]
-	  [<a href="activiteiten.html">activiteiten</a>]
-	  [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
-	  [<a href="besluiten.html">besluiten</a>]
-	  [<a href="geschenken.html">geschenken</a>]
-	  [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
-	  [<a href="open-vragen.html">open vragen</a>]
-	  [<a href="toezeggingen.html">toezeggingen</a>]
-	  [<a href="stemmingen.html">stemmingen</a>]
-	  [<a href="search.html">🔍 zoekmachine</a>]
-	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
-	</small>
-	<h4>Meest recente documenten</h4>
-	<!--
-	    <p style="color: red"><a href="https://opendata.tweedekamer.nl/nieuws/storing-apis">De Tweede Kamer data-service ligt eruit</a>, dus helaas even geen updates!</p>.
-	    -->
-      </center>
-    </header>
-    <main class="container">
+				  recentDocs: []
+				  }" x-init="recentInit($data);">
+      
+      <header class="container">
+	<center>
+	  <small>
+	    [<a href="index.html">overzicht</a>]
+	    [<a href="activiteiten.html">activiteiten</a>]
+	    [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	    [<a href="besluiten.html">besluiten</a>]
+	    [<a href="geschenken.html">geschenken</a>]
+	    [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	    [<a href="open-vragen.html">open vragen</a>]
+	    [<a href="toezeggingen.html">toezeggingen</a>]
+	    [<a href="stemmingen.html">stemmingen</a>]
+	    [<a href="verslagen.html">verslagen</a>]	  
+	    [<a href="search.html">🔍 zoekmachine</a>]
+	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	  </small>
+	  <h4>Meest recente documenten (live updates)</h4>
+	  <!--
+	      <p style="color: red"><a href="https://opendata.tweedekamer.nl/nieuws/storing-apis">De Tweede Kamer data-service ligt eruit</a>, dus helaas even geen updates!</p>.
+	      -->
+	</center>
+      </header>
+      <main class="container">
 	<table>
 	  <thead>
 	    <tr>
               <th>Datum</th>
 	      <th>Bijgewerkt</th>
-	      <th>Commissie</th>
-	      <th>Nummer</th>
+	      <th>Comm.</th>
               <th>Onderwerp</th>
               <th>Titel/Soort</th>
 	    </tr>
@@ -60,15 +56,13 @@
 		<td x-text="d.datum.substring(0,10).replace(' ', '&nbsp;')"></td>
 		<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
 		<td x-text="d.afkorting"></td>
-		<td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
-		<td x-text="d.onderwerp"></td>
+		<td><span x-text="d.onderwerp"></span> (<a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a>)</td>
 		<td x-text="d.titel=='' ? d.soort : d.titel"></td>
               </tr>
 	    </template>
 	  </tbody>
 	</table>
-
-    </main>
+      </main>
     </div>
   </body>
 </html>

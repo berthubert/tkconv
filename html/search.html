@@ -31,6 +31,7 @@
 	    [<a href="open-vragen.html">open vragen</a>]
 	    [<a href="toezeggingen.html">toezeggingen</a>]
 	    [<a href="stemmingen.html">stemmingen</a>]
+       [<a href="verslagen.html">verslagen</a>]		    
 	    [<a href="search.html">🔍 zoekmachine</a>]
 	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	  </small>
@@ -62,7 +63,13 @@
         <tr>
           <td x-text="d.datum.substring(0,10)"></td>
 	  <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
-	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+	  <template x-if="d.category!='Vergadering'">
+	    <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+	  </template>
+	  <template x-if="d.category=='Vergadering'">
+	    <td><a x-text="d.nummer" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>
+	  </template>
+	  
 	  <td x-text="d.onderwerp"></td>
 	  <td x-html="d.snip"></td>
         </tr>

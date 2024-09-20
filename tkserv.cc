@@ -188,13 +188,16 @@ struct VoteResult
 };
 bool getVoteDetail(LockedSqw& sqlw, const std::string& besluitId, VoteResult& vr)
 {
+  // er is een mismatch tussen Stemming en Persoon, zie https://github.com/TweedeKamerDerStaten-Generaal/OpenDataPortaal/issues/150
+  // dus we gebruiken die tabel maar niet hier
   auto votes = sqlw.query("select * from Stemming where besluitId=?", {besluitId});
   if(votes.empty())
     return false;
-  cout<<"Got "<<votes.size()<<" votes\n";
+  cout<<"Got "<<votes.size()<<" votes for "<<besluitId<<endl;
+  bool hoofdelijk = false;
   if(!get<string>(votes[0]["persoonId"]).empty()) {
-    fmt::print("Hoofdelijke stemming, lukt niet\n");
-    return false; // we kunnen nog niks met hoofdelijke stemmingen
+    fmt::print("Hoofdelijke stemming!\n");
+    hoofdelijk=true;
   }
   
   for(auto& v : votes) {
@@ -202,16 +205,34 @@ bool getVoteDetail(LockedSqw& sqlw, const std::string& besluitId, VoteResult& vr
     string partij = get<string>(v["actorFractie"]);
     int zetels = get<int64_t>(v["fractieGrootte"]);
     if(soort == "Voor") {
-      vr.voorstemmen += zetels;
-      vr.voorpartij.insert(partij);
+      if(hoofdelijk) {
+	vr.voorstemmen++;
+	vr.voorpartij.insert(get<string>(v["actorNaam"]));
+      }
+      else {
+	vr.voorstemmen += zetels;
+	vr.voorpartij.insert(partij);
+      }
     }
     else if(soort == "Tegen") {
-      vr.tegenstemmen += zetels;
-      vr.tegenpartij.insert(partij);
+      if(hoofdelijk) {
+	vr.tegenstemmen++;
+	vr.tegenpartij.insert(get<string>(v["actorNaam"]));
+      }
+      else {
+	vr.tegenstemmen += zetels;
+	vr.tegenpartij.insert(partij);
+      }
     }
     else if(soort=="Niet deelgenomen") {
-      vr.nietdeelgenomen+= zetels;
-      vr.nietdeelgenomenpartij.insert(partij);
+      if(hoofdelijk) {
+	vr.nietdeelgenomen++;
+	vr.nietdeelgenomenpartij.insert(get<string>(v["actorNaam"]));
+      }
+      else {
+	vr.nietdeelgenomen+= zetels;
+	vr.nietdeelgenomenpartij.insert(partij);
+      }
     }
   }
   return true;
@@ -448,7 +469,21 @@ int main(int argc, char** argv)
 			   "https://www.tweedekamer.nl/themes/contrib/tk_theme/assets/favicon/favicon.svg"
 			   );
     
-    content += fmt::format(R"(<body><center><small>[<a href="../search.html">zoekmachine</a>] [<a href="../">documenten</a>] [<a href="../ongeplande-activiteiten.html">ongeplande activiteiten</a>] [<a href="../activiteiten.html">activiteiten</a>] [<a href="../geschenken.html">geschenken</a>] [<a href="../toezeggingen.html">toezeggingen</a>] [<a href="../open-vragen.html">open vragen</a>] [<a href="../kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken">wat is dit?</a>]</small></center><h1>{}</h1><h2>{}</h2>
+    content += fmt::format(R"(<body><center>
+	<small>
+	  [<a href="../">overzicht</a>]
+	  [<a href="../activiteiten.html">activiteiten</a>]
+	  [<a href="../ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	  [<a href="../besluiten.html">besluiten</a>]
+	  [<a href="../geschenken.html">geschenken</a>]
+	  [<a href="../kamerstukdossiers.html">kamerstukdossiers</a>]
+	  [<a href="../open-vragen.html">open vragen</a>]
+	  [<a href="../toezeggingen.html">toezeggingen</a>]
+	  [<a href="../stemmingen.html">stemmingen</a>]
+	  [<a href="../verslagen.html">verslagen</a>]		  
+	  [<a href="../search.html">🔍 zoekmachine</a>]
+	  [<a href="../https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	</small></center><h1>{}</h1><h2>{}</h2>
 <p>Datum: <b>{}</b>, bijgewerkt: {}</p>
 <p>Nummer: <b>{}</b>, Soort: <b>{}</b>.</p>
 <p>
@@ -658,7 +693,7 @@ int main(int argc, char** argv)
   
   svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     // als een document in twee zaken zit komt hij hier dubbel uit! deduppen?
-    auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' order by datum desc limit 80");
+    auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' order by datum desc limit 120");
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} docs\n", docs.size());
   });
@@ -681,12 +716,12 @@ int main(int argc, char** argv)
   */
 
   svr.Get("/stemmingen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto besluiten = sqlw.query("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum < '2024-09-14' and datum > '2024-08-13' order by datum desc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+    auto besluiten = sqlw.query("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum < '2024-10-20' and datum > '2024-08-13' order by datum desc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
 
     nlohmann::json j = nlohmann::json::array();
 
     for(auto& b : besluiten) {
-      cout<<"Besluit "<<get<string>(b["zonderwerp"])<<endl;
+      //      cout<<"Besluit "<<get<string>(b["zonderwerp"])<<endl;
       VoteResult vr;
       if(!getVoteDetail(sqlw, get<string>(b["besluitid"]), vr))
 	continue;
@@ -722,7 +757,7 @@ int main(int argc, char** argv)
 
 
   svr.Get("/future-besluiten", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-13' and datum < '2024-09-19' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-19' and datum < '2024-10-19' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
     
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} besluiten\n", docs.size());
@@ -731,7 +766,7 @@ int main(int argc, char** argv)
 
   
   svr.Get("/future-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-18' order by datum asc"); // XX hardcoded date
+    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-19' order by datum asc"); // XX hardcoded date
 
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} activities\n", docs.size());
@@ -750,7 +785,6 @@ int main(int argc, char** argv)
       cout<<"fixing up"<<endl;
       term = "\"" + term + "\"";
     }
-
     
     SQLiteWriter idx("tkindex.sqlite3");
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
@@ -759,7 +793,17 @@ int main(int argc, char** argv)
     dt.start();
     auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by score limit 280", {term, limit});
     auto usec = dt.lapUsec();
-    
+
+    auto matchesVerslag = idx.queryT("SELECT uuid,meta.Vergadering.titel as onderwerp, meta.Vergadering.id as vergaderingId, meta.Verslag.updated as bijgewerkt, '' as titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score FROM docsearch,meta.Verslag, meta.Vergadering WHERE docsearch MATCH ? and docsearch.uuid = Verslag.id and Vergadering.id = Verslag.vergaderingId and datum > ? order by score limit 280", {term, limit});
+    for(auto& mv : matchesVerslag) {
+      fmt::print("Verslag match: {} {} verslagId {}\n", get<string>(mv["onderwerp"]),
+		 get<string>(mv["vergaderingId"]),
+		 get<string>(mv["uuid"])		 
+		 );
+      mv["category"]="Vergadering";
+      mv["nummer"] =get<string>(mv["vergaderingId"]).substr(0, 8);
+      matches.push_back(mv);
+    }
     fmt::print("Got {} matches\n", matches.size());
     nlohmann::json response=nlohmann::json::object();
     response["results"]= packResultsJson(matches);

@@ -14,7 +14,9 @@
 <body>
   
   <div id="recent-docs" x-data="{
-				meta: {}
+				meta: {},
+				loaded: false
+				
 				}" x-init="verslaginit($data);">
     <header class="container">
       <center>
@@ -28,6 +30,7 @@
 	  [<a href="open-vragen.html">open vragen</a>]
 	  [<a href="toezeggingen.html">toezeggingen</a>]
 	  [<a href="stemmingen.html">stemmingen</a>]
+	  [<a href="verslagen.html">verslagen</a>]		  
 	  [<a href="search.html">🔍 zoekmachine</a>]
 	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	</small>
@@ -36,8 +39,10 @@
       <h4 x-text="meta.zaal"></h4>
       <h4 x-text="meta.soort + '/' + meta.status"></h4>
     </header>
+    <template x-if="loaded">
     <main class="container">
       <iframe x-bind:src="'getdoc/' + meta.id" width="100%" height="1024px"></iframe>
     </main>
+    </template>
   </div>
 </body>

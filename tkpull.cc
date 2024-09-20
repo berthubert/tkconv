@@ -39,11 +39,37 @@ int main(int argc, char** argv)
   int sizlim = 12500000;
   string limit="2008-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
-  limit="2022-01-01";
-  auto wantVerslagen = sqlw.queryT("select Verslag.id,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ?", {limit});
+  limit="2021-11-01";
+  auto alleVerslagen = sqlw.queryT("select Verslag.id as id, vergadering.id as vergaderingid,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
   
-  fmt::print("We desire {} documents and {} verslagen\n", wantDocs.size(), wantVerslagen.size());
+  set<string> seenvergadering;
+  decltype(alleVerslagen) wantVerslagen, todelete;
+  for(auto& v: alleVerslagen) {
+    string vid = get<string>(v["vergaderingid"]);
+    if(seenvergadering.count(vid)) {
+      todelete.push_back(v);
+      continue;
+    }
+    wantVerslagen.push_back(v);
+    seenvergadering.insert(vid);
+  }
+  fmt::print("We desire {} documents and {} verslagen, and found {} older verslagen\n", wantDocs.size(), wantVerslagen.size(), todelete.size());
+
+  int unlinked=0;
+  for(auto& td : todelete) {
+    string verslagid=get<string>(td["id"]);
+    string fname=makePathForId(verslagid);
+    int rc = unlink(fname.c_str());
+    if(!rc)
+      unlinked++;
+    else {
+      if(errno != ENOENT)
+	fmt::print("Error removing file {}: {}\n", fname, strerror(errno));
+    }
+  }
+  fmt::print("{} niet-nieuwste versies van verslagen gewist\n", unlinked);
+
   struct RetStore
   {
     string id;
@@ -55,10 +81,11 @@ int main(int argc, char** argv)
     }
   };
 
-  int present=0;
-  int toolarge=0, retrieved=0;
   
   for(auto store : {&wantDocs, &wantVerslagen}) {
+    int present=0;
+    int toolarge=0, retrieved=0;
+
     cout<<"Starting from a store, got "<<store->size()<<" docs to go"<<endl;
     set<RetStore> toRetrieve;
     for(auto& d : *store) {
@@ -85,7 +112,8 @@ int main(int argc, char** argv)
       cli.set_read_timeout(10, 0); 
       cli.set_write_timeout(10, 0); 
       
-      fmt::print("Retrieving from {} (expect {} bytes)\n", need.enclosure, need.contentLength);
+      fmt::print("Retrieving from {} (expect {} bytes).. ", need.enclosure, need.contentLength);
+      cout.flush();
       auto res = cli.Get(need.enclosure);
       
       if(!res) {

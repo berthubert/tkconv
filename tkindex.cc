@@ -67,6 +67,20 @@ int main(int argc, char** argv)
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
   
+  limit="2021-11-01";
+  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel,'' as onderwerp from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
+
+  set<string> seenvergadering;
+  decltype(alleVerslagen) wantVerslagen;
+  for(auto& v: alleVerslagen) {
+    string vid = get<string>(v["vergaderingid"]);
+    if(seenvergadering.count(vid)) 
+      continue;
+    wantVerslagen.push_back(v);
+    seenvergadering.insert(vid);
+  }
+  fmt::print("Would like to index {} most recent verslagen\n", wantVerslagen.size());
+  
   SQLiteWriter sqlw("tkindex.sqlite3");
 
   sqlw.queryT(R"(
@@ -78,16 +92,31 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   for(auto& a : already)
     skipids.insert(get<string>(a["uuid"]));
 
+  unordered_set<string> dropids;
+  
+  for(const auto& si : skipids) {
+    if(!isPresentNonEmpty(si)) {
+      fmt::print("We miss document enclosure for indexed document with id {}\n", si);
+      dropids.insert(si);
+    }
+  }
+  fmt::print("{} entries that are indexed have no file enclosure present\n", dropids.size());
+  // remove from index?
   fmt::print("{} documents are already indexed & will be skipped\n",
 	     skipids.size());
+
+  decltype(wantDocs) wantAll = wantDocs;
+
+  for(const auto& wv : wantVerslagen)
+    wantAll.push_back(wv);
   
   atomic<size_t> ctr = 0;
 
   std::mutex m;
   atomic<int> skipped=0, notpresent=0, wrong=0, indexed=0;
   auto worker = [&]() {
-    for(unsigned int n = ctr++; n < wantDocs.size(); n = ctr++) {
-      string id = get<string>(wantDocs[n]["id"]);
+    for(unsigned int n = ctr++; n < wantAll.size(); n = ctr++) {
+      string id = get<string>(wantAll[n]["id"]);
       if(skipids.count(id)) {
 	//	fmt::print("{} indexed already, skipping\n", id);
 	skipped++;
@@ -110,10 +139,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
       lock_guard<mutex> p(m);
       string titel;
       try {
-	titel = 	  get<string>(wantDocs[n]["titel"]);
+	titel = 	  get<string>(wantAll[n]["titel"]);
       } catch(...){}
       sqlw.queryT("insert into docsearch values (?,?,?,?)", {
-	  get<string>(wantDocs[n]["onderwerp"]),
+	  get<string>(wantAll[n]["onderwerp"]),
 	  titel,
 	  text, id});
       indexed++;

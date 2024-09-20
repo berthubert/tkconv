@@ -165,6 +165,7 @@ async function verslaginit(f)
     if (response.ok === true) {
         const data = await response.json();
 	f["meta"] = data;
+	f["loaded"] = true;
     }
 }
 
