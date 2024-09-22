@@ -29,6 +29,7 @@ static string htmlEscape(const std::string& str)
   return ret;
 }
 
+// for verslag XML, this makes html w/o <html> etc, for use in a .div
 static string getHtmlForDocument(const std::string& id)
 {
   if(isPresentNonEmpty(id, "doccache", ".html")) {
@@ -63,7 +64,7 @@ static string getHtmlForDocument(const std::string& id)
     command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
 			  fname);
   else if(isXML(fname))
-    command = fmt::format("xmlstarlet tr tk.xslt < '{}'",
+    command = fmt::format("xmlstarlet tr tk-div.xslt < '{}'",
 			  fname);
   else
     command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
@@ -315,6 +316,12 @@ int main(int argc, char** argv)
     res.set_content(content, get<string>(ret[0]["contentType"]));
   });
 
+  svr.Get("/jarig-vandaag", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
+    auto jarig = sqlw.queryJRet("select geboortedatum,roepnaam,initialen,tussenvoegsel,achternaam,afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where geboortedatum like ? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid order by achternaam, roepnaam", {f});
+    res.set_content(jarig.dump(), "application/json");
+    return;
+  });
 
   svr.Get("/zaak/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.path_params.at("nummer");
@@ -352,8 +359,22 @@ int main(int argc, char** argv)
 
     z["kamerstukdossier"]=sqlw.queryJRet("select * from kamerstukdossier where id=?",
 					 {(string)z["zaak"]["kamerstukdossierId"]});
+
+    z["besluiten"] = sqlw.queryJRet("select datum,besluit.id,stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {nummer});
+
+    for(auto& b : z["besluiten"]) {
+      VoteResult vr;
+      if(getVoteDetail(sqlw, b["id"], vr)) {
+	cout<<"Yo\n";
+	b["voorpartij"] = vr.voorpartij;
+	b["tegenpartij"] = vr.tegenpartij;
+	b["nietdeelgenomenpartij"] = vr.nietdeelgenomenpartij;
+	b["voorstemmen"] = vr.voorstemmen;
+	b["tegenstemmen"] = vr.tegenstemmen;
+	b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
+      }
+    }
     
-    // XXX kamerstuk
     // XXX agendapunt multi
     
     res.set_content(z.dump(), "application/json");
@@ -459,7 +480,10 @@ int main(int argc, char** argv)
 
     
     string content = "<!doctype html>\n";
-    content += R"(<html><meta charset="utf-8">   <link rel='stylesheet' href='../style.css'>)";
+    content += R"(<html><meta charset="utf-8">
+<link rel='stylesheet' href='../pico.min.css'>
+<link rel='stylesheet' href='../custom.css'>
+)";
 
     content += fmt::format(R"(<meta property='og:title' content='{}'>
 <meta property='og:description' content='{}'>
@@ -469,7 +493,7 @@ int main(int argc, char** argv)
 			   "https://www.tweedekamer.nl/themes/contrib/tk_theme/assets/favicon/favicon.svg"
 			   );
     
-    content += fmt::format(R"(<body><center>
+    content += fmt::format(R"(<body><header class="container"><center>
 	<small>
 	  [<a href="../">overzicht</a>]
 	  [<a href="../activiteiten.html">activiteiten</a>]
@@ -483,7 +507,7 @@ int main(int argc, char** argv)
 	  [<a href="../verslagen.html">verslagen</a>]		  
 	  [<a href="../search.html">🔍 zoekmachine</a>]
 	  [<a href="../https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
-	</small></center><h1>{}</h1><h2>{}</h2>
+	</small></center></header><main class="container"><h1>{}</h1><h2>{}</h2>
 <p>Datum: <b>{}</b>, bijgewerkt: {}</p>
 <p>Nummer: <b>{}</b>, Soort: <b>{}</b>.</p>
 <p>
@@ -614,7 +638,7 @@ int main(int argc, char** argv)
       content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
 
     
-    content += "</body></html>";
+    content += "</main></body></html>";
     res.set_content(content, "text/html");
   });
 
@@ -633,7 +657,11 @@ int main(int argc, char** argv)
     strptime(updated.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
     time_t then = timegm(&tm);
     verslagen[0]["updated"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
+    // this accidentally gets the "right" id 
+    verslagen[0]["htmlverslag"]=getHtmlForDocument(get<string>(verslagen[0]["id"]));
     auto ret = packResultsJson(verslagen);
+
+
     res.set_content(ret[0].dump(), "application/json");
   });
 
@@ -698,6 +726,17 @@ int main(int argc, char** argv)
     fmt::print("Returned {} docs\n", docs.size());
   });
 
+  svr.Post("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    bool onlyRegeringsstukken = req.get_file_value("onlyRegeringsstukken").content == "true";
+    // als een document in twee zaken zit komt hij hier dubbel uit! deduppen?
+    auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc limit 120",
+			   {!onlyRegeringsstukken});
+    
+    res.set_content(packResultsJsonStr(docs), "application/json");
+    fmt::print("Returned {} docs\n", docs.size());
+  });
+
+  
   // select * from persoonGeschenk, Persoon where Persoon.id=persoonId order by Datum desc
 
   svr.Get("/geschenken", [&sqlw](const httplib::Request &req, httplib::Response &res) {
@@ -757,7 +796,7 @@ int main(int argc, char** argv)
 
 
   svr.Get("/future-besluiten", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-19' and datum < '2024-10-19' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener, besluit.tekst from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > '2024-09-19' and datum < '2024-10-21' order by datum asc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
     
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} besluiten\n", docs.size());
@@ -788,13 +827,18 @@ int main(int argc, char** argv)
     
     SQLiteWriter idx("tkindex.sqlite3");
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
+    idx.query("ATTACH DATABASE ':memory:' as tmp");
     cout<<"Search: '"<<term<<"'\n";
     DTime dt;
     dt.start();
-    auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by score limit 280", {term, limit});
-    auto usec = dt.lapUsec();
+    // auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by score limit 280", {term, limit});
 
-    auto matchesVerslag = idx.queryT("SELECT uuid,meta.Vergadering.titel as onderwerp, meta.Vergadering.id as vergaderingId, meta.Verslag.updated as bijgewerkt, '' as titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score FROM docsearch,meta.Verslag, meta.Vergadering WHERE docsearch MATCH ? and docsearch.uuid = Verslag.id and Vergadering.id = Verslag.vergaderingId and datum > ? order by score limit 280", {term, limit});
+    idx.queryT("create table tmp.uuids as SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch WHERE docsearch match ? and datum > ? order by score limit 280", {term, limit});
+
+
+    auto matches =  idx.queryT("select uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snip, score FROM uuids,meta.Document where tmp.uuids.uuid=Document.id");
+    
+    auto matchesVerslag = idx.queryT("SELECT uuid,meta.Vergadering.titel as onderwerp, meta.Vergadering.id as vergaderingId, meta.Verslag.updated as bijgewerkt, '' as titel, nummer, datum, snip, score FROM uuids, meta.Verslag, meta.Vergadering WHERE uuid = Verslag.id and Vergadering.id = Verslag.vergaderingId");
     for(auto& mv : matchesVerslag) {
       fmt::print("Verslag match: {} {} verslagId {}\n", get<string>(mv["onderwerp"]),
 		 get<string>(mv["vergaderingId"]),
@@ -807,6 +851,7 @@ int main(int argc, char** argv)
     fmt::print("Got {} matches\n", matches.size());
     nlohmann::json response=nlohmann::json::object();
     response["results"]= packResultsJson(matches);
+    auto usec = dt.lapUsec();
     response["milliseconds"] = usec/1000.0;
     res.set_content(response.dump(), "application/json");
   });

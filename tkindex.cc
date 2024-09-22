@@ -60,15 +60,14 @@ int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
   string limit="2008-01-01";
-  auto wantDocs = todo.queryT("select id,titel,onderwerp from Document where datum > ?", {limit});
+  auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());
 
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
   
-  limit="2021-11-01";
-  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel,'' as onderwerp from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
+  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
   set<string> seenvergadering;
   decltype(alleVerslagen) wantVerslagen;
@@ -80,11 +79,12 @@ int main(int argc, char** argv)
     seenvergadering.insert(vid);
   }
   fmt::print("Would like to index {} most recent verslagen\n", wantVerslagen.size());
-  
-  SQLiteWriter sqlw("tkindex.sqlite3");
+
+  string idxfname = argc<2 ? "tkindex.sqlite3" : argv[1];
+  SQLiteWriter sqlw(idxfname);
 
   sqlw.queryT(R"(
-CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, uuid UNINDEXED, tokenize="unicode61 tokenchars '_'")
+CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, uuid UNINDEXED, datum UNINDEXED, category UNINDEXED,  tokenize="unicode61 tokenchars '_'")
 )");
 
   auto already = sqlw.queryT("select uuid from docsearch");
@@ -141,10 +141,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
       try {
 	titel = 	  get<string>(wantAll[n]["titel"]);
       } catch(...){}
-      sqlw.queryT("insert into docsearch values (?,?,?,?)", {
+      sqlw.queryT("insert into docsearch values (?,?,?,?,?,?)", {
 	  get<string>(wantAll[n]["onderwerp"]),
 	  titel,
-	  text, id});
+	  text, id, get<string>(wantAll[n]["datum"]), get<string>(wantAll[n]["category"])  });
       indexed++;
     }
   };

@@ -14,6 +14,32 @@ async function getRecentDocs(f) {
     }
 }
 
+function recentInit2(f)
+{
+    setInterval(getRecentDocs2, 60000, f);
+    getRecentDocs2(f);
+}
+
+async function getRecentDocs2(f)
+{
+    const formData = new FormData();
+    formData.append('onlyRegeringsstukken', f.onlyRegeringsstukken);
+    console.log(f.onlyRegeringsstukken);
+    const response = await fetch('recent-docs', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+        f.recentDocs = data;
+	console.log("Update!");
+    }
+
+    const response2 = await fetch('jarig-vandaag');
+    if (response2.ok === true) {
+        const data = await response2.json();
+        f.jarigVandaag = data;
+    }
+}
+
+
 async function getRecentActiviteiten(f) {
     
     const response = await fetch('future-activities');
@@ -198,6 +224,18 @@ async function getSearchResults(f)
     url.searchParams.set("q", f.searchQuery);
     url.searchParams.set("twomonths", f.twomonths);
     history.pushState({}, "", url);
+    f.alternatief='';
+    f.message='';
+    if(/2[0-9][0-9][0-9]Z[0-9]*/.test(f.searchQuery)) {
+	console.log("zaak match");
+	f.alternatief = `<p><em>Bedoelt u mogelijk zaak <a href="zaak.html?nummer=${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
+    }
+    else if(/2[0-9][0-9][0-9]D[0-9]*/.test(f.searchQuery)) {
+	f.alternatief = `<p><em>Bedoelt u mogelijk document <a href="get/${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
+    }
+    else if(/^[0-9][0-9][0-9][0-9][0-9]$/.test(f.searchQuery)) {
+	f.alternatief = `<p><em>Bedoelt u mogelijk kamerstukdossier <a href="ksd.html?ksd=${f.searchQuery}&toevoeging=">${f.searchQuery}</a>?</em></p>`;
+    }
     
     const formData = new FormData();
     formData.append('q', f.searchQuery);

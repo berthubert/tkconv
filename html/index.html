@@ -3,7 +3,7 @@
   <head>
     <title>tkconv</title>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+
     <link rel='stylesheet' href='pico.min.css'>
     <link rel='stylesheet' href='custom.css'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,8 +14,10 @@
   
   <body>
     <div id="recent-docs" x-data="{
-				  recentDocs: []
-				  }" x-init="recentInit($data);">
+				  recentDocs: [],
+				  onlyRegeringsstukken: false,
+				  jarigVandaag: []
+				  }" x-init="recentInit2($data);">
       
       <header class="container">
 	<center>
@@ -33,7 +35,22 @@
 	    [<a href="search.html">🔍 zoekmachine</a>]
 	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	  </small>
-	  <h4>Meest recente documenten (live updates)</h4>
+	  Meest recente documenten (live updates)
+	  <small>
+	    
+	    <form @submit.prevent="getRecentDocs2($data);">
+	      <label><input name="twomonths" id="twomonths" type="checkbox" value="off" x-model="onlyRegeringsstukken" @change="getRecentDocs2($data);">Alleen regeringsdocumenten</label>
+	    </form>
+
+	  <template x-if="jarigVandaag.length">
+	    <p>
+	      Jarig vandaag
+	      <template x-for="d in jarigVandaag">
+		<span x-text="'🎈 ' +d.roepnaam + ' ' + d.tussenvoegsel +' ' + d.achternaam + ' ('+d.afkorting+') '"></span> 
+	      </template>
+	    </p>
+	  </template>
+	  </small>
 	  <!--
 	      <p style="color: red"><a href="https://opendata.tweedekamer.nl/nieuws/storing-apis">De Tweede Kamer data-service ligt eruit</a>, dus helaas even geen updates!</p>.
 	      -->

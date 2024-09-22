@@ -36,10 +36,10 @@ int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
 
-  int sizlim = 12500000;
+  int sizlim = 15500000;
   string limit="2008-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
-  limit="2021-11-01";
+
   auto alleVerslagen = sqlw.queryT("select Verslag.id as id, vergadering.id as vergaderingid,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
   

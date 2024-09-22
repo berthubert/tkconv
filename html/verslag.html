@@ -41,7 +41,7 @@
     </header>
     <template x-if="loaded">
     <main class="container">
-      <iframe x-bind:src="'getdoc/' + meta.id" width="100%" height="1024px"></iframe>
+      <div x-html="meta.htmlverslag"></div>
     </main>
     </template>
   </div>

@@ -40,9 +40,9 @@ niet bij waar het document bijhoort, welke vergadering, welke activiteit.
 
 # Met dank aan
 
-Veel dank aan Bart Schuller, Peter Peerdeman voor hun open source bijdragen!
-Verder bouwt dit project op de noeste arbeid van de Tweede Kamer, zonder hun
-werk was er niks weer te geven.
+Veel dank aan Bart Schuller, Peter Peerdeman voor hun open source bijdragen! 
+Verder bouwt dit project op de noeste arbeid van de staf van de Tweede
+Kamer, zonder hun werk was er niks weer te geven.
 
 De software leunt verder zwaar op [SQLite](https://sqlite.org), [Pico CSS](https://picocss.com/),
 [Pugixml](https://pugixml.org/), [nlohmann-json](https://json.nlohmann.me/),
@@ -100,11 +100,14 @@ Vergt een moderne linux/unix met diverse dependencies:
 
 ```bash
 apt-get install nlohmann-json3-dev libsqlite3-dev libpugixml-dev libssl-dev \
-zlib1g-dev poppler-utils catdoc pandoc ttf-mscorefonts-installer
+zlib1g-dev poppler-utils catdoc pandoc ttf-mscorefonts-installer 
 ```
 
 Begin met: meson setup build
 En dan bouwen als: meson compile -C build
+
+Ook is de nieuwste versie van pandoc nodig in productie, nieuwe dan in
+Debian Bookworm.
 
 # Draaien
 Alles wil draaien vanuit de root directory van het project.
@@ -145,15 +148,4 @@ Het is expliciet de hoop dat dit een actief open source project wordt.
 Tegelijk is er gekozen voor een vrij specifieke architectuur. Als je graag
 had gewild dat tkconv veel ingewikkelder was, maar wel met meer gangbare
 tools, dan is dit mogelijk niet het project voor jou.
-
-# Open
-2024D30849 - de kamer website weet de oorspronkelijke vraag hierbij te
-vinden, hoe dan?
-
-2024D31742 - kamer website komt van dit antwoord naar de kamervraag, hoe
-8405e3ca-f7cb-49ca-ac51-aef4d4eb780f
-
-# motie
-Een motie is een Document, met ALTIJD een kamerstukdossierid
-
 

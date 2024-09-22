@@ -4,7 +4,7 @@
 <head>
   <title>tkconv</title>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';  style-src 'self' 'unsafe-inline'; font-src 'none';" />
   <link rel='stylesheet' href='pico.min.css'>
   <link rel='stylesheet' href='custom.css'>
 
@@ -17,7 +17,8 @@
 				foundDocs: [],
 				twomonths: false,
 				searchQuery: '',
-				message: ''
+				message: '',
+				alternatief: ''
 				}" x-init="init($data);">
     <header class="container">
       <center>
@@ -48,6 +49,7 @@
     </header>
 
     <main class="container">
+      <span x-html="alternatief"></span>
       <table class="striped">
 	<thead>
 	  <tr>
@@ -59,27 +61,26 @@
 	  </tr>
 	</thead>
 	<tbody>
-	<template x-for="d in foundDocs">
-        <tr>
-          <td x-text="d.datum.substring(0,10)"></td>
-	  <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
-	  <template x-if="d.category!='Vergadering'">
-	    <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
-	  </template>
-	  <template x-if="d.category=='Vergadering'">
-	    <td><a x-text="d.nummer" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>
-	  </template>
-	  
-	  <td x-text="d.onderwerp"></td>
-	  <td x-html="d.snip"></td>
-        </tr>
+	  <template x-for="d in foundDocs">
+            <tr>
+              <td x-text="d.datum.substring(0,10)"></td>
+	      <td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+	      <template x-if="d.category!='Vergadering'">
+		<td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+	      </template>
+	      <template x-if="d.category=='Vergadering'">
+		<td><a x-text="d.nummer" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>
+	      </template>
+	      
+	      <td x-text="d.onderwerp"></td>
+	      <td x-html="d.snip"></td>
+            </tr>
 	</template>
 	</tbody>
-    </table>
-    <p></p>
-    <center><small>
+      </table>
+      <center><small>
 	<span x-text="message"></span>
-    </small></center>
+      </small></center>
     </main>
   </div>
 </body>

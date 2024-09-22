@@ -52,7 +52,7 @@
 	<tbody>
 	  <template x-for="d in openToezeggingen">
             <tr>
-              <td x-text="d.datum.replace('T', '&nbsp;').substr(0,16)"></td>
+              <td x-html="d.datum.substr(0,10).replaceAll('-', '&#8209;')"></td>
 	      <td x-text="d.status"></td>
 	      <td x-text="d.voortouwAfkorting"></td>
 	      <td x-html="'<a href=https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=' + d.activiteitNummer + '>' + d.tekst +'</a>'"></td>	  

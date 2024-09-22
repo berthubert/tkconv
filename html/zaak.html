@@ -19,14 +19,31 @@
 				}" x-init="zaakinit($data);">
     <header class="container">
       <center>
-	<small>[<a href="./">overzicht</a>] - [<a href="./activiteiten.html">activiteiten</a>] [<a href="toezeggingen.html">toezeggingen</a>] [<a href="kamerstukdossiers.html">kamerstukdossiers</a>] [<a href="geschenken.html">geschenken</a>]</small>
-	<br/>
+	<small>
+	  [<a href="index.html">overzicht</a>]
+	  [<a href="activiteiten.html">activiteiten</a>]
+	  [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	  [<a href="besluiten.html">besluiten</a>]
+	  [<a href="geschenken.html">geschenken</a>]
+	  [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	  [<a href="open-vragen.html">open vragen</a>]
+	  [<a href="toezeggingen.html">toezeggingen</a>]
+	  [<a href="stemmingen.html">stemmingen</a>]
+	  [<a href="verslagen.html">verslagen</a>]	  
+	  [<a href="search.html">🔍 zoekmachine</a>]
+	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	</small>
       </center>
     </header>
     <main class="container">
       <h1 x-text="zaak['zaak'].nummer"></h1>
       <h2 x-text="zaak['zaak'].titel"></h2>
       <h3 x-text="zaak['zaak'].onderwerp"></h3>
+      <template x-if="zaak['kamerstukdossier'].length">
+	<p>
+	  Onderdeel van kamerstukdossier <a x-bind:href="'ksd.html?ksd='+zaak['kamerstukdossier'][0].nummer+'&toevoeging='+zaak['kamerstukdossier'][0].toevoeging" x-text="zaak['kamerstukdossier'][0].nummer + ' ' + zaak['kamerstukdossier'][0].toevoeging"></span>.
+	</p>
+      </template>
       <h4>Betrokkenen</h4>
       <ul>
 	<template x-for="a in zaak['actors']">
@@ -52,6 +69,25 @@
 	  </li>
 	</template>
       </ul>
+      <h4>Besluiten</h4>
+      <ul>
+	<template x-for="b in zaak['besluiten']">
+	  <li>
+	    <span x-text="b.datum.replace('T', ' ').substr(0,16) + ' ⇒ ' + b.tekst"></span>
+	    <template x-if="Object.hasOwn(b, 'voorpartij')">
+	      <ul>
+		<li>Voor <span x-text="b.voorstemmen"></span>: 
+		  <span x-text="b.voorpartij.join(' | ')"></span></li>
+		<li>Tegen <span x-text="b.tegenstemmen"></span>: <span x-text="b.tegenpartij.join(' | ')"></span></li>
+		<template x-if='b.nietdeelgenomenpartij.length'>
+		  <li>Niet deelgenomen <span x-text="b.nietdeelgenomenstemmen"></span>: <span x-text="b.nietdeelgenomenpartij.join(' | ')"></span></li>
+		</template>
+	      </ul>
+	    </template>
+	  </li>
+	</template>
+      </ul>
+      
     </main>
   </div>    
 </body>
