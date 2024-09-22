@@ -1,0 +1,10 @@
+th {
+    font-size: 100%;
+}
+tr,td {
+    vertical-align: top;
+    font-size: 90%;
+}
+.interrumpant {
+          background-color: var(--pico-mark-background-color);
+}
