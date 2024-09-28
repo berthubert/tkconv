@@ -10,6 +10,9 @@
     <!-- opengraph -->
     <script defer src="logic.js"></script>
     <script defer src="alpine.min.js"></script>
+    <style>
+      span.jarig::before { content: '🎈'; }
+    </style>
   </head>
   
   <body>
@@ -26,14 +29,18 @@
 	    [<a href="activiteiten.html">activiteiten</a>]
 	    [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
 	    [<a href="besluiten.html">besluiten</a>]
+	    [<a href="commissies.html">commissies</a>]
 	    [<a href="geschenken.html">geschenken</a>]
+	    [<a href="kamerleden.html">kamerleden</a>]
 	    [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
 	    [<a href="open-vragen.html">open vragen</a>]
+	    <br/>
 	    [<a href="toezeggingen.html">toezeggingen</a>]
 	    [<a href="stemmingen.html">stemmingen</a>]
 	    [<a href="verslagen.html">verslagen</a>]	  
 	    [<a href="search.html">🔍 zoekmachine</a>]
 	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	    <br/>
 	  </small>
 	  Meest recente documenten (live updates)
 	  <small>
@@ -46,7 +53,7 @@
 	    <p>
 	      Jarig vandaag
 	      <template x-for="d in jarigVandaag">
-		<span x-text="'🎈 ' +d.roepnaam + ' ' + d.tussenvoegsel +' ' + d.achternaam + ' ('+d.afkorting+') '"></span> 
+		<span class="jarig"><a  x-bind:href="'persoon.html?nummer='+d.nummer" x-text="d.roepnaam + ' ' + d.tussenvoegsel +' ' + d.achternaam + ' ('+d.afkorting+') '"></a></span>
 	      </template>
 	    </p>
 	  </template>

@@ -41,9 +41,15 @@
       <h3 x-text="zaak['zaak'].onderwerp"></h3>
       <template x-if="zaak['kamerstukdossier'].length">
 	<p>
-	  Onderdeel van kamerstukdossier <a x-bind:href="'ksd.html?ksd='+zaak['kamerstukdossier'][0].nummer+'&toevoeging='+zaak['kamerstukdossier'][0].toevoeging" x-text="zaak['kamerstukdossier'][0].nummer + ' ' + zaak['kamerstukdossier'][0].toevoeging"></span>.
+	  Onderdeel van kamerstukdossier <a x-bind:href="'ksd.html?ksd='+zaak['kamerstukdossier'][0].nummer+'&toevoeging='+zaak['kamerstukdossier'][0].toevoeging" x-text="zaak['kamerstukdossier'][0].nummer + ' ' + zaak['kamerstukdossier'][0].toevoeging"></a>.
 	</p>
       </template>
+      <template x-if="zaak['zaak']['kabinetsappreciatie'].length">
+	<p>
+	  Kabinetsappreciatie: <span x-text="zaak['zaak']['kabinetsappreciatie']"></span>.
+	</p>
+      </template>
+
       <h4>Betrokkenen</h4>
       <ul>
 	<template x-for="a in zaak['actors']">
@@ -55,7 +61,7 @@
 	<template x-for="a in zaak['docs']">
 	  <li>
 	    <span x-text="`${a.datum.substr(0,10)}:`"></span>
-	    <a x-text="a.onderwerp" x-bind:href=`get/${a.nummer}`></a>
+	    <a x-text="a.onderwerp" x-bind:href=`get/${a.nummer}`></a> <span x-text="'('+a.soort+')'"</span>
 	    <span x-text="a.titel"></span>
 	  </li>
 	</template>
@@ -64,7 +70,7 @@
       <ul>
 	<template x-for="a in zaak['agendapunten']">
 	  <li>
-	    <span x-text="`${a.activiteit.aanvangstijd.replace('T','&nbsp;')}: ${a.activiteit.onderwerp} (${a.activiteit.soort})`"></span>. <a x-text="a.activiteit.nummer" x-bind:href="`https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id=${a.activiteit.nummer}`">
+	    <span x-text="`${a.activiteit.aanvangstijd.replace('T','&nbsp;')}: ${a.activiteit.onderwerp} (${a.activiteit.soort})`"></span>. <a x-text="a.activiteit.nummer" x-bind:href="`activiteit.html?nummer=${a.activiteit.nummer}`">
 	    </a>
 	  </li>
 	</template>

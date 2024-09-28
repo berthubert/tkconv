@@ -75,7 +75,10 @@ async function getGenKSD(orig, dest, f)
         f[dest] = data;
 	var ksdnamen=[]
 	for (const element of data) {
-	    ksdnamen.push(element.nummer +" " +element.titel);
+	    if(element.toevoeging != '')
+		ksdnamen.push(element.nummer +"-" + element.toevoeging +" " +element.titel);
+	    else
+		ksdnamen.push(element.nummer +" " +element.titel);
 	}
 	config= {
 	    placeHolder: "Kamerstukdossier titel",
@@ -110,7 +113,13 @@ async function getGenKSD(orig, dest, f)
 			autoCompleteJS.input.value = selection;
 			selected = selection.split(" ")[0];
 			// https://berthub.eu/tkconv/ksd.html?ksd=25424
-			window.location.href = "ksd.html?ksd="+selected+"&toevoeging=";
+			fspl = selected.split("-");
+			const num = fspl[0];
+			let toevoeging="";
+
+			if(fspl.length > 1)
+			    toevoeging = fspl[1];
+			window.location.href = "ksd.html?ksd="+selected+"&toevoeging=" + toevoeging;
 		    }
 		}
 	    }
@@ -161,6 +170,19 @@ function init(f)
 	getSearchResults(f);
 }
 
+async function commissieinit(f)
+{
+    let url = new URL(window.location.href)
+    f.id = url.searchParams.get("id");
+    const response = await fetch('commissie/'+f.id);
+    if (response.ok === true) {
+        const data = await response.json();
+	f["data"] = data;
+	f.loaded=true;
+    }
+}
+
+
 function ksdinit(f)
 {
     let url = new URL(window.location.href)
@@ -182,6 +204,24 @@ async function getKSDDocs(f)
 	f["meta"] = data["meta"];
     }
 }
+
+function persooninit(f)
+{
+    let url = new URL(window.location.href)
+    f.nummer = url.searchParams.get("nummer");
+    getPersoon(f);
+}
+
+async function getPersoon(f)
+{
+    const response = await fetch('persoon/'+f.nummer);
+    if (response.ok === true) {
+        const data = await response.json();
+	f["data"] = data;
+	f.loaded = true;
+    }
+}
+
 
 async function verslaginit(f)
 {
@@ -216,6 +256,28 @@ async function getZAAKDocs(f)
     }
 }
 
+async function activiteitinit(f)
+{
+    let url = new URL(window.location.href)
+    f.nummer = url.searchParams.get("nummer");
+    return getActiviteitDetails(f);
+}
+
+async function getActiviteitDetails(f)
+{
+//    const url = new URL(window.location.href);
+ //   url.searchParams.set("zaak", f.nummer);
+   // history.pushState({}, "", url);
+
+    const response = await fetch('activiteit/'+f.nummer);
+    if (response.ok === true) {
+        const data = await response.json();
+        f["activiteit"] = data;
+	console.log(data);
+	f["loaded"]=true;
+    }
+}
+
 
 
 async function getSearchResults(f)
@@ -230,6 +292,11 @@ async function getSearchResults(f)
 	console.log("zaak match");
 	f.alternatief = `<p><em>Bedoelt u mogelijk zaak <a href="zaak.html?nummer=${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
     }
+    if(/2[0-9][0-9][0-9]A[0-9]*/.test(f.searchQuery)) {
+	console.log("zaak match");
+	f.alternatief = `<p><em>Bedoelt u mogelijk activiteit <a href="activiteit.html?nummer=${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
+    }
+    
     else if(/2[0-9][0-9][0-9]D[0-9]*/.test(f.searchQuery)) {
 	f.alternatief = `<p><em>Bedoelt u mogelijk document <a href="get/${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
     }

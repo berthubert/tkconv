@@ -4,6 +4,7 @@
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
 #include <iostream>
+#include <map>
 #include "httplib.h"
 #include "sqlwriter.hh"
 #include "jsonhelper.hh"
@@ -32,7 +33,7 @@ static string htmlEscape(const std::string& str)
 // for verslag XML, this makes html w/o <html> etc, for use in a .div
 static string getHtmlForDocument(const std::string& id)
 {
-  if(isPresentNonEmpty(id, "doccache", ".html")) {
+  if(isPresentNonEmpty(id, "doccache", ".html") && cacheIsNewer(id, "doccache", "pdf", "docs")) {
     string fname = makePathForId(id, "doccache", ".html");
     FILE* pfp = fopen(fname.c_str(), "r");
     if(!pfp)
@@ -59,6 +60,9 @@ static string getHtmlForDocument(const std::string& id)
 
   if(isDocx(fname))
     command = fmt::format("pandoc -s -f docx   --embed-resources  --variable maxwidth=72em -t html '{}'",
+			  fname);
+  else if(isRtf(fname))
+    command = fmt::format("pandoc -s -f rtf   --embed-resources  --variable maxwidth=72em -t html '{}'",
 			  fname);
   else if(isDoc(fname))
     command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
@@ -103,7 +107,7 @@ static string getHtmlForDocument(const std::string& id)
 
 static string getPDFForDocx(const std::string& id)
 {
-  if(isPresentNonEmpty(id, "doccache", ".pdf")) {
+  if(isPresentNonEmpty(id, "doccache", ".pdf") && cacheIsNewer(id, "doccache", "pdf", "docs")) {
     string fname = makePathForId(id, "doccache", ".pdf");
     FILE* pfp = fopen(fname.c_str(), "r");
     if(!pfp)
@@ -239,6 +243,16 @@ bool getVoteDetail(LockedSqw& sqlw, const std::string& besluitId, VoteResult& vr
   return true;
 }
 
+time_t getTstamp(const std::string& str)
+{
+  //  2024-09-17T13:00:00
+  //  2024-09-17T13:00:00+0200
+  struct tm tm={};
+  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  
+  return timelocal(&tm);
+}
+
 int main(int argc, char** argv)
 {
   SQLiteWriter unlockedsqlw("tk.sqlite3");
@@ -249,7 +263,7 @@ int main(int argc, char** argv)
 
   svr.Get("/getdoc/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
-    cout<<"nummer: "<<nummer<<endl;
+    cout<<"getdoc nummer: "<<nummer<<endl;
 
     string id, contentType;
     if(nummer.length()==36 && nummer.find_first_not_of("0123456789abcdef-") == string::npos) {
@@ -297,7 +311,7 @@ int main(int argc, char** argv)
   
   svr.Get("/getraw/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
-    cout<<"nummer: "<<nummer<<endl;
+    cout<<"getraw nummer: "<<nummer<<endl;
     string id;
     auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
 
@@ -311,18 +325,84 @@ int main(int argc, char** argv)
     }
     else
       id = get<string>(ret[0]["id"]);
-    fmt::print("'{}'\n", id);
+
     string content = getRawDocument(id);
     res.set_content(content, get<string>(ret[0]["contentType"]));
   });
 
   svr.Get("/jarig-vandaag", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
-    auto jarig = sqlw.queryJRet("select geboortedatum,roepnaam,initialen,tussenvoegsel,achternaam,afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where geboortedatum like ? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid order by achternaam, roepnaam", {f});
+    auto jarig = sqlw.queryJRet("select geboortedatum,roepnaam,initialen,tussenvoegsel,achternaam,afkorting,persoon.nummer from Persoon,fractiezetelpersoon,fractiezetel,fractie where geboortedatum like ? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid order by achternaam, roepnaam", {f});
     res.set_content(jarig.dump(), "application/json");
     return;
   });
 
+  svr.Get("/kamerleden/?", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    auto leden = sqlw.queryJRet("select fractiezetel.gewicht, persoon.*, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' order by afkorting, fractiezetel.gewicht");
+    res.set_content(leden.dump(), "application/json");    
+  });
+
+  svr.Get("/commissies/?", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+
+    auto j = sqlw.queryJRet("select commissieid,max(datum) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc"); 
+
+    res.set_content(j.dump(), "application/json");    
+  });
+
+  svr.Get("/commissie/:id", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string id = req.path_params.at("id");
+    nlohmann::json j = nlohmann::json::object();
+    j["leden"] = sqlw.queryJRet("select Commissie.naam, commissie.afkorting cafkorting, commissiezetel.gewicht, CommissieZetelVastPersoon.functie cfunctie, persoon.*, fractie.afkorting fafkorting from Commissie,CommissieZetel,CommissieZetelVastPersoon, Persoon,fractiezetelpersoon,fractiezetel,fractie where Persoon.id=commissiezetelvastpersoon.PersoonId and CommissieZetel.commissieId = Commissie.id and CommissieZetelVastpersoon.CommissieZetelId = commissiezetel.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.persoonId = Persoon.id and commissie.id=? and fractie.datumInactief='' and fractiezetelpersoon.totEnMet='' and CommissieZetelVastPersoon.totEnMet='' order by commissiezetel.gewicht", {id}); 
+
+    j["zaken"] =sqlw.queryJRet("select * from ZaakActor,Zaak where commissieId=? and Zaak.id=ZaakActor.zaakid order by gestartOp desc limit 20", {id});
+    j["activiteiten"] =sqlw.queryJRet("select * from ActiviteitActor,Activiteit where commissieId=? and Activiteit.id=ActiviteitActor.activiteitid order by datum desc limit 20", {id});
+
+    auto tmp = sqlw.queryJRet("select activiteit.*, 'Voortouwcommissie' as relatie from activiteit,commissie where voortouwNaam like commissie.naam and commissie.id=? order by datum desc limit 20", {id});
+    fmt::print("Got {} voortouw\n", tmp.size());
+    for(const auto& t : tmp)
+      j["activiteiten"].push_back(t);
+		   
+    sort(j["activiteiten"].begin(), j["activiteiten"].end(), [](auto& a, auto&b) {
+      return a["datum"] > b["datum"];
+    });
+    res.set_content(j.dump(), "application/json");    
+  });
+
+  
+  svr.Get("/persoon/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    int nummer = atoi(req.path_params.at("nummer").c_str());
+
+    auto lid = sqlw.queryJRet("select persoon.*, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.nummer=? and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.totEnMet='' order by achternaam, roepnaam", {nummer});
+    if(lid.empty()) {
+      res.status=404;
+      res.set_content("Geen kamerlid met nummer "+to_string(nummer), "text/plain");
+      return;
+    }
+      
+    nlohmann::json j = nlohmann::json::object();
+    j["meta"] = lid[0];
+
+    auto zaken = sqlw.queryJRet("select zaak.* from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]});
+    for(auto& z: zaken) {
+      z["aangenomen"]="";
+      z["docs"] = sqlw.queryJRet("select document.* from link,document where link.naar=? and category='Document' and document.id=link.van order by datum", {(string)z["id"]});
+      z["besluiten"] = sqlw.queryJRet("select datum,besluit.id,stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {(string)z["nummer"]});
+      for(auto& b : z["besluiten"]) {
+	z["aangenomen"]=b["tekst"];
+      }
+    }
+    j["zaken"] = zaken;
+
+    auto verslagen = sqlw.queryJRet("select vergaderingid,datum,soort,zaal,titel from VergaderingSpreker,Persoon,Vergadering where vergadering.id=vergaderingid and Persoon.id=persoonId and persoon.nummer=? and soort != 'Plenair' order by datum desc", {nummer});
+    
+    j["verslagen"] = verslagen;
+
+    j["activiteiten"] = sqlw.queryJRet("select activiteit.* from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
+    res.set_content(j.dump(), "application/json");
+    return;
+  });
+
+  
   svr.Get("/zaak/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.path_params.at("nummer");
     nlohmann::json z = nlohmann::json::object();
@@ -365,7 +445,6 @@ int main(int argc, char** argv)
     for(auto& b : z["besluiten"]) {
       VoteResult vr;
       if(getVoteDetail(sqlw, b["id"], vr)) {
-	cout<<"Yo\n";
 	b["voorpartij"] = vr.voorpartij;
 	b["tegenpartij"] = vr.tegenpartij;
 	b["nietdeelgenomenpartij"] = vr.nietdeelgenomenpartij;
@@ -431,6 +510,118 @@ int main(int argc, char** argv)
     
     res.set_content(r.dump(), "application/json");
     fmt::print("Returned {} docs for kamerstuk {} toevoeging {}\n", docs.size(), nummer, toevoeging);
+  });
+
+  svr.Get("/activiteit/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string nummer=req.path_params.at("nummer"); // 2024A02517
+    cout<<"/activiteit/:nummer: "<<nummer<<endl;
+
+    auto ret=sqlw.query("select * from Activiteit where nummer=? order by rowid desc limit 1", {nummer});
+
+    
+    if(ret.empty()) {
+      res.set_content("Found nothing!!", "text/plain");
+      return;
+    }
+    nlohmann::json r = nlohmann::json::object();
+    r["meta"] = packResultsJson(ret)[0];
+    string activiteitId = r["meta"]["id"];
+    auto actors = sqlw.query("select ActiviteitActor.*, Persoon.nummer from ActiviteitActor left join Persoon on Persoon.id=ActiviteitActor.persoonId where activiteitId=? order by volgorde", {activiteitId});
+    r["actors"] = packResultsJson(actors);
+    auto zalen = sqlw.queryJRet("select * from Reservering,Zaal where Reservering.activiteitId = ? and zaal.id = zaalId", {activiteitId});;
+    string zaalnaam;
+    if(!zalen.empty()) {
+      zaalnaam = zalen[0]["naam"];
+      r["zaal"] = zalen[0];
+    }
+    else
+      r["zaal"]="";
+
+    r["agendapunten"]= sqlw.queryJRet("select * from Agendapunt where activiteitId = ? order by volgorde", {activiteitId});
+
+    
+    for(auto& ap: r["agendapunten"]) {
+      ap["docs"] = sqlw.queryJRet("select * from Document where agendapuntid=?",
+				  {(string)ap["id"]});
+      ap["zdocs"] = sqlw.queryJRet("select Document.* from link,link link2,zaak,document where link.naar=? and zaak.id=link.van and link2.naar = zaak.id and document.id=link2.van",  {(string)ap["id"]});
+    }
+
+    r["docs"] = sqlw.queryJRet("select Document.* from link,Document where linkSoort='Activiteit' and link.naar=? and Document.id=link.van", {activiteitId});
+
+    r["toezeggingen"] = sqlw.queryJRet("select * from Toezegging where activiteitId=?", {activiteitId});
+    
+    //    string url = fmt::format("https://cdn.debatdirect.tweedekamer.nl/api/agenda/{}",
+    //			     ((string)r["meta"]["datum"]).substr(0,10));
+
+    try {
+      string url = fmt::format("https://cdn.debatdirect.tweedekamer.nl/search?van={}&tot={}&sortering=relevant&vanaf=0&appVersion=10.34.1&platform=web&totalFormat=new",
+			       ((string)r["meta"]["datum"]).substr(0,10),
+			       ((string)r["meta"]["datum"]).substr(0,10));
+      
+      httplib::Client cli("https://cdn.debatdirect.tweedekamer.nl");
+      cli.set_connection_timeout(1, 0); 
+      cli.set_read_timeout(1, 0); 
+      cli.set_write_timeout(1, 0); 
+      
+      fmt::print("Retrieving from {}\n", url);
+      auto httpres = cli.Get(url);
+      if(!httpres) {
+	auto err = httpres.error();
+	fmt::print("Oops retrieving from {} -> {}", url, httplib::to_string(err));
+	res.set_content(r.dump(), "application/json");
+	return;
+      }
+      nlohmann::json j = nlohmann::json::parse(httpres->body);
+      cout<<j.dump()<<endl;
+      //    cout<<httpres->body<<endl;
+      string videourl;
+      cout<<"onderwerp: "<<(string)(r["meta"]["onderwerp"])<<endl;
+      cout<<"datum: "<<(string)(r["meta"]["datum"])<<endl;
+      cout<<"tijd: "<<(string)(r["meta"]["aanvangstijd"])<< " - " <<(string)(r["meta"]["eindtijd"])<<endl;
+      // tijd: 2024-09-10T16:15:00 - 2024-09-10T16:50:00
+      if(zaalnaam.empty())
+	zaalnaam = "Plenaire zaal";
+      cout<<"zaal: "<<zaalnaam<<endl;
+      //    cout <<j["hits"]["hits"].dump()<<endl;
+      
+      /*
+	"startsAt": "2024-09-17T13:00:00+0200",
+	"endsAt": "2024-09-17T14:00:00+0200",
+	"startedAt": "2024-09-17T13:24:08+0200",
+	"endedAt": "2024-09-17T13:43:37+0200",
+      */
+
+      time_t tkmidtstamp = (getTstamp((string)(r["meta"]["aanvangstijd"])) + getTstamp((string)(r["meta"]["eindtijd"])))/2;
+      time_t tklen = getTstamp((string)(r["meta"]["eindtijd"])) - getTstamp((string)(r["meta"]["aanvangstijd"]));
+      
+      std::multimap<time_t, nlohmann::json> candidates;
+      for(auto& h : j["hits"]["hits"]) {
+	auto d = h["_source"];
+	time_t ddmidtstamp = (getTstamp((string)d["startsAt"]) + getTstamp((string)d["endsAt"]))/2;
+	time_t ddlen = getTstamp((string)d["endsAt"]) - getTstamp((string)d["startsAt"]);
+	double lenrat = (ddlen+1.)/(tklen+1.);
+	if((string)d["locationName"]==zaalnaam && lenrat >0.1 && lenrat < 10.0)
+	  candidates.insert({{abs(ddmidtstamp - tkmidtstamp)}, d});
+	fmt::print("'{}' -> '{}' ({}) {} - {} {} {} {}\n",
+		   (string)d["name"], (string)d["slug"], (string)d["locationName"],
+		   (string)d["startsAt"], (string)d["endsAt"], lenrat,
+		   tklen, ddlen
+		   );
+	
+      }
+      if(!candidates.empty()) {
+	auto c =candidates.begin()->second;
+	fmt::print("Best smart match: {} {}\n", (string)c["name"], (string)c["startsAt"]);
+	videourl = "https://debatdirect.tweedekamer.nl/" + (string)c["debateDate"] + "/" + (string)c["categoryIds"][0] +"/"+(string)c["locationId"] +"/"+(string)c["slug"];
+
+      }
+      r["videourl"]=videourl;
+    }
+    catch(exception& e) {
+      fmt::print("Error getting debatdirect link: {}\n", e.what());
+    }
+    res.set_content(r.dump(), "application/json");
+    
   });
 
   
@@ -526,18 +717,24 @@ int main(int argc, char** argv)
 
     string documentId=get<string>(ret[0]["id"]);
     try {
-      auto actors = sqlw.query("select * from DocumentActor where documentId=?", {documentId});
-    if(!actors.empty()) {
-      content += "Gerelateerde personen: <ul>";
-      for(auto& a: actors)
-	content += "<li>" + get<string>(a["relatie"]) +", "+get<string>(a["naam"]) +", " + get<string>(a["functie"]) +"</li>";
-      content += "</ul>";
-    }
-    }catch(exception& e) { cout << e.what() << endl;}
+      auto actors = sqlw.query("select DocumentActor.*, Persoon.nummer from DocumentActor left join Persoon on Persoon.id=Documentactor.persoonId where documentId=?", {documentId});
+      if(!actors.empty()) {
+	content += "Gerelateerde personen: <ul>";
+	for(auto& a: actors) {
+	  if(auto ptr = get_if<int64_t>(&a["nummer"])) {
+	    content += "<li>" + get<string>(a["relatie"]) +", <a href=\"../persoon.html?nummer=" + to_string(*ptr)+"\">"+get<string>(a["naam"]) +"</a>, " + get<string>(a["functie"]) +"</li>";
+	  }
+	  else {
+	    content += "<li>" + get<string>(a["relatie"]) +", "+get<string>(a["naam"]) +"</li>";
+	  }
+	}
+	content += "</ul>";
+      }
+    }catch(exception& e) {  cout << e.what() << endl;}
 
     if(kamerstuknummer> 0) {
-      content += fmt::format("<p>Deel van kamerstukdossier '<a href='../ksd.html?ksd={}&toevoeging={}'>{}, {}</a>-{}</p>",
-			     kamerstuknummer, kamerstuktoevoeging, kamerstuktitel, kamerstuknummer, kamerstukvolgnummer);
+      content += fmt::format("<p>Deel van kamerstukdossier '<a href='../ksd.html?ksd={}&toevoeging={}'>{}', {} {}</a>-{}</p>",
+			     kamerstuknummer, kamerstuktoevoeging, kamerstuktitel, kamerstuknummer, kamerstuktoevoeging, kamerstukvolgnummer);
 			     
     }
     
@@ -549,7 +746,7 @@ int main(int argc, char** argv)
 
     auto bijlagen = sqlw.query("select * from document where bronDocument=?", {documentId});
     if(!bijlagen.empty()) {
-      content+="<p>Dit document heeft de volgende bijlagen: <ul>";
+      content+="<p>Dit document heeft de volgende bijlagen:</p><ul>";
       for(auto& b: bijlagen) {
 	auto g = [&b](const string& s) {
 	  return get<string>(b[s]);
@@ -558,7 +755,7 @@ int main(int argc, char** argv)
 	content += "' ("+g("nummer")+")</a></li> ";
 	
       }
-      content+="</ul></p>";
+      content+="</ul>";
     }
     auto zlinks = sqlw.query("select distinct(naar) as naar from Link where van=? and category='Document' and linkSoort='Zaak'", {documentId});
     set<string> actids;
@@ -576,7 +773,7 @@ int main(int argc, char** argv)
 	    content+= ", ";
 	  content += "<a href='../zaak.html?nummer=" + *iter +"'>" + *iter +"</a>";
 	}
-	content +="): <ul>";
+	content +="):</p><ul>\n";
 	for(auto& z: zactors) {
 	  auto g = [&z](const string& s) {
 	    return get<string>(z[s]);
@@ -585,15 +782,15 @@ int main(int argc, char** argv)
 	  content += g("relatie") + ": " + g("naam");
 	  if(!g("functie").empty())
 	    content+=", " +g("functie");
-	  content += "</li>";
+	  content += "</li>\n";
 	  
 	}
 	auto reldocs = sqlw.query("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId});
 	for(auto& rd : reldocs) {
 	  if(get<string>(rd["id"]) != documentId)
-	    content+= "<li>"+get<string>(rd["soort"])+ " <a href='"+get<string>(rd["nummer"])+"'>" +get<string>(rd["onderwerp"]) +" (" + get<string>(rd["nummer"])+")</a></li>";
+	    content+= "<li>"+get<string>(rd["soort"])+ " <a href='"+get<string>(rd["nummer"])+"'>" +get<string>(rd["onderwerp"]) +" (" + get<string>(rd["nummer"])+")</a></li>\n";
 	}
-	content+="</ul></p>";
+	content+="</ul>\n";
       }
     
       auto besluiten = sqlw.query("select * from besluit where zaakid=? and verwijderd = 0 order by rowid", {zaakId});
@@ -609,7 +806,7 @@ int main(int argc, char** argv)
       }
     }
     if(!actids.empty()) {
-      content += "<p></p>Onderdeel van de volgende activiteiten:\n<ul>";
+      content += "<p>Onderdeel van de volgende activiteiten:\n</p><ul>";
       for(auto& actid : actids) {
 	auto activiteit = sqlw.query("select * from Activiteit where id = ? order by rowid desc limit 1", {actid});
 	auto g = [&activiteit](const string& s) {
@@ -617,8 +814,8 @@ int main(int argc, char** argv)
 	};
 	string datum = g("datum");
 	datum[10]=' ';
-	content += "<li><a href='https://www.tweedekamer.nl/debat_en_vergadering/commissievergaderingen/details?id="+g("nummer")+ "'>"+ g("soort")+" " + datum +" &rarr; '"+g("onderwerp");
-	  content += "', "+g("voortouwNaam")+" ("+g("nummer")+")</a></li> ";
+	content += "<li><a href='../activiteit.html?nummer="+g("nummer")+ "'>"+ g("soort")+" " + datum +" &rarr; '"+g("onderwerp");
+	  content += "', "+g("voortouwNaam")+" ("+g("nummer")+")</a></li>\n";
       }
       content += "</ul>";
     }
@@ -637,7 +834,6 @@ int main(int argc, char** argv)
     else
       content += "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
 
-    
     content += "</main></body></html>";
     res.set_content(content, "text/html");
   });
@@ -660,11 +856,8 @@ int main(int argc, char** argv)
     // this accidentally gets the "right" id 
     verslagen[0]["htmlverslag"]=getHtmlForDocument(get<string>(verslagen[0]["id"]));
     auto ret = packResultsJson(verslagen);
-
-
     res.set_content(ret[0].dump(), "application/json");
   });
-
 
   svr.Get("/verslagen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     
@@ -694,7 +887,7 @@ int main(int argc, char** argv)
     
     auto docs = sqlw.query("select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger,activiteit.datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");
     res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} docs\n", docs.size());
+    fmt::print("Returned {} open toezeggingen\n", docs.size());
   });
 
 
@@ -715,15 +908,11 @@ int main(int argc, char** argv)
     fmt::print("Returned {} kamerstukdossiers\n", docs.size());
   });
 
-
-
-  
-  
   svr.Get("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     // als een document in twee zaken zit komt hij hier dubbel uit! deduppen?
     auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' order by datum desc limit 120");
     res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} docs\n", docs.size());
+    fmt::print("Returned {} docs (get)\n", docs.size());
   });
 
   svr.Post("/recent-docs", [&sqlw](const httplib::Request &req, httplib::Response &res) {
@@ -731,16 +920,27 @@ int main(int argc, char** argv)
     // als een document in twee zaken zit komt hij hier dubbel uit! deduppen?
     auto docs = sqlw.query("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc limit 120",
 			   {!onlyRegeringsstukken});
-    
-    res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} docs\n", docs.size());
+
+    // dedup, sometimes docs occur in multiple Zaaken
+    set<string> seen;
+    decltype(docs) out;
+    out.reserve(docs.size());
+    for(auto& d : docs) {
+      string nummer = get<string>(d["nummer"]);
+      if(seen.count(nummer))
+	continue;
+      seen.insert(nummer);
+      out.push_back(d);
+    }
+    res.set_content(packResultsJsonStr(out), "application/json");
+    fmt::print("Returned {} docs (post)\n", docs.size());
   });
 
   
   // select * from persoonGeschenk, Persoon where Persoon.id=persoonId order by Datum desc
 
   svr.Get("/geschenken", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by Datum desc"); 
+    auto docs = sqlw.query("select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by Datum desc"); 
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} geschenken\n", docs.size());
   });
@@ -828,7 +1028,7 @@ int main(int argc, char** argv)
     SQLiteWriter idx("tkindex.sqlite3");
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     idx.query("ATTACH DATABASE ':memory:' as tmp");
-    cout<<"Search: '"<<term<<"'\n";
+    cout<<"Search: '"<<term<<"', limit '"<<limit<<"'\n";
     DTime dt;
     dt.start();
     // auto matches = idx.queryT("SELECT uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch,meta.Document WHERE docsearch MATCH ? and docsearch.uuid = Document.id and datum > ? order by score limit 280", {term, limit});
@@ -848,10 +1048,11 @@ int main(int argc, char** argv)
       mv["nummer"] =get<string>(mv["vergaderingId"]).substr(0, 8);
       matches.push_back(mv);
     }
-    fmt::print("Got {} matches\n", matches.size());
+    auto usec = dt.lapUsec();
+    fmt::print("Got {} matches in {} msec\n", matches.size(), usec/1000.0);
     nlohmann::json response=nlohmann::json::object();
     response["results"]= packResultsJson(matches);
-    auto usec = dt.lapUsec();
+
     response["milliseconds"] = usec/1000.0;
     res.set_content(response.dump(), "application/json");
   });

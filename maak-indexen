@@ -27,6 +27,13 @@ create index stemmingbesluitidx on Stemming(besluitId);
 create index zaakbesluitidx on besluit(zaakid);
 CREATE INDEX agendapuntidx on agendapunt(id);
 CREATE INDEX zaaknumidx on zaak(nummer);
+CREATE INDEX zaakactorpersoonidx on zaakactor(persoonid);
+create index docagendapuntidx on document(agendapuntid);
+CREATE INDEX comindex on commissie(id);
+CREATE INDEX activactoridx on activiteitactor(activiteitid);
+CREATE INDEX actcomidx on activiteitactor(commissieId);
+CREATE INDEX zaakcomidx on zaakactor(commissieid);
+CREATE INDEX actpersidx on activiteitactor(persoonid);
 
 analyze;
 

@@ -7,17 +7,18 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'none';" />
   <link rel='stylesheet' href='pico.min.css'>
   <link rel='stylesheet' href='custom.css'>
+  <!-- opengraph -->
   <script defer src="logic.js"></script>
   <script defer src="alpine.min.js"></script>
 </head>
 
 <body>
-      <div id="recent-docs" x-data="{
-				  recentActiviteiten: []
-				  }" x-init="getRecentActiviteiten($data);">
-
-  <header class="container">
-    <center>
+  <div id="recent-docs" x-data="{
+				leden: []
+				}" x-init="getGen('kamerleden', 'leden', $data);">
+    
+    <header class="container">
+      <center>
 	<small>
 	  [<a href="index.html">overzicht</a>]
 	  [<a href="activiteiten.html">activiteiten</a>]
@@ -28,40 +29,34 @@
 	  [<a href="open-vragen.html">open vragen</a>]
 	  [<a href="toezeggingen.html">toezeggingen</a>]
 	  [<a href="stemmingen.html">stemmingen</a>]
-	  [<a href="verslagen.html">verslagen</a>]	  
+       [<a href="verslagen.html">verslagen</a>]		  
 	  [<a href="search.html">🔍 zoekmachine</a>]
 	  [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
 	</small>
-	<h4>Activiteiten</h4>
-    </center>
-  </header>
-  
-  <main class="container">
-      <table>
+	<h4>Tweede Kamerleden</h4>
+      </center>
+    </header>
+    <main class="container">
+      <table class="striped">
 	<thead>
 	  <tr>
-            <th>Datum</th>
-	    <th>Zaal</th>
-	    <th>Commissie</th>
-            <th>Onderwerp</th>
-            <th>Titel/Soort</th>
+            <th>Partij</th>
+	    <th>Positie</th>
+	    <th>Titels</th>
+	    <th>Naam</th>
 	  </tr>
 	</thead>
 	<tbody>
-	  <template x-for="d in recentActiviteiten">
+	  <template x-for="l in leden">
             <tr>
-              <td x-text="d.datum.replace('T', '&nbsp;').substr(0, 16)"></td>
-	      <td x-text="d.naam"></td>
-	      <!--<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td> -->
-	      <!--	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td> -->
-	      <td x-text="d.voortouwAfkorting"></td>
-	      <td><a x-bind:href="`activiteit.html?nummer=${d.nummer}`"><span x-text="d.onderwerp"></span></a></td>
-	      <td x-html="d.noot"></td>
-</tr>
+	      <td x-text="l.afkorting"></td>
+	      <td x-text="l.gewicht"></td>
+	      <td x-text="l.titels"></td>
+	      <td><a x-bind:href="'persoon.html?nummer='+l.nummer" x-text="l.roepnaam +' '+l.tussenvoegsel +' ' +l.achternaam"></a></td>
+            </tr>
 	  </template>
 	</tbody>
       </table>
-
-  </main>
-      </div>
+    </main>
+  </div>
 </body>

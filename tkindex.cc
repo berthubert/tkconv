@@ -13,10 +13,8 @@ using namespace std;
 string textFromFile(const std::string& fname)
 {
   string command;
-  bool ispdf = false;
   if(isPDF(fname)) {
     command = string("pdftotext -q -nopgbrk - < '") + fname + "' -";
-    ispdf = true;
   }
   else if(isDocx(fname)) {
     command = string("pandoc -f docx '"+fname+"' -t plain");
@@ -26,31 +24,27 @@ string textFromFile(const std::string& fname)
   }
   else if(isDoc(fname))
     command = "catdoc - < '" + fname +"'";
+  else if(isRtf(fname))
+    command = string("pandoc -f rtf '"+fname+"' -t plain");
   else
     return "";
-  string ret;
-  for(int tries = 0; tries < 1; ++tries) {
-    FILE* pfp = popen(command.c_str(), "r");
-    if(!pfp)
-      throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
-    shared_ptr<FILE> fp(pfp, pclose);
-
-    char buffer[4096];
-
-    for(;;) {
-      int len = fread(buffer, 1, sizeof(buffer), fp.get());
-      if(!len)
-	break;
-      ret.append(buffer, len);
-    }
-    if(ferror(fp.get()))
-      throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
-    if(!ispdf || !ret.empty())
-      break;
-    fmt::print("Doing attempt to OCR this PDF {}\n", fname);
-    command = fmt::format("ocrmypdf -f -l nld+eng -j 1 {} - | pdftotext - -", fname);
-  }
   
+  string ret;
+  FILE* pfp = popen(command.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  shared_ptr<FILE> fp(pfp, pclose);
+  
+  char buffer[4096];
+  
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(ferror(fp.get()))
+    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
   return ret;
 }
 
@@ -60,14 +54,14 @@ int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
   string limit="2008-01-01";
-  auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category from Document where datum > ?", {limit});
+  auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category, contentLength from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());
 
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
   
-  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
+  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category, contentLength from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
   set<string> seenvergadering;
   decltype(alleVerslagen) wantVerslagen;
@@ -84,24 +78,41 @@ int main(int argc, char** argv)
   SQLiteWriter sqlw(idxfname);
 
   sqlw.queryT(R"(
-CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, uuid UNINDEXED, datum UNINDEXED, category UNINDEXED,  tokenize="unicode61 tokenchars '_'")
+CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, contentLength UNINDEXED, uuid UNINDEXED, datum UNINDEXED, category UNINDEXED,  tokenize="unicode61 tokenchars '_'")
 )");
 
-  auto already = sqlw.queryT("select uuid from docsearch");
-  unordered_set<string> skipids;
-  for(auto& a : already)
-    skipids.insert(get<string>(a["uuid"]));
+  fmt::print("Retrieving already indexed document uuids\n");
+  auto already = sqlw.queryT("select uuid,contentLength from docsearch");
+  unordered_map<string, int64_t> skipids;
+  for(auto& a : already) {
+    skipids[get<string>(a["uuid"])] = get<int64_t>(a["contentLength"]);
+  }
 
-  unordered_set<string> dropids;
+  unordered_set<string> dropids, reindex;
   
   for(const auto& si : skipids) {
-    if(!isPresentNonEmpty(si)) {
-      fmt::print("We miss document enclosure for indexed document with id {}\n", si);
-      dropids.insert(si);
+    if(!isPresentNonEmpty(si.first)) {
+      fmt::print("We miss document enclosure for indexed document with id {}\n", si.first);
+      dropids.insert(si.first); 
+    }
+    else if(!isPresentRightSize(si.first, si.second)) {
+      fmt::print("Document enclosure for indexed document with id {} is wrong size, reindexing\n", si.first);
+      reindex.insert(si.first); 
     }
   }
   fmt::print("{} entries that are indexed have no file enclosure present\n", dropids.size());
-  // remove from index?
+  fmt::print("{} entries that are indexed have incorrectly sized enclosure, reindexing\n", reindex.size());
+
+  for(const auto& di : dropids) {
+    fmt::print("Removing absent {} from index\n", di);
+    sqlw.queryT("delete from docsearch where uuid=?", {di});
+  }
+  for(const auto& di : reindex) {
+    fmt::print("Removing wrongly sized {} from index\n", di);
+    sqlw.queryT("delete from docsearch where uuid=?", {di});
+    skipids.erase(di);
+  }
+
   fmt::print("{} documents are already indexed & will be skipped\n",
 	     skipids.size());
 
@@ -131,9 +142,24 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
       string text = textFromFile(fname);
       
       if(text.empty()) {
-	fmt::print("{} is not a file we can deal with\n", fname);
-	wrong++;
-	continue;
+	if(isPresentNonEmpty(id, "improvdocs")) {
+	  string impfname = makePathForId(id, "improvdocs");
+	  
+	  text = textFromFile(impfname);
+	  if(!text.empty()) {
+	    fmt::print("{} did work using improvdocs overlay!\n", id);
+	  }
+	  else {
+	    fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(impfname) ? "PDF" : "");
+	    wrong++;
+	    continue;
+	  }
+	}
+	else {
+	  fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(fname) ? "PDF" : "");
+	  wrong++;
+	  continue;
+	}
       }
 
       lock_guard<mutex> p(m);
@@ -141,10 +167,12 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
       try {
 	titel = 	  get<string>(wantAll[n]["titel"]);
       } catch(...){}
-      sqlw.queryT("insert into docsearch values (?,?,?,?,?,?)", {
+      sqlw.queryT("insert into docsearch values (?,?,?,?,?,?,?)", {
 	  get<string>(wantAll[n]["onderwerp"]),
 	  titel,
-	  text, id, get<string>(wantAll[n]["datum"]), get<string>(wantAll[n]["category"])  });
+	  text,
+	  get<int64_t>(wantAll[n]["contentLength"]),
+	  id, get<string>(wantAll[n]["datum"]), get<string>(wantAll[n]["category"])  });
       indexed++;
     }
   };

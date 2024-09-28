@@ -21,6 +21,12 @@ vcs_dep= declare_dependency (sources: vcs_ct)
 executable('tkconv', 'tkconv.cc', 
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
+
+executable('tkparse', 'tkparse.cc', 'support.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+
 executable('tkdisco', 'tkdisco.cc', 
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
@@ -45,6 +51,10 @@ executable('tkpull', 'tkpull.cc', 'support.cc',
 
 
 executable('tkserv', 'tkserv.cc', 'support.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+executable('playground', 'playground.cc', 'support.cc', 
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 

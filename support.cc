@@ -39,8 +39,12 @@ bool isDoc(const std::string& fname)
   return fileStartsWith(fname, "\xd0\xcf\x11\xe0");
 }
 
+bool isRtf(const std::string& fname)
+{
+  return fileStartsWith(fname, "{\\rtf1");
+}
 
-// we add the slash to prefix
+// we add the slash to prefix for you
 string makePathForId(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
 {
   if(id.size() < 10)
@@ -89,6 +93,25 @@ bool isPresentRightSize(const std::string& id, int64_t size)
     return false;
   return true;
 }
+
+bool cacheIsNewer(const std::string& id, const std::string& cacheprefix, const std::string& suffix, const std::string& docprefix)
+{
+
+  string cachename = makePathForId(id, cacheprefix, suffix);
+  string origname = makePathForId(id, docprefix);
+
+  struct stat sbcache, sborig;
+  int ret = stat(cachename.c_str(), &sbcache);
+  if(ret < 0 || sbcache.st_size == 0) // not newer then
+    return false;
+
+  ret = stat(origname.c_str(), &sborig);
+  if(ret < 0 || sborig.st_size == 0) // if orig is gone, cache is newer!
+    return true;
+
+  return sborig.st_mtim.tv_sec < sbcache.st_mtim.tv_sec;
+}
+
 
 uint64_t getRandom64()
 {

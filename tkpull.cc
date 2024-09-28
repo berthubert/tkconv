@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
 
-  int sizlim = 15500000;
+  int sizlim = 50000000;
   string limit="2008-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
 
@@ -95,6 +95,8 @@ int main(int argc, char** argv)
 	auto contentLength = get_if<int64_t>(&d["contentLength"]);
 	toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]),
 	    contentLength ? *contentLength : 0});
+	if(isPresentNonEmpty(get<string>(d["id"])))
+	  fmt::print("Re-retrieving {}, has wrong size on disk\n", get<string>(d["id"]));
       }
     }
     fmt::print("We have {} files to retrieve, {} are already present\n", toRetrieve.size(), present);
