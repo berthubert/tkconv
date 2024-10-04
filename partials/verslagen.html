@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block div %} x-data="{ recenteVerslagen: []
+				  }" x-init="getGen('verslagen', 'recenteVerslagen', $data);"
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+{% endblock %}
+
+{% block main %}
+<h4>Verslagen</h4>
+<table>
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Aanvangstijd</th>
+      <th>Titel</th>
+      <th>Zaal</th>
+      <th>Soort</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <template x-for="d in recenteVerslagen">
+      <tr>
+        <td x-text="d.datum.replace('T', '&nbsp;').substr(0, 10)"></td>
+	<td x-text="d.aanvangstijd.substr(11,5)"></td>
+	<td><a x-text="d.titel" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>	  
+	<!--<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td> -->
+	<!--	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td> -->
+	<td x-text="d.zaal"></td>
+	
+	<td x-html="d.soort"></td>
+	<td x-html="d.status"></td>
+      </tr>
+    </template>
+  </tbody>
+</table>
+{% endblock %}
+	

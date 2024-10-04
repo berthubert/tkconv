@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block div %}
+x-data="{nummer: '',zaak: {'zaak': {}}}" x-init="zaakinit($data);"
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+{% endblock %}
+
+{% block main %}
+<h1 x-text="zaak['zaak'].nummer"></h1>
+<h2 x-text="zaak['zaak'].titel"></h2>
+<h3 x-text="zaak['zaak'].onderwerp"></h3>
+<template x-if="zaak['kamerstukdossier'].length">
+  <p>
+    Onderdeel van kamerstukdossier <a x-bind:href="'ksd.html?ksd='+zaak['kamerstukdossier'][0].nummer+'&toevoeging='+zaak['kamerstukdossier'][0].toevoeging" x-text="zaak['kamerstukdossier'][0].nummer + ' ' + zaak['kamerstukdossier'][0].toevoeging"></a>.
+  </p>
+</template>
+<template x-if="zaak['zaak']['kabinetsappreciatie'].length">
+  <p>
+    Kabinetsappreciatie: <span x-text="zaak['zaak']['kabinetsappreciatie']"></span>.
+  </p>
+</template>
+
+<h4>Betrokkenen</h4>
+<ul>
+  <template x-for="a in zaak['actors']">
+    <li x-text="`${a.relatie}: ${a.functie} ${a.naam}`"></li>
+  </template>
+</ul>
+<h4>Documenten</h4>
+<ul>
+  <template x-for="a in zaak['docs']">
+    <li>
+      <span x-text="`${a.datum.substr(0,10)}:`"></span>
+      <a x-text="a.onderwerp" x-bind:href=`get/${a.nummer}`></a> <span x-text="'('+a.soort+')'"</span>
+								       <span x-text="a.titel"></span>
+</li>
+</template>
+</ul>
+<h4>Agendapunten</h4>
+<ul>
+  <template x-for="a in zaak['agendapunten']">
+    <li>
+      <span x-text="`${a.activiteit.aanvangstijd.replace('T','&nbsp;')}: ${a.activiteit.onderwerp} (${a.activiteit.soort})`"></span>. <a x-text="a.activiteit.nummer" x-bind:href="`activiteit.html?nummer=${a.activiteit.nummer}`">
+      </a>
+    </li>
+  </template>
+</ul>
+<h4>Besluiten</h4>
+<ul>
+  <template x-for="b in zaak['besluiten']">
+    <li>
+      <span x-text="b.datum.replace('T', ' ').substr(0,16) + ' ⇒ ' + b.tekst + ' ('+b.status+')'"></span>
+      <template x-if="Object.hasOwn(b, 'voorpartij')">
+	<ul>
+	  <li>Voor <span x-text="b.voorstemmen"></span>: 
+	    <span x-text="b.voorpartij.join(' | ')"></span></li>
+	  <li>Tegen <span x-text="b.tegenstemmen"></span>: <span x-text="b.tegenpartij.join(' | ')"></span></li>
+	  <template x-if='b.nietdeelgenomenpartij.length'>
+	    <li>Niet deelgenomen <span x-text="b.nietdeelgenomenstemmen"></span>: <span x-text="b.nietdeelgenomenpartij.join(' | ')"></span></li>
+	  </template>
+	</ul>
+      </template>
+    </li>
+  </template>
+</ul>
+
+{% endblock %}
+	

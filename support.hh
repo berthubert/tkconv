@@ -72,3 +72,4 @@ bool isDoc(const std::string& fname);
 bool isRtf(const std::string& fname);
 bool isXML(const std::string& fname);
 uint64_t getRandom64();
+bool endsWith(const std::string& str, const std::string& suffix);

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+
+{% block main %}
+<hblock>
+<h4>{{meta.titel}}</h4>
+<p>Kamerstuk {{meta.nummer}} {{meta.toevoeging}}</p>
+</hblock>
+
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Volgnummer</th>
+      <th>Nummer</th>
+      <th>Onderwerp</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in docs %}
+    <tr>
+      <td> {{d.datum }}</td>
+      <td> {{d.volgnummer }}</td>
+      <td><a href="get/{{d.docnummer}}">{{d.docnummer}}</a></td>
+      <td><a href="get/{{d.docnummer}}">{{d.onderwerp}}</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
+	

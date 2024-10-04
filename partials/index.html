@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block javascript %}{% endblock %}
+{% block div %}{% endblock %}
+
+{% block customheader %}
+Meest recente documenten (live updates)
+<small>
+  <form>
+    <label><input class="regering" id="regering" type="checkbox" value="off">Alleen regeringsdocumenten</label>
+  </form>
+  {% if length(jarigVandaag) > 0  %}
+    <p>
+      Jarig vandaag
+      {% for d in jarigVandaag %}
+      <span class="jarig">
+	<a href="persoon.html?nummer={{d.nummer}}"> {{d.roepnaam}} {{d.tussenvoegsel}} {{d.achternaam}} ({{d.afkorting}})</a>
+      </span>
+      {% endfor %}
+    </p>
+    {% endif %}
+</small>
+{% endblock %}
+  
+{% block main %}
+<table>
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Bijgewerkt</th>
+      <th>Comm.</th>
+      <th>Onderwerp</th>
+      <th>Titel/Soort</th>
+    </tr>
+  </thead>
+  <tbody>
+## for d in recentDocs
+      <tr>
+	<td>{{ d.datum }}</td>
+	<td>{{ d.bijgewerkt }}</td>
+	<td>{{ d.afkorting }} </td>
+	<td> {{ d.onderwerp }}  (<a href="get/{{d.nummer}}">{{d.nummer}}</a>)</td>
+	<td> {{d.titel}}</td>
+      </tr>
+## endfor
+  </tbody>
+</table>
+
+<script>
+  const selectElement = document.querySelector(".regering");
+  const params = new URL(window.location).searchParams;
+  const onlyRegeringsstukken = params.get("onlyRegeringsstukken");
+  const regeringOnly = (onlyRegeringsstukken != null) || (onlyRegeringsstukken=="0");
+  selectElement.checked = regeringOnly;
+  selectElement.addEventListener("change", (event) => {
+      console.log(event);
+      const checked = event.target.checked;
+      const url = new URL(window.location)
+      console.log(url);
+      if(checked)
+	  window.location.assign(url.origin+ url.pathname+"?onlyRegeringsstukken");
+      else
+	  window.location.assign(url.origin + url.pathname);
+  });
+  setInterval(function() { window.location.reload();}, 60*1000);
+</script>
+{% endblock %}

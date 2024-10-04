@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block div %}
+x-data="{			data: {},
+				loaded: false
+				}" x-init="commissieinit($data);"
+
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+{% endblock %}
+
+{% block customheader %}
+<h3 x-text="data.leden[0].naam + ' (' + data.leden[0].cafkorting+')' "></h3>
+{% endblock %}
+
+{% block main %}
+<template x-if="loaded">
+  <details>
+    <summary role="button">Leden</summary>
+
+    <table class="striped">
+      <thead>
+	<tr>
+          <th>#</th>
+	  <th>Functie</th>
+	  <th>Naam</th>
+	  <th>Fractie</th>
+	</tr>
+      </thead>
+      <tbody>
+	<template x-for="l in data['leden']">
+          <tr>
+	    <td x-text="l.gewicht"></td>
+	    <td x-text="l.cfunctie"></td>
+	    <td><a x-bind:href="`persoon.html?nummer=${l.nummer}`"><span x-text="l.roepnaam + ' ' + l.tussenvoegsel + ' '+l.achternaam"></span></a></td>
+	    <td x-text="l.fafkorting"></td>
+          </tr>
+	</template>
+      </tbody>
+    </table>
+
+  </details>
+</template>
+<template x-if="loaded">
+  <details>
+    <summary role="button">Zaken</summary>
+
+    <table class="striped">
+      <thead>
+	<tr>
+          <th>Gestart op</th>
+	  <th>Titel</th>
+	  <th>Onderwerp</th>
+	  <th>Relatie</th>
+	</tr>
+      </thead>
+      <tbody>
+	<template x-for="z in data['zaken']">
+          <tr>
+	    <td x-text="z.gestartOp.substr(0,10)"></td>
+	    <td x-text="z.titel"></td>
+	    <td><a x-bind:href="`zaak.html?nummer=${z.nummer}`"><span x-text="z.onderwerp"></span></a></td>
+	    <td x-text="z.relatie"></td>
+          </tr>
+	</template>
+      </tbody>
+    </table>
+  </details>
+</template>
+<template x-if="loaded">
+  <details>
+    <summary role="button">Activiteiten</summary>
+
+    <table class="striped">
+      <thead>
+	<tr>
+          <th>Datum</th>
+
+	  <th>Onderwerp</th>
+	  <th>Noot</th>
+	  <th>Relatie</th>	      
+	</tr>
+      </thead>
+      <tbody>
+	<template x-for="a in data['activiteiten']">
+          <tr>
+	    <td x-text="a.datum.substr(0,10)"></td>
+
+	    <td><a x-bind:href="`activiteit.html?nummer=${a.nummer}`"><span x-text="a.onderwerp"></span></a></td>
+	    <td x-html="a.noot"></td>
+	    <td x-text="a.relatie"></td>
+          </tr>
+	</template>
+      </tbody>
+    </table>
+  </details>
+</template>
+
+{% endblock %}
+	

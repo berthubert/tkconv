@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block main %}
+<h4>Activiteiten</h4>
+<table>
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Zaal</th>
+      <th>Commissie</th>
+      <th>Onderwerp</th>
+      <th>Titel/Soort</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in data %}
+    <tr>
+      <td> {{d.datum }}</td>
+      <td> {{d.naam}}</td>
+      <td> {{d.voortouwAfkorting}}</td>
+      <td><a href="activiteit.html?nummer={{d.nummer}}"> {{d.onderwerp}}</a></td>
+      <td> {{d.noot}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
+	

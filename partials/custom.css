@@ -8,6 +8,4 @@ tr,td {
 .interrumpant {
           background-color: var(--pico-mark-background-color);
 }
-
 span.jarig::before { content: '🎈'; }
-

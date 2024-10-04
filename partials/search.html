@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block div %}
+x-data="{
+				foundDocs: [],
+				twomonths: false,
+				searchQuery: '',
+				message: '',
+				alternatief: ''
+				}" x-init="init($data);"
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+{% endblock %}
+
+{% block customheader %}
+<p></p>
+<form @submit.prevent="getSearchResults($data);">
+  <fieldset role="group">
+    <input name="q" size="80" placeholder="zoektekst" type="text" x-model="searchQuery" autofocus>
+    <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2&nbsp;maanden</label>
+  </fieldset>
+  <small>Zoeken op <strong>Joe Biden</strong> vindt alle documenten met ergens <i>Joe</i> en ergens <i>Biden</i>. Zoeken op <strong>"Joe Biden"</strong> vindt alleen die twee woorden naast elkaar. Zoeken op <strong>Hubert NOT Bruls</strong> vindt documenten met daarin Hubert maar niet Bruls. De hoofdletters in NOT zijn belangrijk.</small>
+</form>
+{% endblock %}
+
+{% block main %}
+<span x-html="alternatief"></span>
+<table class="striped">
+  <thead>
+    <tr>
+      <th><a @click.prevent="orderByDate($data)" href="#">Datum</a></th>
+      <th>Bijgewerkt</th>
+      <th>Nummer</th>
+      <th>Onderwerp</th>
+      <th><a @click.prevent="orderByScore($data)" href="#">Snip</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <template x-for="d in foundDocs">
+      <tr>
+        <td x-text="d.datum.substring(0,10)"></td>
+	<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
+	<template x-if="d.category!='Vergadering'">
+	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+	</template>
+	<template x-if="d.category=='Vergadering'">
+	  <td><a x-text="d.nummer" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>
+	</template>
+	
+	<td x-text="d.onderwerp"></td>
+	<td x-html="d.snip"></td>
+      </tr>
+    </template>
+  </tbody>
+</table>
+<center><small>
+    <span x-text="message"></span>
+</small></center>
+{% endblock %}
+	

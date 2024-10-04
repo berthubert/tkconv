@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ pagemeta.title }}</title>
+    <meta charset="utf-8">
+    <meta property='og:title' content='{{ og.title }}'>
+    <meta property='og:description' content='{{ og.description }}'>
+    <meta property='og:type' content='article'>
+    <meta property='og:image' content='{{og.imageurl}}'>
+
+    <link rel='stylesheet' href='pico.min.css'>
+    <style>
+      {% include "custom.css" %}
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% block javascript %}
+    <script defer src="logic.js"></script>
+    <script defer src="alpine.min.js"></script>
+    {% endblock %}
+  </head>
+  
+  <body>
+    <div {% block div %} {% endblock %}>
+      <header class="container">
+	<center>
+	  <small>
+	    [<a href="index.html">overzicht</a>]
+	    [<a href="activiteiten.html">activiteiten</a>]
+	    [<a href="ongeplande-activiteiten.html">ongeplande activiteiten</a>]
+	    [<a href="besluiten.html">besluiten</a>]
+	    [<a href="commissies.html">commissies</a>]
+	    [<a href="geschenken.html">geschenken</a>]
+	    [<a href="kamerleden.html">kamerleden</a>]
+	    [<a href="kamerstukdossiers.html">kamerstukdossiers</a>]
+	    [<a href="open-vragen.html">open vragen</a>]
+	    <br/>
+	    [<a href="toezeggingen.html">toezeggingen</a>]
+	    [<a href="stemmingen.html">stemmingen</a>]
+	    [<a href="verslagen.html">verslagen</a>]	  
+	    [<a href="search.html">🔍 zoekmachine</a>]
+	    [<a href="https://github.com/berthubert/tkconv?tab=readme-ov-file#tools-om-de-tweede-kamer-open-data-te-gebruiken"><b>wat is dit?</b></a>]
+	    <br/>
+	  </small>
+	  {% block customheader %}{% endblock %}
+	</center>
+      </header>
+      <main class="container">
+	{% block main %}{% endblock %}
+      </main>
+    </div>
+    <footer class="container">
+    <small><center>
+	<em>Vragen of tips &rarr;  bert@hubertnet.nl - Problemen &rarr; Open een <a href="https://github.com/berthubert/tkconv/issues">ticket op GitHub</a>, of mail</em>
+    </center></small>
+    </footer>
+  </body>
+</html>

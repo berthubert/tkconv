@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block div %}
+x-data="{  kamerstukdossiers: []  }" x-init="getGenKSD('recent-kamerstukdossiers', 'kamerstukdossiers', $data);"
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+<link rel='stylesheet' href='autoComplete.css'>
+<script src="autoComplete.min.js"></script>
+{% endblock %}
+
+{% block customheader %}
+<input style="width: 90%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
+<h4>Kamerstukdossiers</h4>
+{% endblock %}
+	
+
+{% block main %}
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Nummer</th>
+      <th>Titel</th>
+      <th>#</th>
+    </tr>
+  </thead>
+  <tbody>
+    <template x-for="d in kamerstukdossiers">
+      <tr>
+	<td x-text="d.mdatum.substring(0,10)"></td>
+	<td x-text="d.nummer + '&nbsp;' + d.toevoeging"></td>
+	<td x-html="'<a href=ksd.html?ksd='+d.nummer+'&toevoeging='+d.toevoeging+'>' + d.titel +'</a>'"></td>
+	<td x-text="d.hoogsteVolgnummer"></td>
+      </tr>
+    </template>
+  </tbody>
+</table>
+{% endblock %}
+	

@@ -184,6 +184,6 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   for(auto& w : workers)
     w.join();
 
-  fmt::print("Indexed {} new documents. {} weren't present, {} of unsupported type, {} were indexed already\n",
-	     (int)indexed, (int)notpresent, (int)wrong, (int)skipped);
+  fmt::print("Indexed {} new documents, of which {} were reindexes. {} weren't present, {} of unsupported type, {} were indexed already\n",
+	     (int)indexed, reindex.size(), (int)notpresent, (int)wrong, (int)skipped);
 }

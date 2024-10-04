@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block div %}
+x-data="{
+				commissies: []
+				}" x-init="getGen('commissies', 'commissies', $data);"
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+{% endblock %}
+
+{% block main %}
+<h4>Commissies</h4>
+      <h5>Actief</h5>
+      <table class="striped">
+	<thead>
+	  <tr>
+            <th>Commissie</th>
+	    <th>Afkorting</th>
+	    <th>Nieuwste activiteit</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <template x-for="c in commissies.filter((c) => c.mdatum > '2023-08-01')">
+            <tr>
+	      <td><a x-bind:href="'commissie.html?id='+c.commissieId" x-text="c.naam"></a></td> 
+	      <td x-text="c.afkorting"></td>
+	      <td x-text="c.mdatum.substr(0,10)"></td>
+            </tr>
+	  </template>
+	</tbody>
+      </table>
+      <h5>Slapend</h5>
+      <table class="striped">
+	<thead>
+	  <tr>
+            <th>Commissie</th>
+	    <th>Afkorting</th>
+	    <th>Nieuwste activiteit</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <template x-for="c in commissies.filter((c) => c.mdatum <= '2023-08-01')">
+            <tr>
+	      <td><a x-bind:href="'commissie.html?id='+c.commissieId" x-text="c.naam"></a></td> 
+	      <td x-text="c.afkorting"></td>
+	      <td x-text="c.mdatum.substr(0,10)"></td>
+            </tr>
+	  </template>
+	</tbody>
+      </table>
+
+{% endblock %}
+	

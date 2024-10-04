@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block div %}{% endblock %}
+
+{% block main %}
+<h4>Openstaande toezeggingen door kabinet</h4>
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Status</th>
+      <th>Commissie</th>
+      <th>Tekst</th>
+      <th>Toezegger</th>
+      <th>Ministerie</th>
+      <th>Aan</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in data %}
+    <tr>
+      <td>{{d.datum}}</td>
+      <td>{{d.status}}</td>
+      <td>{{d.voortouwAfkorting}}</td>
+      <td><a href="activiteit.html?nummer={{d.activiteitNummer}}">{{d.tekst}}</a></td>
+      <td> {{d.naamToezegger}}</td>
+      <td> {{d.ministerie}}</td>
+      {% if existsIn(d, "achternaam") %}
+      <td> {{ d.initialen}} {{d.tussenvoegsel}} {{d.achternaam}} </td>
+      {% else %}
+      <td>{{d.fractienaam}}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+	

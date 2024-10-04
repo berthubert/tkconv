@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block div %}
+{% endblock %}
+{% block javascript %}
+{% endblock %}
+
+{% block customheader %}
+<p>{{ length(openVragen) }} nog open kamervragen afgelopen 5 jaar</p>
+{% endblock %}
+
+{% block main %}
+      <table class="striped">
+	<thead>
+	  <tr>
+            <th>Datum</th>
+	    <th>Onderwerp</th>
+	    <th>1e Indiener</th>
+	    <th>Aan</th>
+	    <th>Uitstel</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  {% for d in openVragen %}
+          <tr>
+            <td>{{d.gestartOp}}</td>
+	    <td> <a href="get/{{d.docunummer}}"> {{d.onderwerp}} </a></td>
+	      <td> <a href="persoon.html?nummer={{d.persoonnummer}}">{{d.indiener}}</a> </td>
+	    <td> {{d.aan}} </td>
+	    <td> {% if d.numuitstel > 0 %} Ja {% endif %} </td>
+          </tr>
+	  {% endfor %}
+	</tbody>
+      </table>
+      <script>
+	setInterval(function() { window.location.reload();}, 60*1000);
+      </script>
+{% endblock %}
+	

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block main %}
+<h4>Tweede Kamerleden</h4>
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Partij</th>
+      <th>Positie</th>
+      <th>Titels</th>
+      <th>Naam</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in data %}
+      <tr>
+	<td> {{l.afkorting}} </td>
+	<td> {{l.gewicht}} </td>
+	<td> {{l.titels}} </td>
+	<td><a href="persoon.html?nummer={{l.nummer}}"> {{l.roepnaam}} {{l.tussenvoegsel}} {{l.achternaam}}</a></td>
+      </tr>
+      {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+	

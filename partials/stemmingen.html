@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block div %}
+x-data="{
+				  stemmingen: []
+				  }" x-init="getGen('stemmingen', 'stemmingen', $data);"
+{% endblock %}
+
+{% block javascript %}
+{{ super() }}
+{% endblock %}
+
+{% block main %}
+<h4>Recente stemmingen</h4>
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Zaak</th>
+      <th>Indiener</th>
+      <th>Resultaat</th>
+      <th>Voor</th><th>Tegen</th>
+    </tr>
+  </thead>
+  <template x-for="d in stemmingen">
+    <tbody>
+      <tr>
+	<td x-text="d.datum.substring(0,10)"></td>
+	<td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
+	<td x-text="d.indiener"></td>
+	<td x-text="d.besluittekst"></td>	  
+	
+	<td x-text="d.voorstemmen"></td>
+	<td x-text="d.tegenstemmen"></td>
+      </tr>
+      <tr>
+	<td></td>
+	<td x-text="'Voor: ' + d.voorpartij.join(' | ')"></td>
+	<td colspan="4" x-text="'Tegen: ' + d.tegenpartij.join(' | ')"></td>
+      </tr>
+    </tbody>
+  </template>
+</table>
+
+{% endblock %}
+	

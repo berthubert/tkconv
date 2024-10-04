@@ -149,3 +149,32 @@ Tegelijk is er gekozen voor een vrij specifieke architectuur. Als je graag
 had gewild dat tkconv veel ingewikkelder was, maar wel met meer gangbare
 tools, dan is dit mogelijk niet het project voor jou.
 
+# Hoe het samenhangt
+Er zijn nogal wat 'categories' aan informatie, en ze kunnen ook op allemaal
+manieren samenhangen.
+
+## Document
+Een Document kan op zichzelf staan, maar is meestal onderdeel van een Zaak,
+or zelfs van meerdere Zaken. Een Zaak ondertussen brengt bijvoorbeeld het
+Document met een schriftelijke vraag samen met het Document met het
+schriftelijk antwoord.
+
+Ondertussen kunnen Documenten weer bijlagen hebben, te vinden omdat zo'n
+bijlage een bronDocument veld heeft. 
+
+De boom is dan dus Zaak -> Documenten -> bijlagen (ook Documenten).
+
+Een Document kan ook onderdeel zijn van een Kamerstukdossier, en neemt daar
+dan ene specifiek volgnummer in.
+
+## Zaak
+Een Zaak is soms alleen en enveloppe om een Document heen, zonder veel toe
+te voegen. Maar vaak brengt het ook twee Documenten samen. Een Zaak kan ook
+weer behoren tot een kamerstukdossier.
+
+## Activiteit
+### Agendapunt
+
+
+## Besluit
+### Stemming

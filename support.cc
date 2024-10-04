@@ -118,3 +118,14 @@ uint64_t getRandom64()
   static std::random_device rd; // 32 bits at a time. At least on recent Linux and gcc this does not block
   return ((uint64_t)rd() << 32) | rd();
 }
+
+// Function to check if a string ends with a particular suffix
+bool endsWith(const std::string& str, const std::string& suffix) {
+    // Check if the suffix is longer than the string itself
+    if (suffix.size() > str.size()) {
+        return false;
+    }
+
+    // Compare the end of the string with the suffix
+    return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+}

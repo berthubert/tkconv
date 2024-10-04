@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block main %}
+<h4>Nog ongeplande activiteiten</h4>
+<table>
+  <thead>
+    <tr>
+      <th>Bijgewerkt</th>
+      <th>Commissie</th>
+      <th>Onderwerp</th>
+      <th>Noot / Soort</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in data %}
+    <tr>
+      <td> {{d.bijgewerkt}} </td>
+      <td> {{d.voortouwAfkorting}}</td>
+      <td><a href="activiteit.html?nummer={{d.nummer}}"> {{d.onderwerp}}</a></td>
+      <td> {{d.noot}} {{d.soort}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
+	
