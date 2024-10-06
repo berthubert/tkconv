@@ -11,9 +11,9 @@
 #include "support.hh"
 
 using namespace std;
-void storeDocument(const std::string& id, const std::string& content)
+void storeDocument(const std::string& id, const std::string& content, const string& prefix)
 {
-  string fname=makePathForId(id);
+  string fname=makePathForId(id, prefix, "", true);
   FILE* t = fopen((fname+".tmp").c_str(), "w");
   if(!t)
     throw runtime_error("Unable to open file "+fname+": "+string(strerror(errno)));
@@ -42,6 +42,7 @@ int main(int argc, char** argv)
 
   auto alleVerslagen = sqlw.queryT("select Verslag.id as id, vergadering.id as vergaderingid,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
+  auto wantPhotos = sqlw.queryT("select Persoon.id as id, enclosure, contentLength from Persoon where contentLength > 0");
   
   set<string> seenvergadering;
   decltype(alleVerslagen) wantVerslagen, todelete;
@@ -54,7 +55,7 @@ int main(int argc, char** argv)
     wantVerslagen.push_back(v);
     seenvergadering.insert(vid);
   }
-  fmt::print("We desire {} documents and {} verslagen, and found {} older verslagen\n", wantDocs.size(), wantVerslagen.size(), todelete.size());
+  fmt::print("We desire {} documents and {} photos and {} verslagen, and found {} older verslagen\n", wantDocs.size(), wantPhotos.size(), wantVerslagen.size(), todelete.size());
 
   int unlinked=0;
   for(auto& td : todelete) {
@@ -82,20 +83,21 @@ int main(int argc, char** argv)
   };
 
   
-  for(auto store : {&wantDocs, &wantVerslagen}) {
+  for(auto store : {&wantDocs, &wantVerslagen, &wantPhotos}) {
     int present=0;
     int toolarge=0, retrieved=0;
 
     cout<<"Starting from a store, got "<<store->size()<<" docs to go"<<endl;
     set<RetStore> toRetrieve;
+    string prefix = (store == &wantPhotos) ? "photos" : "docs";
     for(auto& d : *store) {
-      if(isPresentRightSize(get<string>(d["id"]), get<int64_t>(d["contentLength"]))  )
+      if(isPresentRightSize(get<string>(d["id"]), get<int64_t>(d["contentLength"]), prefix)  )
 	present++;
       else {
 	auto contentLength = get_if<int64_t>(&d["contentLength"]);
 	toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]),
 	    contentLength ? *contentLength : 0});
-	if(isPresentNonEmpty(get<string>(d["id"])))
+	if(isPresentNonEmpty(get<string>(d["id"]), prefix))
 	  fmt::print("Re-retrieving {}, has wrong size on disk\n", get<string>(d["id"]));
       }
     }
@@ -123,7 +125,7 @@ int main(int argc, char** argv)
 	throw runtime_error("Oops retrieving from "+ need.enclosure +" -> "+httplib::to_string(err));
       }
       fmt::print("Got {} bytes\n", res->body.size());
-      storeDocument(need.id, res->body);
+      storeDocument(need.id, res->body, prefix);
       retrieved++;
       usleep(100000);
     }

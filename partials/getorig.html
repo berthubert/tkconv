@@ -10,7 +10,7 @@
 <p>Nummer: <b>{{meta.nummer}}</b>, datum: <b>{{meta.datum}}</b>, bijgewerkt: <b>{{meta.bijgewerkt}}</b></p>
 
 <p>
-  <a href="https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Resources/{{meta.id}}">Directe link naar document</a>, <a href="{{ kamerurl }}">link naar pagina op de Tweede Kamer site</a>.
+  <a href="getraw/{{meta.nummer}}">Directe link naar document</a>, <a href="{{ kamerurl }}">link naar pagina op de Tweede Kamer site</a>.
 </p>
 
 {% if length(docactors) > 0 %}
@@ -31,7 +31,7 @@ Gerelateerde personen:
 Bijlagen:
 <ul>
   {% for b in bijlagen %}
-  <li><a href="./get2.html?nummer={{b.nummer}}">{{b.onderwerp}}</a></li>
+  <li><a href="./document.html?nummer={{b.nummer}}">{{b.onderwerp}}</a></li>
   {% endfor %}
 </ul>
 {% endif %}
@@ -55,7 +55,7 @@ Bijlagen:
 
 {% if exists("brondocumentData") %}
 {% for bd in brondocumentData %}
-<p>Bijlage bij: <a href="get2.html?nummer={{bd.nummer}}">{{bd.onderwerp}}</a> ({{bd.nummer}})</p>
+<p>Bijlage bij: <a href="document.html?nummer={{bd.nummer}}">{{bd.onderwerp}}</a> ({{bd.nummer}})</p>
 {% endfor %}
 {% endif %}
 

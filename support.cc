@@ -44,7 +44,7 @@ bool isRtf(const std::string& fname)
   return fileStartsWith(fname, "{\\rtf1");
 }
 
-// we add the slash to prefix for you
+// we add the slash to prefix for you, you need to put the . in the suffix (if you want one)
 string makePathForId(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
 {
   if(id.size() < 10)
@@ -84,10 +84,10 @@ bool isPresentNonEmpty(const std::string& id, const std::string& prefix, const s
   return true;
 }
 
-bool isPresentRightSize(const std::string& id, int64_t size)
+bool isPresentRightSize(const std::string& id, int64_t size, const std::string& prefix)
 {
   struct stat sb;
-  string fname = makePathForId(id);
+  string fname = makePathForId(id, prefix);
   int ret = stat(fname.c_str(), &sb);
   if(ret < 0 || sb.st_size != size)
     return false;
@@ -96,7 +96,6 @@ bool isPresentRightSize(const std::string& id, int64_t size)
 
 bool cacheIsNewer(const std::string& id, const std::string& cacheprefix, const std::string& suffix, const std::string& docprefix)
 {
-
   string cachename = makePathForId(id, cacheprefix, suffix);
   string origname = makePathForId(id, docprefix);
 

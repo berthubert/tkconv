@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block div %}
 x-data="{
-				foundDocs: [],
-				twomonths: false,
-				searchQuery: '',
-				message: '',
-				alternatief: ''
-				}" x-init="init($data);"
+foundDocs: [],
+soorten: '',
+twomonths: false,
+searchQuery: '',
+message: '',
+alternatief: ''
+}" x-init="init($data);"
 {% endblock %}
 
 {% block javascript %}
@@ -17,9 +18,21 @@ x-data="{
 <p></p>
 <form @submit.prevent="getSearchResults($data);">
   <fieldset role="group">
-    <input name="q" size="80" placeholder="zoektekst" type="text" x-model="searchQuery" autofocus>
+    <input name="q" size="80" placeholder="zoektekst, documentnummer, zaaknummer, activiteitnummer..." type="text" x-model="searchQuery" autofocus>
     <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2&nbsp;maanden</label>
   </fieldset>
+  <small>
+<fieldset>
+  <div>
+    <input type="radio" id="alles" name="soorten" value="alles" checked x-model="soorten" @change="getSearchResults($data);"/>
+    <label for="alles">Alles</label>
+    <input type="radio" id="vragenantwoorden" name="soorten" value="vragenantwoorden" x-model="soorten" @change="getSearchResults($data);"/>
+    <label for="vragenantwoorden">Vragen &amp; antwoorden</label>
+    <input type="radio" id="moties" name="soorten" value="moties" x-model="soorten" @change="getSearchResults($data);"/>
+    <label for="moties">Moties</label>
+  </div>
+</fieldset>
+</small>
   <small>Zoeken op <strong>Joe Biden</strong> vindt alle documenten met ergens <i>Joe</i> en ergens <i>Biden</i>. Zoeken op <strong>"Joe Biden"</strong> vindt alleen die twee woorden naast elkaar. Zoeken op <strong>Hubert NOT Bruls</strong> vindt documenten met daarin Hubert maar niet Bruls. De hoofdletters in NOT zijn belangrijk.</small>
 </form>
 {% endblock %}

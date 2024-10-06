@@ -64,7 +64,7 @@ struct LockedSqw
 // we add the / to prefix for you
 std::string makePathForId(const std::string& id, const std::string& prefix="docs", const std::string& suffix="", bool makepath=false);
 bool isPresentNonEmpty(const std::string& id, const std::string& prefix="docs", const std::string& suffix="");
-bool isPresentRightSize(const std::string& id, int64_t size);
+bool isPresentRightSize(const std::string& id, int64_t size, const std::string& prefix="docs");
 bool cacheIsNewer(const std::string& id, const std::string& cacheprefix, const std::string& suffix, const std::string& docprefix);
 bool isPDF(const std::string& fname);
 bool isDocx(const std::string& fname);

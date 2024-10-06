@@ -1,16 +1,10 @@
 {% extends "base.html" %}
 {% block div %}
- id="recent-docs" x-data="{
-				besluiten: []
-}" x-init="getGen('future-besluiten', 'besluiten', $data);"
 {% endblock %}
 
-{% block javascript %}
-{{ super() }}
-{% endblock %} 
 
 {% block main %}
-<h4>Besluiten</h4>
+<h4>Recente en toekomstige besluiten</h4>
 <table class="striped">
   <thead>
     <tr>
@@ -22,15 +16,15 @@
     </tr>
   </thead>
   <tbody>
-    <template x-for="d in besluiten">
+{% for d in besluiten %}    
       <tr>
-        <td x-text="d.datum.substring(0,10)"></td>
-	<td x-html="d.aonderwerp"></td>
-	<td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
-	<td x-text="d.indiener"></td>
-	<td x-text="d.tekst"></td>
+        <td>{{d.datum}}</td>
+	<td>{{d.aonderwerp}}</td>
+	<td><a href="zaak.html?nummer={{d.znummer}}">  {{d.zonderwerp}} </a></td>
+	<td>{{d.indiener}}</td>
+	<td>{{d.tekst}}</td>
       </tr>
-    </template>
+{% endfor %}
   </tbody>
 </table>
 {% endblock %}

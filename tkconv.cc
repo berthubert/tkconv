@@ -321,7 +321,9 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 	for(const auto&c : child2) {
 	  fields[c.name()]= c.child_value();
 	}
-	  
+
+	int64_t contentLength = atoi(child.attribute("tk:contentLength").value());
+	string contentType = child.attribute("tk:contentType").value();
 	sqlw.addValue({{"id", id}, {"skiptoken", skiptoken}, {"verwijderd", false}, {"bijgewerkt", bijgewerkt},
 		       {"updated", updated}, {"functie", fields["functie"]},
 		       {"initialen", fields["initialen"]},
@@ -338,6 +340,8 @@ Hasref: {"ns1:activiteit", "ns1:isAanvullingOp", "ns1:isHerhalingVan", "ns1:isWi
 		       {"geslacht", fields["geslacht"]},
 		       {"titels", fields["titels"]},
 		       {"enclosure", enclosure},
+		       {"contentLength", contentLength},
+		       {"contentType", contentType},
 		       {"woonplaats", fields["woonplaats"]},
 		       {"land", fields["land"]},
 		       {"nummer", atoi(fields["nummer"].c_str())}},
@@ -919,9 +923,11 @@ Hasref: {"commissie"}
 	  category);
       }
     }
-    cout<<"Cleanup.."<<endl;
-    sqlw.query(fmt::format("delete from {} where skiptoken in (select skiptoken from {} v,(select id,max(skiptoken) as mskiptoken,count(1) as c from {} group by id having c > 1) as d where v.id = d.id and v.skiptoken < d.mskiptoken)", category, category, category));
-    sqlw.query(fmt::format("delete from {} where verwijderd=1", category));
+    if(numentries) {
+      cout<<"Cleanup.."<<endl;
+      sqlw.query(fmt::format("delete from {} where skiptoken in (select skiptoken from {} v,(select id,max(skiptoken) as mskiptoken,count(1) as c from {} group by id having c > 1) as d where v.id = d.id and v.skiptoken < d.mskiptoken)", category, category, category));
+      sqlw.query(fmt::format("delete from {} where verwijderd=1", category));
+    }
     cout<<"Done with "<<category <<" - saw "<<numentries<<" new entries"<<endl;
   }
   cout<<"Link cleanup.."<<endl;
