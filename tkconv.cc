@@ -934,7 +934,7 @@ Hasref: {"commissie"}
   sqlw.query("delete from Link where rowid in(select Link.rowid from Link,(select van,naar,linkSoort,max(rowid) as mrowid, count(1) c from Link group by 1,2,3 having c > 1) as t where Link.van=t.van and Link.naar=t.naar and link.linkSoort=t.linkSoort and Link.rowid < mrowid)");
 
   cout<<"Render queries.. "<<endl;
-  sqlw.query("drop table openvragen");
+  sqlw.query("drop table if exists openvragen");
   sqlw.query(R"(create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort="Schriftelijke vragen") as numvragen, count(1) filter (where Document.soort like "Antwoord schriftelijke vragen%" or (Document.soort="Mededeling" and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden, count(1) filter (where Document.soort like '%uitstel%') as numuitstel  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > '2019-09-09' group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc)");
   
 }
