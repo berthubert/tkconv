@@ -1,3 +1,4 @@
+#define CPPHTTPLIB_USE_POLL
 #include <fmt/format.h>
 #include <fmt/printf.h>
 #include <fmt/os.h>
@@ -22,13 +23,46 @@ static void replaceSubstring(std::string &originalString, const std::string &sea
   }
 }
 
-static string htmlEscape(const std::string& str)
+static std::string htmlEscape(const std::string& data)
 {
-  vector<pair<string,string>> rep{{"&", "&amp;"}, {"<", "&lt;"}, {">", "&gt;"}, {"\"", "&quot;"}, {"'", "&#39;"}};
-  string ret=str;
-  for(auto&& [from,to] : rep)
-    replaceSubstring(ret, from, to);
-  return ret;
+  std::string buffer;
+  buffer.reserve(1.1*data.size());
+  for(size_t pos = 0; pos != data.size(); ++pos) {
+    switch(data[pos]) {
+    case '&':  buffer.append("&amp;");       break;
+    case '\"': buffer.append("&quot;");      break;
+    case '\'': buffer.append("&apos;");      break;
+    case '<':  buffer.append("&lt;");        break;
+    case '>':  buffer.append("&gt;");        break;
+    default:   buffer.append(&data[pos], 1); break;
+    }
+  }
+  return buffer;
+}
+
+template<class UnaryFunction>
+void recursive_iterate(nlohmann::json& j, UnaryFunction f)
+{
+    for(auto it = j.begin(); it != j.end(); ++it)
+    {
+        if (it->is_structured())
+        {
+            recursive_iterate(*it, f);
+        }
+        else
+        {
+            f(it);
+        }
+    }
+}
+
+void bulkEscape(nlohmann::json& j)
+{
+  recursive_iterate(j, [](auto& item) {
+    if(item->is_string()) {
+      (*item) = htmlEscape(*item);
+    }
+  });
 }
 
 static string getReasonableJPEG(const std::string& id)
@@ -88,28 +122,38 @@ static string getReasonableJPEG(const std::string& id)
   return ret;
 }
 
-// for verslag XML, this makes html w/o <html> etc, for use in a .div
-static string getHtmlForDocument(const std::string& id)
+static string getContentsOfFile(const std::string& fname)
 {
-  if(isPresentNonEmpty(id, "doccache", ".html") && cacheIsNewer(id, "doccache", ".html", "docs")) {
-    string fname = makePathForId(id, "doccache", ".html");
-    FILE* pfp = fopen(fname.c_str(), "r");
-    if(!pfp)
-      throw runtime_error("Unable to get cached document "+id+": "+string(strerror(errno)));
-    
-    shared_ptr<FILE> fp(pfp, fclose);
-    char buffer[4096];
-    string ret;
-    for(;;) {
-      int len = fread(buffer, 1, sizeof(buffer), fp.get());
-      if(!len)
-	break;
-      ret.append(buffer, len);
-    }
-    if(!ferror(fp.get())) {
-      fmt::print("Had a cache hit for {} HTML\n", id);
+  FILE* pfp = fopen(fname.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to get document "+fname+": "+string(strerror(errno)));
+  
+  shared_ptr<FILE> fp(pfp, fclose);
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(!ferror(fp.get())) {
+    return ret;
+  }
+  return "";
+}
+
+// for verslag XML, this makes html w/o <html> etc, for use in a .div
+static string getHtmlForDocument(const std::string& id, bool bare=false)
+{
+  string suffix = bare ? ".div" : ".html";
+  if(isPresentNonEmpty(id, "doccache", suffix) && cacheIsNewer(id, "doccache", suffix, "docs")) {
+    string fname = makePathForId(id, "doccache", suffix);
+    string ret = getContentsOfFile(fname);
+    fmt::print("Cache hit in {} for {}, bare={}\n",
+	       __FUNCTION__, id, bare);
+    if(!ret.empty())
       return ret;
-    }
     // otherwise fall back to normal process
   }
   
@@ -117,10 +161,11 @@ static string getHtmlForDocument(const std::string& id)
   string command;
 
   if(isDocx(fname))
-    command = fmt::format("pandoc -s -f docx   --embed-resources  --variable maxwidth=72em -t html '{}'",
-			  fname);
+    command = fmt::format("pandoc {} -f docx   --embed-resources  --variable maxwidth=72em -t html '{}'",
+			  bare ? "" : "-s", fname);
   else if(isRtf(fname))
-    command = fmt::format("pandoc -s -f rtf   --embed-resources  --variable maxwidth=72em -t html '{}'",
+    command = fmt::format("pandoc {} -f rtf   --embed-resources  --variable maxwidth=72em -t html '{}'",
+			  bare ? "" : "-s",
 			  fname);
   else if(isDoc(fname))
     command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
@@ -129,7 +174,7 @@ static string getHtmlForDocument(const std::string& id)
     command = fmt::format("xmlstarlet tr tk-div.xslt < '{}'",
 			  fname);
   else
-    command = fmt::format("pdftohtml -s {} -dataurls -stdout",fname);
+    command = fmt::format("pdftohtml {} {} -dataurls -stdout", bare ? "": "-s", fname);
 
   fmt::print("Command: {} {} \n", command, isXML(fname));
   FILE* pfp = popen(command.c_str(), "r");
@@ -154,7 +199,7 @@ static string getHtmlForDocument(const std::string& id)
     auto out = fmt::output_file(oname+rsuffix);
     out.print("{}", ret);
   }
-  if(rename((oname+rsuffix).c_str(), (oname+".html").c_str()) < 0) {
+  if(rename((oname+rsuffix).c_str(), (oname+suffix).c_str()) < 0) {
     unlink((oname+rsuffix).c_str());
     fmt::print("Rename of cached HTML failed\n");
   }
@@ -165,20 +210,8 @@ static string getPDFForDocx(const std::string& id)
 {
   if(isPresentNonEmpty(id, "doccache", ".pdf") && cacheIsNewer(id, "doccache", ".pdf", "docs")) {
     string fname = makePathForId(id, "doccache", ".pdf");
-    FILE* pfp = fopen(fname.c_str(), "r");
-    if(!pfp)
-      throw runtime_error("Unable to get cached document "+id+": "+string(strerror(errno)));
-    
-    shared_ptr<FILE> fp(pfp, fclose);
-    char buffer[4096];
-    string ret;
-    for(;;) {
-      int len = fread(buffer, 1, sizeof(buffer), fp.get());
-      if(!len)
-	break;
-      ret.append(buffer, len);
-    }
-    if(!ferror(fp.get())) {
+    string ret = getContentsOfFile(fname);
+    if(!ret.empty()) {
       fmt::print("Had a cache hit for {} PDF\n", id);
       return ret;
     }
@@ -221,21 +254,9 @@ static string getPDFForDocx(const std::string& id)
 static string getRawDocument(const std::string& id)
 {
   string fname = makePathForId(id);
-  FILE* pfp = fopen(fname.c_str(), "r");
-  if(!pfp)
-    throw runtime_error("Unable to get raw document "+id+": "+string(strerror(errno)));
-
-  shared_ptr<FILE> fp(pfp, fclose);
-  char buffer[4096];
-  string ret;
-  for(;;) {
-    int len = fread(buffer, 1, sizeof(buffer), fp.get());
-    if(!len)
-      break;
-    ret.append(buffer, len);
-  }
-  if(ferror(fp.get()))
-    throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+  string ret = getContentsOfFile(fname);
+  if(ret.empty())
+     throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
   return ret;
 }
 
@@ -243,9 +264,9 @@ struct VoteResult
 {
   set<string> voorpartij, tegenpartij, nietdeelgenomenpartij;
   int voorstemmen=0, tegenstemmen=0, nietdeelgenomen=0;
-  
 };
 
+// XXX does not deal with *former* members, should return with all affiliations ever
 static string getPartyFromNumber(LockedSqw& sqlw, int nummer)
 {
   auto party = sqlw.query("select afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.nummer=? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.totEnMet=''", {nummer});
@@ -315,6 +336,57 @@ time_t getTstamp(const std::string& str)
   
   return timelocal(&tm);
 }
+
+// this processes .odt from officielepublicaties and turns it into HTML
+std::string getBareHtmlFromExternal(const std::string& id)
+{
+  if(id.find_first_of("./") != string::npos)
+    throw runtime_error("external id contained illegal characters");
+
+  if(haveExternalIdFile(id, "opcache", ".html")) {
+    string ret = getContentsOfFile(makePathForExternalID(id, "opcache", ".html"));
+    if(!ret.empty()) {
+      fmt::print("Got cache hit for external content {}!\n", id);
+      return ret;
+    }
+  }
+
+  string command = fmt::format("pandoc -f odt op/{}/{}.odt -t html --embed-resources -t html",
+			       getSubdirForExternalID(id),
+			       id);
+  FILE* pfp = popen(command.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to perform conversion for '"+command+"': "+string(strerror(errno)));
+  
+  shared_ptr<FILE> fp(pfp, pclose);
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(ferror(fp.get()))
+    throw runtime_error("Unable to perform odt to html: "+string(strerror(errno)));
+
+  string rsuffix ="."+to_string(getRandom64());
+  string oname = makePathForExternalID(id, "opcache", ".html", true);
+  {
+    auto out = fmt::output_file(oname+rsuffix);
+    out.print("{}", ret);
+  }
+  if(rename((oname+rsuffix).c_str(), (oname).c_str()) < 0) {
+    int t = errno;
+    unlink((oname+rsuffix).c_str());
+    fmt::print("Rename of cached ODT->HTML failed: {}\n", strerror(t));
+  }
+
+  
+  return ret;
+
+}
+
 
 int main(int argc, char** argv)
 {
@@ -408,6 +480,37 @@ int main(int argc, char** argv)
     res.set_content(content, "image/jpeg");
   });
 
+  svr.Get("/sitemap-(20\\d\\d).txt", [&sqlw](const auto& req, auto& res) {
+    string year = req.matches[1];
+    year += "-%";
+    auto nums=sqlw.query("select nummer from Document where datum like ?", {year});
+    string resp;
+    for(auto& n : nums) {
+      resp += fmt::format("https://berthub.eu/tkconv/document.html?nummer={}\n", get<string>(n["nummer"]));
+    }
+    nums=sqlw.query("select vergadering.id from vergadering,verslag where vergaderingid=vergadering.id and status != 'Casco' and datum like ? group by vergadering.id", {year});
+    for(auto& n : nums) {
+      resp += fmt::format("https://berthub.eu/tkconv/verslag.html?vergaderingid={}\n", get<string>(n["id"]));
+    }
+    
+    res.set_content(resp, "text/plain");
+  });
+
+  svr.Get("/sitemap-(20\\d\\d-\\d\\d).txt", [&sqlw](const auto& req, auto& res) {
+    string year = req.matches[1];
+    year += "-%";
+    auto nums=sqlw.query("select nummer from Document where datum like ?", {year});
+    string resp;
+    for(auto& n : nums) {
+      resp += fmt::format("https://berthub.eu/tkconv/document.html?nummer={}\n", get<string>(n["nummer"]));
+    }
+    nums=sqlw.query("select vergadering.id from vergadering,verslag where vergaderingid=vergadering.id and status != 'Casco' and datum like ? group by vergadering.id", {year});
+    for(auto& n : nums) {
+      resp += fmt::format("https://berthub.eu/tkconv/verslag.html?vergaderingid={}\n", get<string>(n["id"]));
+    }
+    res.set_content(resp, "text/plain");
+  });
+
   
   svr.Get("/jarig-vandaag", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
@@ -451,13 +554,14 @@ int main(int argc, char** argv)
   svr.Get("/persoon/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     int nummer = atoi(req.path_params.at("nummer").c_str());
 
-    auto lid = sqlw.queryJRet("select persoon.*, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.nummer=? and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.totEnMet='' order by achternaam, roepnaam", {nummer});
+    auto lid = sqlw.queryJRet("select * from Persoon where persoon.nummer=?", {nummer});
     if(lid.empty()) {
       res.status=404;
       res.set_content("Geen kamerlid met nummer "+to_string(nummer), "text/plain");
       return;
     }
-      
+
+    lid[0]["afkorting"] = getPartyFromNumber(sqlw, nummer);
     nlohmann::json j = nlohmann::json::object();
     j["meta"] = lid[0];
 
@@ -492,7 +596,7 @@ int main(int argc, char** argv)
     }
     z["zaak"] = packResultsJson(zaken)[0];
     string zaakid = z["zaak"]["id"];
-    cout<<"Id: '"<<zaakid<<"'\n";
+
     z["actors"] = sqlw.queryJRet("select * from zaakactor where zaakId=?", {zaakid});
 
     // Multi: {"activiteit", "agendapunt", "gerelateerdVanuit", "vervangenVanuit"}
@@ -913,6 +1017,9 @@ int main(int argc, char** argv)
     string toevoeging=req.get_param_value("toevoeging").c_str();
     auto docs = sqlw.queryJRet("select document.nummer docnummer,* from Document,Kamerstukdossier where kamerstukdossier.nummer=? and kamerstukdossier.toevoeging=? and Document.kamerstukdossierid = kamerstukdossier.id order by volgnummer desc", {nummer, toevoeging});
     nlohmann::json data = nlohmann::json::object();
+    for(auto& d : docs) {
+      d["datum"] = ((string)d["datum"]).substr(0, 10);
+    }
     data["docs"] = docs;
 
     auto meta = sqlw.query("select * from kamerstukdossier where nummer=? and toevoeging=?",
@@ -944,14 +1051,14 @@ int main(int argc, char** argv)
     string nummer = req.get_param_value("nummer"); // 2023D41173
 
     nlohmann::json data = nlohmann::json::object();
-    auto ret=sqlw.query("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+    auto ret=sqlw.query("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer from Document,DocumentVersie where nummer=? and document.id=documentversie.documentid limit 1", {nummer});
     if(ret.empty()) {
       res.set_content("Found nothing!!", "text/plain");
       return;
     }
 
+    string externeid = get<string>(ret[0]["externeidentifier"]);
     data["meta"] = packResultsJson(ret)[0];
-
     data["meta"]["datum"] = ((string)data["meta"]["datum"]).substr(0, 10);
 
     string bijgewerkt = ((string)data["meta"]["bijgewerkt"]).substr(0, 16);
@@ -995,6 +1102,10 @@ int main(int argc, char** argv)
     string documentId=get<string>(ret[0]["id"]);
     data["docactors"]= sqlw.queryJRet("select DocumentActor.*, Persoon.nummer from DocumentActor left join Persoon on Persoon.id=Documentactor.persoonId where documentId=? order by relatie", {documentId});
 
+    for(auto& da : data["docactors"]) {
+      if(da.count(nummer))
+	da["fractie"] = getPartyFromNumber(sqlw, (int)da["nummer"]);
+    }
     
     if(!bronDocumentId.empty()) {
       data["brondocumentData"] = sqlw.queryJRet("select * from document where id=? order by rowid desc limit 1", {bronDocumentId});
@@ -1057,29 +1168,22 @@ int main(int argc, char** argv)
       return a["datum"] < b["datum"];
     });
     data["activiteiten"] = activiteiten;
-    string iframe;
-    if(get<string>(ret[0]["contentType"])=="application/pdf") {
-      string agent;
-      if (req.has_header("User-Agent")) {
-	agent = req.get_header_value("User-Agent");
-      }
-      if(agent.find("Firefox") == string::npos && (agent.find("iPhone") != string::npos || agent.find("Android") != string::npos ))
-	iframe = "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
-      else
-	iframe = "<iframe width='95%'  height='1024' src='../getraw/"+nummer+"'></iframe>";
-    }
-    else
-      iframe = "<iframe width='95%'  height='1024' src='../getdoc/"+nummer+"'></iframe>";
 
     inja::Environment e;
-    e.set_html_autoescape(true);
+    e.set_html_autoescape(false);
 
     data["pagemeta"]["title"]=get<string>(ret[0]["onderwerp"]);
     data["og"]["title"] = get<string>(ret[0]["onderwerp"]);
     data["og"]["description"] = get<string>(ret[0]["titel"]) + " " +get<string>(ret[0]["onderwerp"]);
     data["og"]["imageurl"] = "";
 
-    if(get<string>(ret[0]["contentType"])=="application/pdf") {
+    bulkEscape(data); 
+
+    if(!externeid.empty() && haveExternalIdFile(externeid)) {
+      fmt::print("Got an external id present: {}\n", externeid);
+      data["content"] = getBareHtmlFromExternal(externeid);
+    }
+    else if(get<string>(ret[0]["contentType"])=="application/pdf") {
       string agent;
       if (req.has_header("User-Agent")) {
 	agent = req.get_header_value("User-Agent");
@@ -1089,8 +1193,11 @@ int main(int argc, char** argv)
       else
 	data["meta"]["iframe"]="getraw";
     }
-    else
+    else {
+      data["content"] = getHtmlForDocument(documentId, true); // bare!
       data["meta"]["iframe"] = "getdoc";
+    }
+    
     res.set_content(e.render_file("./partials/getorig.html", data), "text/html");
   });
 

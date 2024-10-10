@@ -1,20 +1,20 @@
 #include "inja.hpp"
 #include <iostream>
+#include "siphash.h"
+#include <fmt/printf.h>
+#include <fmt/os.h>
+#include "support.hh"
+
+
 using namespace std;
 
-int main()
+int main(int argc, char**argv)
 {
-
-  nlohmann::json data;
-  data["pagemeta"]["title"]="";
-  data["og"]["title"] = "";
-  data["og"]["description"] = "";
-  data["og"]["imageurl"] = "";
-      
-  inja::Environment e;
-  e.set_html_autoescape(true);
-
-  string result = e.render_file("./partials/besluiten.html", data);
-  cout << result << endl;
-  
+  if(argc > 1) {
+    for(int n=1 ; n < argc; ++n) {
+      fmt::print("mkdir -p op/{} ; mv op/{}.odt op/{}/\n",
+		 getSubdirForExternalID(argv[n]),
+		 argv[n], getSubdirForExternalID(argv[n]));
+    }
+  }
 }

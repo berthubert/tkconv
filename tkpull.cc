@@ -37,7 +37,7 @@ int main(int argc, char** argv)
   SQLiteWriter sqlw("tk.sqlite3");
 
   int sizlim = 50000000;
-  string limit="2008-01-01";
+  string limit="2007-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
 
   auto alleVerslagen = sqlw.queryT("select Verslag.id as id, vergadering.id as vergaderingid,enclosure,contentLength,datum from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
   for(auto store : {&wantDocs, &wantVerslagen, &wantPhotos}) {
     int present=0;
     int toolarge=0, retrieved=0;
-
+    int error=0;
     cout<<"Starting from a store, got "<<store->size()<<" docs to go"<<endl;
     set<RetStore> toRetrieve;
     string prefix = (store == &wantPhotos) ? "photos" : "docs";
@@ -122,13 +122,22 @@ int main(int argc, char** argv)
       
       if(!res) {
 	auto err = res.error();
-	throw runtime_error("Oops retrieving from "+ need.enclosure +" -> "+httplib::to_string(err));
+	fmt::print("Oops retrieving from {} -> {}\n", need.enclosure, httplib::to_string(err));
+	error++;
+	continue;
       }
+      if(res->status != 200) {
+	fmt::print("Wrong status code {} for url {}, not storing\n",
+		   res->status, need.enclosure);
+	error++;
+	continue;
+      }
+
       fmt::print("Got {} bytes\n", res->body.size());
       storeDocument(need.id, res->body, prefix);
       retrieved++;
       usleep(100000);
     }
-    fmt::print("Retrieved {} documents, {} were too large\n", retrieved, toolarge);
+    fmt::print("Retrieved {} documents, {} were too large, {} errors\n", retrieved, toolarge, error);
   }
 }

@@ -22,7 +22,7 @@ executable('tkconv', 'tkconv.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('tkparse', 'tkparse.cc', 'support.cc',
+executable('tkparse', 'tkparse.cc', 'support.cc', 'siphash.cc', 
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
@@ -40,21 +40,24 @@ executable('tkbot', 'tkbot.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('tkindex', 'tkindex.cc', 'support.cc',
+executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('tkpull', 'tkpull.cc', 'support.cc', 
+executable('tkpull', 'tkpull.cc', 'support.cc', 'siphash.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+executable('oppull', 'oppull.cc', 'support.cc', 'siphash.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 
-
-executable('tkserv', 'tkserv.cc', 'support.cc', 
+executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('playground', 'playground.cc', 'support.cc', 
+executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
