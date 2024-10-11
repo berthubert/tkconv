@@ -566,6 +566,7 @@ int main(int argc, char** argv)
     j["meta"] = lid[0];
 
     auto zaken = sqlw.queryJRet("select zaak.* from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]});
+
     for(auto& z: zaken) {
       z["aangenomen"]="";
       z["docs"] = sqlw.queryJRet("select document.* from link,document where link.naar=? and category='Document' and document.id=link.van order by datum", {(string)z["id"]});
@@ -575,11 +576,9 @@ int main(int argc, char** argv)
       }
     }
     j["zaken"] = zaken;
-
     auto verslagen = sqlw.queryJRet("select vergaderingid,datum,soort,zaal,titel from VergaderingSpreker,Persoon,Vergadering where vergadering.id=vergaderingid and Persoon.id=persoonId and persoon.nummer=? and soort != 'Plenair' order by datum desc", {nummer});
     
     j["verslagen"] = verslagen;
-
     j["activiteiten"] = sqlw.queryJRet("select activiteit.* from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
     res.set_content(j.dump(), "application/json");
     return;
