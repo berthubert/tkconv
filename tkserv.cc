@@ -1127,7 +1127,7 @@ int main(int argc, char** argv)
 
       data["zaken"][znummer]["docs"] = sqlw.queryJRet("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId});
       
-      data["zaken"][znummer]["besluiten"] = sqlw.queryJRet("select * from besluit where zaakid=? and verwijderd = 0 order by rowid", {zaakId});
+      data["zaken"][znummer]["besluiten"] = sqlw.queryJRet("select * from besluit where zaakid=? order by rowid", {zaakId});
       set<string> agendapuntids;
       for(auto& b: data["zaken"][znummer]["besluiten"]) {
 	agendapuntids.insert((string)b["agendapuntId"]);
