@@ -55,9 +55,9 @@ int main(int argc, char** argv)
 
   for(auto& v : wantVerslagen) {
     pugi::xml_document pnode;
-    string fname = get<string>(v["id"]);
-    if (!pnode.load_file(makePathForId(fname).c_str())) {
-      cout<<"Could not load "<<fname<<endl;
+    string id = get<string>(v["id"]);
+    if (!pnode.load_file(makePathForId(id).c_str())) {
+      cout<<"Could not load '"<<id<<"' from "<<makePathForId(id).c_str()<<endl;
       return -1;
     }
     simple_walker walker;
