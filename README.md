@@ -94,6 +94,14 @@ je je eigen onderzoek kan doen zonder software. Weet me te vinden!
 bert@hubertnet.nl - let wel op, m'n gratis hulp is alleen voor organisaties
 van publiek belang. 
 
+Als je de boel zelf wil draaien heb je ongeveer zoveel data nodig:
+```
+9.2G	xml.sqlite3
+2.5G	tk.sqlite3
+16G	tkindex.sqlite3
+28G	total
+138G	docs
+```
 
 # Compileren
 Vergt een moderne linux/unix met diverse dependencies:
