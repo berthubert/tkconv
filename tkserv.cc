@@ -150,8 +150,7 @@ static string getHtmlForDocument(const std::string& id, bool bare=false)
   if(isPresentNonEmpty(id, "doccache", suffix) && cacheIsNewer(id, "doccache", suffix, "docs")) {
     string fname = makePathForId(id, "doccache", suffix);
     string ret = getContentsOfFile(fname);
-    fmt::print("Cache hit in {} for {}, bare={}\n",
-	       __FUNCTION__, id, bare);
+    fmt::print("Cache hit in {} for {}, bare={}\n", __FUNCTION__, id, bare);
     if(!ret.empty())
       return ret;
     // otherwise fall back to normal process
@@ -1392,10 +1391,12 @@ int main(int argc, char** argv)
       auto matchesVerslag = idx.queryT("SELECT uuid,meta.Vergadering.titel as onderwerp, meta.Vergadering.id as vergaderingId, meta.Verslag.updated as bijgewerkt, '' as titel, nummer, datum, snip, score FROM uuids, meta.Verslag, meta.Vergadering WHERE uuid = Verslag.id and Vergadering.id = Verslag.vergaderingId");
       
       for(auto& mv : matchesVerslag) {
+	/*
 	fmt::print("Verslag match: {} {} verslagId {}\n", get<string>(mv["onderwerp"]),
 		   get<string>(mv["vergaderingId"]),
 		   get<string>(mv["uuid"])		 
 		 );
+	*/
 	mv["category"]="Vergadering";
 	mv["nummer"] =get<string>(mv["vergaderingId"]).substr(0, 8);
 	matches.push_back(mv);
