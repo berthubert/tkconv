@@ -1,4 +1,4 @@
-let dateAscending = false;
+let dateAscending = true;
 
 function recentInit(f)
 {

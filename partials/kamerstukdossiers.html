@@ -10,6 +10,10 @@ x-data="{  kamerstukdossiers: []  }" x-init="getGenKSD('recent-kamerstukdossiers
 <script src="autoComplete.min.js"></script>
 {% endblock %}
 
+{% block quicksearch %}
+  {{ super() }}
+{% endblock %}
+
 {% block customheader %}
 <input style="width: 90%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
 <h4>Kamerstukdossiers</h4>
