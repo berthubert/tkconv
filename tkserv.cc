@@ -496,6 +496,20 @@ int main(int argc, char** argv)
     res.set_content(resp, "text/plain");
   });
 
+  // officiele publicatie redirect
+  svr.Get("/op/:extid", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string extid=req.path_params.at("extid"); 
+    auto docs = sqlw.query("select nummer from documentversie,document where externeidentifier=? and documentversie.documentid=document.id", {extid});
+    if(docs.empty()) {
+      res.status = 404;
+      res.set_content(fmt::format("No such external identifier {}", extid), "text/plain");
+      return;
+    }
+    string dest = get<string>(docs[0]["nummer"]);
+    res.status = 301;
+    res.set_header("Location", "../document.html?nummer="+dest);
+  });
+  
   svr.Get("/sitemap-(20\\d\\d-\\d\\d).txt", [&sqlw](const auto& req, auto& res) {
     string year = req.matches[1];
     year += "-%";
