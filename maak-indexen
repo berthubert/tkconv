@@ -23,6 +23,7 @@ CREATE INDEX actcomidx on activiteitactor(commissieId);
 CREATE INDEX zaakcomidx on zaakactor(commissieid);
 CREATE INDEX actpersidx on activiteitactor(persoonid);
 CREATE INDEX docversiedocidx on DocumentVersie(documentId);
+CREATE INDEX docversextid on DocumentVersie(externeidentifier);
 
 analyze;
 
