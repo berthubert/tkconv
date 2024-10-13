@@ -584,21 +584,27 @@ int main(int argc, char** argv)
     nlohmann::json j = nlohmann::json::object();
     j["meta"] = lid[0];
 
-    auto zaken = sqlw.queryJRet("select zaak.* from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]});
+    auto zaken = sqlw.queryJRet("select zaak.gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]});
 
     for(auto& z: zaken) {
       z["aangenomen"]="";
-      z["docs"] = sqlw.queryJRet("select document.* from link,document where link.naar=? and category='Document' and document.id=link.van order by datum", {(string)z["id"]});
-      z["besluiten"] = sqlw.queryJRet("select datum,besluit.id,stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {(string)z["nummer"]});
-      for(auto& b : z["besluiten"]) {
+      z["docs"] = sqlw.queryJRet("select soort from link,document where link.naar=? and category='Document' and document.id=link.van order by datum", {(string)z["id"]});
+
+      auto besluiten = sqlw.queryJRet("select datum,besluit.id,stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {(string)z["nummer"]});
+
+      for(auto& b : besluiten) {
 	z["aangenomen"]=b["tekst"];
       }
     }
     j["zaken"] = zaken;
     auto verslagen = sqlw.queryJRet("select vergaderingid,datum,soort,zaal,titel from VergaderingSpreker,Persoon,Vergadering where vergadering.id=vergaderingid and Persoon.id=persoonId and persoon.nummer=? and soort != 'Plenair' order by datum desc", {nummer});
-    
+
     j["verslagen"] = verslagen;
-    j["activiteiten"] = sqlw.queryJRet("select activiteit.* from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
+
+    j["activiteiten"] = sqlw.queryJRet("select activiteit.datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
+
+    j["geschenken"] = sqlw.queryJRet("select PersoonGeschenk.* from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=?", {nummer});
+
     res.set_content(j.dump(), "application/json");
     return;
   });
