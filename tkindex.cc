@@ -10,7 +10,7 @@
 
 using namespace std;
 
-string textFromFile(const std::string& fname)
+static string textFromFile(const std::string& fname)
 {
   string command;
   if(isPDF(fname)) {
@@ -49,18 +49,18 @@ string textFromFile(const std::string& fname)
 }
 
 
-
 int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
   string limit="2008-01-01";
+  fmt::print("Getting docs since {}\n", limit);
   auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category, contentLength from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents we'd like to index\n", wantDocs.size());
 
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
-  
+  fmt::print("Getting verslagen since {}\n", limit);
   auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category, contentLength from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
   set<string> seenvergadering;
