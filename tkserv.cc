@@ -192,6 +192,12 @@ static string getHtmlForDocument(const std::string& id, bool bare=false)
   if(ferror(fp.get()))
     throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
 
+  if(bare) { // xmlstarlet somehow always emits this
+    string remove="<!DOCTYPE html>\n";
+    if(ret.substr(0, remove.size())==remove)
+      ret = ret.substr(remove.size());      
+  }
+  
   string rsuffix ="."+to_string(getRandom64());
   string oname = makePathForId(id, "doccache", "", true);
   {
@@ -1230,7 +1236,7 @@ int main(int argc, char** argv)
     time_t then = timegm(&tm);
     verslagen[0]["updated"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
     // this accidentally gets the "right" id 
-    verslagen[0]["htmlverslag"]=getHtmlForDocument(get<string>(verslagen[0]["id"]));
+    verslagen[0]["htmlverslag"]=getHtmlForDocument(get<string>(verslagen[0]["id"]), true);
     auto ret = packResultsJson(verslagen);
     res.set_content(ret[0].dump(), "application/json");
   });
