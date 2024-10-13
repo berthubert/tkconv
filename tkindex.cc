@@ -75,19 +75,24 @@ int main(int argc, char** argv)
   fmt::print("Would like to index {} most recent verslagen\n", wantVerslagen.size());
 
   string idxfname = argc<2 ? "tkindex.sqlite3" : argv[1];
-  SQLiteWriter sqlw(idxfname);
+  SQLiteWriter sqlw(idxfname, {{"indexed", {{"uuid", "PRIMARY KEY"}}}});
 
   sqlw.queryT(R"(
 CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, contentLength UNINDEXED, uuid UNINDEXED, datum UNINDEXED, category UNINDEXED,  tokenize="unicode61 tokenchars '_'")
 )");
 
-  fmt::print("Retrieving already indexed document uuids\n");
-  auto already = sqlw.queryT("select uuid,contentLength from docsearch");
-  unordered_map<string, int64_t> skipids;
+  // IF THIS GETS OUT OF SYNC:
+  sqlw.queryT("create table if not exists indexed as select datum,uuid,contentLength,category from docsearch");
+  sqlw.queryT("create unique index if not exists uuididx on indexed(uuid)");
+  
+  fmt::print("Retrieving already indexed document uuids..");
+  cout.flush();
+  auto already = sqlw.queryT("select uuid,contentLength from indexed");
+  map<string, int64_t> skipids; // ordering actually gets us locality of reference below
   for(auto& a : already) {
     skipids[get<string>(a["uuid"])] = get<int64_t>(a["contentLength"]);
   }
-
+  fmt::print(" got {}\n", skipids.size());
   unordered_set<string> dropids, reindex;
   
   for(const auto& si : skipids) {
@@ -106,10 +111,12 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   for(const auto& di : dropids) {
     fmt::print("Removing absent {} from index\n", di);
     sqlw.queryT("delete from docsearch where uuid=?", {di});
+    sqlw.queryT("delete from indexed where uuid=?", {di});
   }
   for(const auto& di : reindex) {
     fmt::print("Removing wrongly sized {} from index\n", di);
     sqlw.queryT("delete from docsearch where uuid=?", {di});
+    sqlw.queryT("delete from indexed where uuid=?", {di});
     skipids.erase(di);
   }
 
@@ -167,12 +174,17 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
       try {
 	titel = 	  get<string>(wantAll[n]["titel"]);
       } catch(...){}
+      
       sqlw.queryT("insert into docsearch values (?,?,?,?,?,?,?)", {
 	  get<string>(wantAll[n]["onderwerp"]),
 	  titel,
 	  text,
 	  get<int64_t>(wantAll[n]["contentLength"]),
 	  id, get<string>(wantAll[n]["datum"]), get<string>(wantAll[n]["category"])  });
+
+      sqlw.addOrReplaceValue({{"uuid", id}, {"contentLength",  get<int64_t>(wantAll[n]["contentLength"])}, {"datum", get<string>(wantAll[n]["datum"])},
+		     {"category", get<string>(wantAll[n]["category"])  }}, "indexed");
+	    
       indexed++;
     }
   };
