@@ -570,8 +570,8 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/persoon/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    int nummer = atoi(req.path_params.at("nummer").c_str());
+  svr.Get("/persoon.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    int nummer = atoi(req.get_param_value("nummer").c_str());
 
     auto lid = sqlw.queryJRet("select * from Persoon where persoon.nummer=?", {nummer});
     if(lid.empty()) {
@@ -584,13 +584,13 @@ int main(int argc, char** argv)
     nlohmann::json j = nlohmann::json::object();
     j["meta"] = lid[0];
 
-    auto zaken = sqlw.queryJRet("select zaak.gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]});
+    auto zaken = sqlw.queryJRet("select substr(zaak.gestartOp,0,11) gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]});
 
     for(auto& z: zaken) {
       z["aangenomen"]="";
       z["docs"] = sqlw.queryJRet("select soort from link,document where link.naar=? and category='Document' and document.id=link.van order by datum", {(string)z["id"]});
 
-      auto besluiten = sqlw.queryJRet("select datum,besluit.id,stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {(string)z["nummer"]});
+      auto besluiten = sqlw.queryJRet("select datum, besluit.id,stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {(string)z["nummer"]});
 
       for(auto& b : besluiten) {
 	z["aangenomen"]=b["tekst"];
@@ -601,11 +601,19 @@ int main(int argc, char** argv)
 
     j["verslagen"] = verslagen;
 
-    j["activiteiten"] = sqlw.queryJRet("select activiteit.datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
+    j["activiteiten"] = sqlw.queryJRet("select substr(activiteit.datum, 0, 11) datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
 
     j["geschenken"] = sqlw.queryJRet("select PersoonGeschenk.* from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=?", {nummer});
+    
+    j["pagemeta"]["title"]="Kamerlid";
+    j["og"]["title"] = "Persoon";
+    j["og"]["description"] = "Persoon";
+    j["og"]["imageurl"] = "https://berthub.eu/tkconv/personphoto/"+to_string(nummer);
 
-    res.set_content(j.dump(), "application/json");
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    
+    res.set_content(e.render_file("./partials/persoon.html", j), "text/html");
     return;
   });
 
@@ -841,7 +849,7 @@ int main(int argc, char** argv)
   doTemplate("verslag.html", "verslag.html");
   doTemplate("zaak.html", "zaak.html");
   doTemplate("commissie.html", "commissie.html");
-  doTemplate("persoon.html", "persoon.html");
+
   doTemplate("search.html", "search.html");
   doTemplate("search2.html", "search.html");
   doTemplate("kamerleden.html", "kamerleden.html", "select fractiezetel.gewicht, persoon.*, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' order by afkorting, fractiezetel.gewicht");
