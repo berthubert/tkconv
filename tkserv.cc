@@ -603,7 +603,7 @@ int main(int argc, char** argv)
 
     j["activiteiten"] = sqlw.queryJRet("select substr(activiteit.datum, 0, 11) datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer});
 
-    j["geschenken"] = sqlw.queryJRet("select PersoonGeschenk.* from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=?", {nummer});
+    j["geschenken"] = sqlw.queryJRet("select datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer});
     
     j["pagemeta"]["title"]="Kamerlid";
     j["og"]["title"] = "Persoon";

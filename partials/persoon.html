@@ -59,5 +59,29 @@
     </tbody>
   </table>
 </details>
+
+<p></p>
+<details open>
+  <summary role="button">Geschenken</summary>
+  <table class="striped">
+    <thead>
+      <tr>
+        <th>Datum</th>
+	<th>Bijgewerkt</th>
+	<th>Omschrijving</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in geschenken %} 
+        <tr>
+	  <td>{{g.datum}}</td>
+	  <td>{{g.bijgewerkt}}</td>
+	  <td>{{g.omschrijving}}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+
 {% endblock %}
 	
