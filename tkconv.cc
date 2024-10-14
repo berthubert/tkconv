@@ -819,6 +819,6 @@ Hasref: {"commissie"}
   }
   cout<<"Render queries.. "<<endl;
   sqlw.query("drop table if exists openvragen");
-  sqlw.query(R"(create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort="Schriftelijke vragen") as numvragen, count(1) filter (where Document.soort like "Antwoord schriftelijke vragen%" or (Document.soort="Mededeling" and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden, count(1) filter (where Document.soort like '%uitstel%') as numuitstel  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > '2019-09-09' group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc)");
+  sqlw.query(R"(create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort='Schriftelijke vragen') as numvragen, count(1) filter (where Document.soort like 'Antwoord schriftelijke vragen%' or (Document.soort='Mededeling' and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden, count(1) filter (where Document.soort like '%uitstel%') as numuitstel  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > '2019-09-09' group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc)");
   
 }
