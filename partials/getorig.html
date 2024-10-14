@@ -7,10 +7,10 @@
   <p><em>{{meta.soort}}</em></p>
 </hblock>
 
-<p>Nummer: <b>{{meta.nummer}}</b>, datum: <b>{{meta.datum}}</b>, bijgewerkt: <b>{{meta.bijgewerkt}}</b></p>
+<p>Nummer: <b>{{meta.nummer}}</b>, datum: <b>{{meta.datum}}</b>, bijgewerkt: <b>{{meta.bijgewerkt}}</b>, versie: {{meta.versienummer}}</p>
 
 <p>
-  <a href="https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Resources/{{meta.id}}">Directe link naar document</a>, <a href="{{ kamerurl }}">link naar pagina op de Tweede Kamer site</a>.
+  <a href="getraw/{{meta.nummer}}">Directe link naar document</a>, <a href="{{ kamerurl }}">link naar pagina op de Tweede Kamer site</a>{% if exists("meta.externeidentifier") %}{% if length(meta.externeidentifier) > 0 %}, <a href="https://zoek.officielebekendmakingen.nl/{{meta.externeidentifier}}.html">officiële HTML versie</a>  ({{meta.externeidentifier}}){% endif %}{% endif %}.
 </p>
 
 {% if length(docactors) > 0 %}
@@ -18,7 +18,7 @@ Gerelateerde personen:
 <ul>
   {% for da in docactors %}
   {% if length(da.nummer) > 0 %}
-  <li>{{da.relatie}}: <a href="persoon.html?nummer={{da.nummer}}">{{da.naam}}</a>, {{da.functie}}</li>
+  <li>{{da.relatie}}: <a href="persoon.html?nummer={{da.nummer}}">{{da.naam}}</a>, {{da.functie}} ({{da.fractie}})</li>
   {% else %}
   <li>{{da.relatie}}: {{da.naam}}, {{da.functie}}</li>
   {% endif %}
@@ -31,14 +31,14 @@ Gerelateerde personen:
 Bijlagen:
 <ul>
   {% for b in bijlagen %}
-  <li><a href="./get2.html?nummer={{b.nummer}}">{{b.onderwerp}}</a></li>
+  <li><a href="./document.html?nummer={{b.nummer}}">{{b.onderwerp}}</a></li>
   {% endfor %}
 </ul>
 {% endif %}
 
 {% if exists("kamerstuk") %}
 <p>
-  Onderdeel van kamerstukdossier {{kamerstuk.nummer}} {{kamerstuk.toevoeging}} <a href="ksd.html?ksd={{kamerstuk.nummer}}">{{kamerstuk.titel}}</a>.
+  Onderdeel van kamerstukdossier {{kamerstuk.nummer}} {{kamerstuk.toevoeging}}-{{kamerstuk.volgnummer}} <a href="ksd.html?ksd={{kamerstuk.nummer}}">{{kamerstuk.titel}}</a>.
 </p>
 {% endif %}
 
@@ -55,7 +55,7 @@ Bijlagen:
 
 {% if exists("brondocumentData") %}
 {% for bd in brondocumentData %}
-<p>Bijlage bij: <a href="get2.html?nummer={{bd.nummer}}">{{bd.onderwerp}}</a> ({{bd.nummer}})</p>
+<p>Bijlage bij: <a href="document.html?nummer={{bd.nummer}}">{{bd.onderwerp}}</a> ({{bd.nummer}})</p>
 {% endfor %}
 {% endif %}
 
@@ -68,6 +68,14 @@ Onderdeel van activiteiten:
 </ul>
 {% endif %}
 
-<iframe width='95%'  height='1024' src='./{{meta.iframe}}/{{meta.nummer}}'></iframe>
+{% if exists("content") %}
 
+<div style="border-width:1px; border-style:solid; border-color:#222222; padding: 0.5em; max-width: 50em; margin: 0 auto; ">
+  <h4>Preview document (🔗 <a href="getraw/{{meta.nummer}}">origineel</a>)</h4>
+  <hr/>
+  {{ content }}
+</div>
+{% else %}
+<iframe width='95%'  height='1024' src='./{{meta.iframe}}/{{meta.nummer}}'></iframe>
+{% endif %}
 {% endblock %}

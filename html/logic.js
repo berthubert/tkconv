@@ -128,6 +128,59 @@ async function getGenKSD(orig, dest, f)
     const autoCompleteJS = new autoComplete(config);
 }
 
+async function getGenVragen(orig, dest, f)
+{
+    const response = await fetch(orig);
+    if (response.ok === true) {
+        const data = await response.json();
+        f[dest] = data;
+	var ksdnamen=[]
+	for (const element of data) {
+	    ksdnamen.push(element.nummer +" " + element.onderwerp);
+	}
+	config= {
+	    placeHolder: "Vraag",
+	    data: {
+		src: ksdnamen
+	    },
+	    diacritics: true,
+
+	    resultItem: {
+		highlight: {
+		    render: true
+		},
+		submit: true
+	    },
+	    resultsList: {
+		maxResults: 1000,
+		element: (list, data) => {
+		    const info = document.createElement("p");
+		    if (data.results.length) {
+			info.innerHTML = `Displaying <strong>${data.results.length}</strong> out of <strong>${data.matches.length}</strong> results`;
+		    } else {
+			info.innerHTML = `Found <strong>${data.matches.length}</strong> matching results for <strong>"${data.query}"</strong>`;
+		    }
+		    list.prepend(info);
+		    
+		}
+	    },
+	    events: {
+		input: {
+		    selection: (event) => {
+			const selection = event.detail.selection.value;
+			autoCompleteJS.input.value = selection;
+			selected = selection.split(" ")[0];
+			// https://berthub.eu/tkconv/ksd.html?ksd=25424
+			window.location.href = "zaak.html?nummer="+selected;
+		    }
+		}
+	    }
+	};
+    }
+    const autoCompleteJS = new autoComplete(config);
+}
+
+
 
 async function getOpenToezeggingen(f) {
     
@@ -166,6 +219,11 @@ function init(f)
 	f.twomonths=true;
     else
 	f.twomonths=false;
+    if(url.searchParams.get("soorten") != null)
+	f.soorten = url.searchParams.get("soorten");
+    else
+	f.soorten= "alles";
+    console.log(f.soorten);
     if(f.searchQuery != null)
 	getSearchResults(f);
 }
@@ -282,9 +340,12 @@ async function getActiviteitDetails(f)
 
 async function getSearchResults(f)
 {
+    if(f.searchQuery == '' || f.searchQuery == null)
+	return;
     const url = new URL(window.location.href);
     url.searchParams.set("q", f.searchQuery);
     url.searchParams.set("twomonths", f.twomonths);
+    url.searchParams.set("soorten", f.soorten);
     history.pushState({}, "", url);
     f.alternatief='';
     f.message='';
@@ -303,10 +364,14 @@ async function getSearchResults(f)
     else if(/^[0-9][0-9][0-9][0-9][0-9]$/.test(f.searchQuery)) {
 	f.alternatief = `<p><em>Bedoelt u mogelijk kamerstukdossier <a href="ksd.html?ksd=${f.searchQuery}&toevoeging=">${f.searchQuery}</a>?</em></p>`;
     }
+    else if(/^kst-.*$/.test(f.searchQuery)) {
+	f.alternatief = `<p><em>Bedoelt u mogelijk kamerstuk <a href="op/${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
+    }
     
     const formData = new FormData();
     formData.append('q', f.searchQuery);
     formData.append('twomonths', f.twomonths);
+    formData.append('soorten', f.soorten);
 
     const response = await fetch('search', { method: "POST", body: formData });
     if (response.ok === true) {

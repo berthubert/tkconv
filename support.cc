@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <vector>
 #include <random>
+#include "siphash.h"
 
 using namespace std;
 
@@ -44,7 +45,7 @@ bool isRtf(const std::string& fname)
   return fileStartsWith(fname, "{\\rtf1");
 }
 
-// we add the slash to prefix for you
+// we add the slash to prefix for you, you need to put the . in the suffix (if you want one)
 string makePathForId(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
 {
   if(id.size() < 10)
@@ -84,10 +85,10 @@ bool isPresentNonEmpty(const std::string& id, const std::string& prefix, const s
   return true;
 }
 
-bool isPresentRightSize(const std::string& id, int64_t size)
+bool isPresentRightSize(const std::string& id, int64_t size, const std::string& prefix)
 {
   struct stat sb;
-  string fname = makePathForId(id);
+  string fname = makePathForId(id, prefix);
   int ret = stat(fname.c_str(), &sb);
   if(ret < 0 || sb.st_size != size)
     return false;
@@ -96,7 +97,6 @@ bool isPresentRightSize(const std::string& id, int64_t size)
 
 bool cacheIsNewer(const std::string& id, const std::string& cacheprefix, const std::string& suffix, const std::string& docprefix)
 {
-
   string cachename = makePathForId(id, cacheprefix, suffix);
   string origname = makePathForId(id, docprefix);
 
@@ -128,4 +128,69 @@ bool endsWith(const std::string& str, const std::string& suffix) {
 
     // Compare the end of the string with the suffix
     return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+}
+
+string makePathForExternalID(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
+{
+  if(id.find_first_of("./") != string::npos)
+    throw runtime_error("id for external file contained bad characters");
+
+  if(makepath) {
+    string fname = prefix;
+    int err = mkdir(fname.c_str(), 0770);
+    if(err < 0 && errno != EEXIST) 
+      throw runtime_error("Could not mkdir prefix dir "+fname+": "+strerror(errno));
+    
+    string subdir=getSubdirForExternalID(id);
+    fname += "/" + subdir.substr(0,2);
+    
+    err= mkdir(fname.c_str(), 0770);
+    
+    if(err < 0 && errno != EEXIST) 
+      throw runtime_error("Could not mkdir prefix dir "+fname+": "+strerror(errno));
+    
+    fname += "/" + subdir.substr(3);
+    err= mkdir(fname.c_str(), 0770);
+    if(err < 0 && errno != EEXIST) 
+      throw runtime_error("Could not mkdir prefix dir "+fname+": "+strerror(errno));
+  }
+  
+  return prefix + "/" + getSubdirForExternalID(id)+"/" +id + suffix;
+}
+
+bool haveExternalIdFile(const std::string& id, const std::string& prefix, const std::string& suffix)
+{
+  if(id.find_first_of("./") != string::npos)
+    return false;
+  
+  struct stat sb;
+  string fname = prefix + "/" + getSubdirForExternalID(id)+"/" +id + suffix;
+  int ret = stat(fname.c_str(), &sb);
+
+  if(ret < 0 || sb.st_size == 0)
+    return false;
+  return true;
+}
+
+
+/*int siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
+            const size_t outlen);
+
+    Computes a SipHash value
+    *in: pointer to input data (read-only)
+    inlen: input data length in bytes (any size_t value)
+    *k: pointer to the key data (read-only), must be 16 bytes 
+    *out: pointer to output data (write-only), outlen bytes must be allocated
+    outlen: length of the output in bytes, must be 8 or 16
+*/
+
+// returns "f3/12", used for external id's 
+string getSubdirForExternalID(const std::string& in)
+{
+  static unsigned char k[16]={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+  unsigned char out[8]={};
+  int outlen = sizeof(out);
+
+  siphash((const void*) in.c_str(), in.length(), k, out, outlen);
+  return fmt::sprintf("%02x/%02x", out[4], out[6]);
 }

@@ -1,22 +1,12 @@
-CREATE INDEX vanidx on Link(van);
-CREATE INDEX naaridx on Link(naar);
-CREATE INDEX docidx on Document(id);
 CREATE INDEX datumindex on Document(datum);
-CREATE INDEX verslagidx on Verslag(id);
-CREATE INDEX vergaderingidx on Vergadering(id);
 CREATE INDEX nummerdocidx on Document(nummer);
 
-CREATE INDEX zaakidx on Zaak(id);
 CREATE INDEX zaindex on ZaakActor(zaakId);
 CREATE INDEX zaindex2 on ZaakActor(zaakId, relatie);
-CREATE INDEX docactoridx on DocumentActor(id);
 CREATE INDEX docactordocidx on DocumentActor(documentId);
-create index actididx on Activiteit(id);
 CREATE INDEX persoongeschenkpersidx on persoonGeschenk(persoonId);
-CREATE INDEX persoonIdIdx on Persoon(id);
 CREATE INDEX zaakgestartidx on zaak(gestartOp);
 CREATE INDEX zaaksoortidx on Document(soort);
-CREATE INDEX kamerstukdossierididx on kamerstukdossier(id);
 
 CREATE INDEX actdatumidx on Activiteit(datum);
 CREATE INDEX agendapuntactidx on agendapunt(activiteitid);
@@ -25,15 +15,17 @@ CREATE INDEX besluitagendapunt on besluit(agendapuntId);
 CREATE INDEX docactorpersoonidx on DocumentActor(persoonId);
 create index stemmingbesluitidx on Stemming(besluitId);
 create index zaakbesluitidx on besluit(zaakid);
-CREATE INDEX agendapuntidx on agendapunt(id);
 CREATE INDEX zaaknumidx on zaak(nummer);
 CREATE INDEX zaakactorpersoonidx on zaakactor(persoonid);
 create index docagendapuntidx on document(agendapuntid);
-CREATE INDEX comindex on commissie(id);
 CREATE INDEX activactoridx on activiteitactor(activiteitid);
 CREATE INDEX actcomidx on activiteitactor(commissieId);
 CREATE INDEX zaakcomidx on zaakactor(commissieid);
-CREATE INDEX actpersidx on activiteitactor(persoonid);
+
+CREATE INDEX docversiedocidx on DocumentVersie(documentId);
+CREATE INDEX docversextid on DocumentVersie(externeidentifier);
+CREATE INDEX activiteitpersoonidx on activiteitactor(persoonid);
+CREATE INDEX persoonnummeridx on persoon(nummer);
 
 analyze;
 

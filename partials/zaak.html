@@ -8,9 +8,14 @@ x-data="{nummer: '',zaak: {'zaak': {}}}" x-init="zaakinit($data);"
 {% endblock %}
 
 {% block main %}
-<h1 x-text="zaak['zaak'].nummer"></h1>
-<h2 x-text="zaak['zaak'].titel"></h2>
-<h3 x-text="zaak['zaak'].onderwerp"></h3>
+
+<hgroup>
+  <h2 x-text="zaak['zaak'].titel"></h2>
+  <h3 x-text="zaak['zaak'].onderwerp"></h3>
+  <p x-text="zaak['zaak'].soort"></p>
+</hgroup>
+
+<h4 x-text="'Zaak ' + zaak['zaak'].nummer +', gestart op '+zaak['zaak'].gestartOp.substr(0,10)"></h4>
 <template x-if="zaak['kamerstukdossier'].length">
   <p>
     Onderdeel van kamerstukdossier <a x-bind:href="'ksd.html?ksd='+zaak['kamerstukdossier'][0].nummer+'&toevoeging='+zaak['kamerstukdossier'][0].toevoeging" x-text="zaak['kamerstukdossier'][0].nummer + ' ' + zaak['kamerstukdossier'][0].toevoeging"></a>.

@@ -44,13 +44,7 @@ int main(int argc, char** argv)
       pugi::xml_node node = pnode.child("entry");
       string id = node.child("title").child_value();
       auto child2 = *node.child("content").begin();
-      if(child2.attribute("tk:verwijderd").value() == string("true"))
-	continue;
       numentries++;
-
-
-      
-
       //      cout << child2.name() << endl;
       map<string, int> perentry;
       for(const auto&c : child2) {

@@ -112,12 +112,20 @@ docker run -it -v $PWD:/app -p 8089:8089 --rm tkconv:latest tkserv
 ```
 
 ## zelf vanuit source compileren
+Als je de boel zelf wil draaien heb je ongeveer zoveel data nodig:
+```
+9.2G	xml.sqlite3
+2.5G	tk.sqlite3
+16G	tkindex.sqlite3
+28G	total
+138G	docs
+```
 
 Vergt een moderne linux/unix met diverse dependencies:
 
 ```bash
 apt-get install nlohmann-json3-dev libsqlite3-dev libpugixml-dev libssl-dev \
-zlib1g-dev poppler-utils catdoc pandoc ttf-mscorefonts-installer 
+zlib1g-dev poppler-utils catdoc pandoc ttf-mscorefonts-installer imagemagick xmlstarlet
 ```
 
 Begin met: meson setup build

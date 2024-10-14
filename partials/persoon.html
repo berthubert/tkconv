@@ -12,7 +12,7 @@ x-data="{
 
 {% block customheader %}
 <h3 x-text="data.meta.roepnaam + ' ' + data.meta.tussenvoegsel +' ' +data.meta.achternaam + ' ('+data.meta.afkorting+')'"></h3>
-<img style="width: 140px;" x-bind:src="data.meta.enclosure"/>
+<img style="width: 140px;" x-bind:src="'personphoto/'+data.meta.nummer"/>
 {% endblock %}
 
 {% block main %}

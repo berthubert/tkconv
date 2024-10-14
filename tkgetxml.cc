@@ -29,6 +29,8 @@ int main(int argc, char** argv)
   }
   SQLiteWriter sqlw("xml.sqlite3");
   for(const auto& category: categories) {
+    sqlw.query("create table if not exists "+category+" (skiptoken INT)");
+    sqlw.query("create index if not exists "+category+"skipidx on "+category+"(skiptoken)");
     string next="https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Feed?category=" + category;
     int skiptoken = -1;
     try {
