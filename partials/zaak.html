@@ -1,75 +1,77 @@
 {% extends "base.html" %}
 {% block div %}
-x-data="{nummer: '',zaak: {'zaak': {}}}" x-init="zaakinit($data);"
-{% endblock %}
-
-{% block javascript %}
-{{ super() }}
 {% endblock %}
 
 {% block main %}
 
 <hgroup>
-  <h2 x-text="zaak['zaak'].titel"></h2>
-  <h3 x-text="zaak['zaak'].onderwerp"></h3>
-  <p x-text="zaak['zaak'].soort"></p>
+  <h2>{{zaak.titel}}</h2>
+  <h3>{{zaak.onderwerp}}</h3>
+  <p>{{zaak.soort}}</p>
 </hgroup>
 
-<h4 x-text="'Zaak ' + zaak['zaak'].nummer +', gestart op '+zaak['zaak'].gestartOp.substr(0,10)"></h4>
-<template x-if="zaak['kamerstukdossier'].length">
+<h4>Zaak {{zaak.nummer}}, gestart op {{zaak.gestartOp}}</h4>
+{% if length(kamerstukdossier) > 0 %}
   <p>
-    Onderdeel van kamerstukdossier <a x-bind:href="'ksd.html?ksd='+zaak['kamerstukdossier'][0].nummer+'&toevoeging='+zaak['kamerstukdossier'][0].toevoeging" x-text="zaak['kamerstukdossier'][0].nummer + ' ' + zaak['kamerstukdossier'][0].toevoeging"></a>.
+    Onderdeel van kamerstukdossier <a href="ksd.html?ksd={{kamerstukdossier.0.nummer}}
+					    &toevoeging={{kamerstukdossier.0.toevoeging}}" >{{kamerstukdossier.0.nummer}} {{kamerstukdossier.0.toevoeging}}</a>.
   </p>
-</template>
-<template x-if="zaak['zaak']['kabinetsappreciatie'].length">
-  <p>
-    Kabinetsappreciatie: <span x-text="zaak['zaak']['kabinetsappreciatie']"></span>.
-  </p>
-</template>
+  {% endif %}
+  
+  {% if length(zaak.kabinetsappreciatie) > 0 %}
+<p>
+  Kabinetsappreciatie: {{zaak.kabinetsappreciatie}}
+</p>
+{% endif %}
 
 <h4>Betrokkenen</h4>
 <ul>
-  <template x-for="a in zaak['actors']">
-    <li x-text="`${a.relatie}: ${a.functie} ${a.naam}`"></li>
-  </template>
+  {% for a in actors %}
+  {% if a.nummer != "" %}
+  <li>{{a.relatie}}: {{a.functie}} <a href="persoon.html?nummer={{a.nummer}}">{{a.naam}}</a></li>
+  {% else %}
+  <li>{{a.relatie}}: {{a.functie}} {{a.naam}}</li>
+  {% endif %}
+  {% endfor %}
 </ul>
 <h4>Documenten</h4>
 <ul>
-  <template x-for="a in zaak['docs']">
+  {% for a in docs %}
     <li>
-      <span x-text="`${a.datum.substr(0,10)}:`"></span>
-      <a x-text="a.onderwerp" x-bind:href=`get/${a.nummer}`></a> <span x-text="'('+a.soort+')'"</span>
-								       <span x-text="a.titel"></span>
-</li>
-</template>
+      {{a.datum}}:
+      <a href="get/{{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}})
+    </li>
+    {% endfor %}
 </ul>
 <h4>Agendapunten</h4>
 <ul>
-  <template x-for="a in zaak['agendapunten']">
-    <li>
-      <span x-text="`${a.activiteit.aanvangstijd.replace('T','&nbsp;')}: ${a.activiteit.onderwerp} (${a.activiteit.soort})`"></span>. <a x-text="a.activiteit.nummer" x-bind:href="`activiteit.html?nummer=${a.activiteit.nummer}`">
-      </a>
-    </li>
-  </template>
-</ul>
-<h4>Besluiten</h4>
-<ul>
-  <template x-for="b in zaak['besluiten']">
-    <li>
-      <span x-text="b.datum.replace('T', ' ').substr(0,16) + ' ⇒ ' + b.tekst + ' ('+b.status+')'"></span>
-      <template x-if="Object.hasOwn(b, 'voorpartij')">
-	<ul>
-	  <li>Voor <span x-text="b.voorstemmen"></span>: 
-	    <span x-text="b.voorpartij.join(' | ')"></span></li>
-	  <li>Tegen <span x-text="b.tegenstemmen"></span>: <span x-text="b.tegenpartij.join(' | ')"></span></li>
-	  <template x-if='b.nietdeelgenomenpartij.length'>
-	    <li>Niet deelgenomen <span x-text="b.nietdeelgenomenstemmen"></span>: <span x-text="b.nietdeelgenomenpartij.join(' | ')"></span></li>
-	  </template>
-	</ul>
-      </template>
-    </li>
-  </template>
+  {% for a in agendapunten %}
+  <li>
+    {{a.activiteit.aanvangstijd}}: {{a.activiteit.onderwerp}} ({{a.activiteit.soort}}). <a href="activiteit.html?nummer={{a.activiteit.nummer}}">{{a.activiteit.nummer}}</a>
+  </li>
+  {% endfor %}
 </ul>
 
+<h4>Besluiten</h4>
+<ul>
+  {% for b in besluiten %}
+    <li>
+      {{b.datum}} ⇒ {{b.tekst}} ({{b.status}})
+      	{% if existsIn(b, "voorstemmen") %}
+      <ul>
+
+	<li>Voor {{b.voorstemmen}}: 
+	  {{ join(b.voorpartij, " | ") }}
+	</li>
+	<li>Tegen {{b.tegenstemmen}}: {{join(b.tegenpartij, " | ")}}</li>
+	{% if b.nietdeelgenomenstemmen > 0 %}
+	<li>Niet deelgenomen: {{b.nietdeelgenomenstemmen}} {{ join(b.nietdeelgenomenpartij, " | ")}}</li>
+	{% endif %}
+
+      </ul>
+      	{% endif %} 
+    </li>
+  {% endfor %}
+</ul>
 {% endblock %}
 	

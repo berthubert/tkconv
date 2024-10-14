@@ -618,10 +618,10 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/zaak/:nummer", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    string nummer = req.path_params.at("nummer");
+  svr.Get("/zaak.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string nummer = req.get_param_value("nummer");
     nlohmann::json z = nlohmann::json::object();
-    auto zaken = sqlw.query("select * from zaak where nummer=?", {nummer});
+    auto zaken = sqlw.query("select *, substr(gestartOp, 0, 11) gestartOp from zaak where nummer=?", {nummer});
     if(zaken.empty()) {
       res.status = 404;
       return;
@@ -629,25 +629,27 @@ int main(int argc, char** argv)
     z["zaak"] = packResultsJson(zaken)[0];
     string zaakid = z["zaak"]["id"];
 
-    z["actors"] = sqlw.queryJRet("select * from zaakactor where zaakId=?", {zaakid});
+    z["actors"] = sqlw.queryJRet("select *,zaakactor.functie functie from zaakactor left join persoon on persoon.id = zaakactor.persoonid where zaakid=?", {zaakid});
 
     // Multi: {"activiteit", "agendapunt", "gerelateerdVanuit", "vervangenVanuit"}
     // Hasref: {"activiteit", "agendapunt", "gerelateerdVanuit", "kamerstukdossier", "vervangenVanuit"}
 
 
     z["activiteiten"] = sqlw.queryJRet("select * from Activiteit,Link where Link.van=? and Activiteit.id=link.naar", {zaakid});
-    z["agendapunten"] = sqlw.queryJRet("select * from Agendapunt,Link where Link.van=? and Agendapunt.id=link.naar", {zaakid});
+    z["agendapunten"] = sqlw.queryJRet("select Agendapunt.* from Agendapunt,Link where Link.van=? and Agendapunt.id=link.naar", {zaakid});
     for(auto &d : z["agendapunten"]) {
-      d["activiteit"] = sqlw.queryJRet("select * from Activiteit where id=?", {(string)d["activiteitId"]})[0];
+      d["activiteit"] = sqlw.queryJRet("select *, substr(aanvangstijd, 0, 17) aanvangstijd from Activiteit where id=?", {(string)d["activiteitId"]})[0];
+      string aanv = d["activiteit"]["aanvangstijd"];
+      aanv[10]=' ';
+      d["activiteit"]["aanvangstijd"]=aanv;
     }
 
     z["gerelateerd"] = sqlw.queryJRet("select * from Zaak,Link where Link.van=? and Zaak.id=link.naar and linkSoort='gerelateerdVanuit'", {zaakid});
     z["vervangenVanuit"] = sqlw.queryJRet("select * from Zaak,Link where Link.van=? and Zaak.id=link.naar and linkSoort='vervangenVanuit'", {zaakid});
     z["vervangenDoor"] = sqlw.queryJRet("select * from Zaak,Link where Link.naar=? and Zaak.id=link.van and linkSoort='vervangenVanuit'", {zaakid});
     
-    z["docs"] = sqlw.queryJRet("select * from Document,Link where Link.naar=? and Document.id=link.van order by datum desc", {zaakid});
+    z["docs"] = sqlw.queryJRet("select Document.*, substr(datum, 0, 11) datum from Document,Link where Link.naar=? and Document.id=link.van order by datum desc", {zaakid});
     for(auto &d : z["docs"]) {
-      cout<< d["id"] << endl;
       string docid = d["id"];
       d["actors"]=sqlw.queryJRet("select * from DocumentActor where documentId=?", {docid});
     }
@@ -655,9 +657,13 @@ int main(int argc, char** argv)
     z["kamerstukdossier"]=sqlw.queryJRet("select * from kamerstukdossier where id=?",
 					 {(string)z["zaak"]["kamerstukdossierId"]});
 
-    z["besluiten"] = sqlw.queryJRet("select datum,besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {nummer});
+    z["besluiten"] = sqlw.queryJRet("select substr(datum,0,17) datum, besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {nummer});
 
+    
     for(auto& b : z["besluiten"]) {
+      string datum = b["datum"];
+      datum[10] = ' ';
+      b["datum"] = datum;
       VoteResult vr;
       if(getVoteDetail(sqlw, b["id"], vr)) {
 	b["voorpartij"] = vr.voorpartij;
@@ -670,8 +676,15 @@ int main(int argc, char** argv)
     }
     
     // XXX agendapunt multi
+    z["pagemeta"]["title"]="Zaak";
+    z["og"]["title"] = "Persoon";
+    z["og"]["description"] = "Persoon";
+    z["og"]["imageurl"] = "";
+
+    inja::Environment e;
+    e.set_html_autoescape(true);
     
-    res.set_content(z.dump(), "application/json");
+    res.set_content(e.render_file("./partials/zaak.html", z), "text/html");
   });    
 
 
@@ -847,7 +860,7 @@ int main(int argc, char** argv)
   doTemplate("commissies.html", "commissies.html");
   doTemplate("verslagen.html", "verslagen.html");
   doTemplate("verslag.html", "verslag.html");
-  doTemplate("zaak.html", "zaak.html");
+
   doTemplate("commissie.html", "commissie.html");
 
   doTemplate("search.html", "search.html");
