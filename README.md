@@ -94,6 +94,24 @@ je je eigen onderzoek kan doen zonder software. Weet me te vinden!
 bert@hubertnet.nl - let wel op, m'n gratis hulp is alleen voor organisaties
 van publiek belang. 
 
+# Gebruik van de software
+
+## via docker
+
+Voor een snelle start met gecompileerde software kan je ook gebruiken maken van
+een docker container, waarin alle afhankelijkheden reeds geinstalleerd zijn.
+Zorg dat docker [geinstalleerd is](https://docs.docker.com/engine/install/),
+clone deze repository en gebruik de volgende commandos om de image te
+builden en de gecompileerde bestanden uit te voeren:
+
+```
+docker build --tag tkconv .
+docker run -it -v $PWD:/app --rm tkconv:latest tkgetxml
+docker run -it -v $PWD:/app --rm tkconv:latest tkconv
+docker run -it -v $PWD:/app -p 8089:8089 --rm tkconv:latest tkserv
+```
+
+## zelf vanuit source compileren
 Als je de boel zelf wil draaien heb je ongeveer zoveel data nodig:
 ```
 9.2G	xml.sqlite3
@@ -103,7 +121,6 @@ Als je de boel zelf wil draaien heb je ongeveer zoveel data nodig:
 138G	docs
 ```
 
-# Compileren
 Vergt een moderne linux/unix met diverse dependencies:
 
 ```bash
@@ -117,7 +134,8 @@ En dan bouwen als: meson compile -C build
 Ook is de nieuwste versie van pandoc nodig in productie, nieuwe dan in
 Debian Bookworm.
 
-# Draaien
+## Lokaal draaien
+
 Alles wil draaien vanuit de root directory van het project.
 
 Draai ./build/tkgetxml en ./build/tkconv eerst met de hand, en doe daarna:
