@@ -37,8 +37,12 @@ Meest recente documenten (live updates)
       <tr>
 	<td>{{ d.datum }}</td>
 	<td>{{ d.bijgewerkt }}</td>
-	<td>{{ d.afkorting }} </td>
+	<td>{{ d.afkorting }}</td>
+	{% if d.soort != "Verslag" %}
 	<td> {{ d.onderwerp }}  (<a href="get/{{d.nummer}}">{{d.nummer}}</a>)</td>
+	{% else %}
+	<td> {{ d.onderwerp }}  (<a href="verslag.html?vergaderingid={{d.vergaderingId}}">{{d.nummer}}</a>)</td>
+	{% endif %}
 	<td> {{d.titel}}</td>
       </tr>
 ## endfor

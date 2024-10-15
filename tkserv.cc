@@ -345,6 +345,16 @@ time_t getTstamp(const std::string& str)
   return timelocal(&tm);
 }
 
+time_t getTstampUTC(const std::string& str)
+{
+  //  2024-09-17T13:00:00Z
+  struct tm tm={};
+  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  
+  return timegm(&tm);
+}
+
+
 // this processes .odt from officielepublicaties and turns it into HTML
 std::string getBareHtmlFromExternal(const std::string& id)
 {
@@ -393,6 +403,35 @@ std::string getBareHtmlFromExternal(const std::string& id)
   
   return ret;
 
+}
+
+
+auto getVerslagen(LockedSqw &sqlw, int days)
+{
+  string f = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - days*86400));
+  auto verslagen = sqlw.query("select * from vergadering,verslag where verslag.vergaderingid=vergadering.id and datum > ? and status != 'Casco' order by datum desc, verslag.updated desc", {f});
+  
+  set<string> seen;
+  decltype(verslagen) tmp;
+  for(auto& v: verslagen) {
+    string vid = get<string>(v["vergaderingId"]);
+    if(seen.count(vid))
+      continue;
+    string datum = get<string>(v["datum"]);
+    datum.resize(10);
+    v["datum"] = datum;
+    string aanvangstijd = get<string>(v["aanvangstijd"]);
+    v["aanvangstijd"] = aanvangstijd.substr(11, 5);
+    tmp.push_back(v);
+    
+    seen.insert(vid);
+  }
+  sort(tmp.begin(), tmp.end(), [](auto&a, auto&b)
+  {
+    return std::tie(get<string>(a["datum"]), get<string>(a["aanvangstijd"])) >
+      std::tie(get<string>(b["datum"]), get<string>(b["aanvangstijd"]));
+  });
+  return tmp;
 }
 
 
@@ -884,6 +923,7 @@ int main(int argc, char** argv)
   
   svr.Get("/", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     bool onlyRegeringsstukken = req.has_param("onlyRegeringsstukken") && req.get_param_value("onlyRegeringsstukken") != "0";
+
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
     nlohmann::json data;
     auto recentDocs = sqlw.queryJRet("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc, bijgewerkt desc",
@@ -910,6 +950,29 @@ int main(int argc, char** argv)
 	rd["titel"] = rd["soort"];
       out.push_back(rd);
     }
+
+    // datum, bijgewerkt, afkorting, onderwerp, titel, nummer
+
+    auto recentVerslagen = packResultsJson(getVerslagen(sqlw, 8));
+    for(auto& rv : recentVerslagen) {
+      string datum = ((string)rv["datum"]).substr(0,10);
+
+      rv["datum"]=datum;
+      time_t updated = getTstampUTC(rv["updated"]);
+      rv["bijgewerkt"] = fmt::format("{:%Y\xe2\x80\x91%m\xe2\x80\x91%d\xc2\xa0%H:%M}", fmt::localtime(updated));
+      //      rd["bijgewerkt"]=
+      rv["afkorting"]="Steno";
+      // onderwerp should be ok
+      rv["onderwerp"]=rv["titel"];
+      rv["titel"] = "Verslag (" + (string)rv["status"]+")";
+      rv["soort"] = "Verslag";
+      rv["nummer"] = ((string)rv["vergaderingId"]).substr(0, 8);
+      out.push_back(rv);
+    }
+    sort(out.begin(), out.end(), [](auto& a, auto& b) {
+      return std::make_tuple((string)a["datum"], (string) a["bijgewerkt"]) >
+	std::make_tuple((string)b["datum"], (string) b["bijgewerkt"]);
+    });
     data["recentDocs"] = out;
     
     string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
@@ -1283,30 +1346,9 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/verslag.html", data), "text/html");
   });
 
+  
   svr.Get("/verslagen.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    
-    auto verslagen = sqlw.query("select * from vergadering,verslag where verslag.vergaderingid=vergadering.id and datum > '2023-01-01' and status != 'Casco' order by datum desc, verslag.updated desc");
-
-    set<string> seen;
-    decltype(verslagen) tmp;
-    for(auto& v: verslagen) {
-      string vid = get<string>(v["vergaderingId"]);
-      if(seen.count(vid))
-	continue;
-      string datum = get<string>(v["datum"]);
-      datum.resize(10);
-      v["datum"] = datum;
-      string aanvangstijd = get<string>(v["aanvangstijd"]);
-      v["aanvangstijd"] = aanvangstijd.substr(11, 5);
-      tmp.push_back(v);
-
-      seen.insert(vid);
-    }
-    sort(tmp.begin(), tmp.end(), [](auto&a, auto&b)
-    {
-      return std::tie(get<string>(a["datum"]), get<string>(a["aanvangstijd"])) >
-	std::tie(get<string>(b["datum"]), get<string>(b["aanvangstijd"]));
-    });
+    auto tmp = getVerslagen(sqlw, 2*365);
     inja::Environment e;
     e.set_html_autoescape(true);
     nlohmann::json data;
@@ -1317,7 +1359,6 @@ int main(int argc, char** argv)
     data["og"]["imageurl"] = "";
     
     res.set_content(e.render_file("./partials/verslagen.html", data), "text/html");
-
   });
 
   
@@ -1502,6 +1543,7 @@ int main(int argc, char** argv)
   svr.set_post_routing_handler([](const auto& req, auto& res) {
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
+
   });
   
   string root = "./html/";
