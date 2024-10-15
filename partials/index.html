@@ -34,6 +34,7 @@ Meest recente documenten (live updates)
   </thead>
   <tbody>
 ## for d in recentDocs
+    {% if d.nummer != "2024D36216" %}
       <tr>
 	<td>{{ d.datum }}</td>
 	<td>{{ d.bijgewerkt }}</td>
@@ -45,6 +46,7 @@ Meest recente documenten (live updates)
 	{% endif %}
 	<td> {{d.titel}}</td>
       </tr>
+      {% endif %}
 ## endfor
   </tbody>
 </table>
