@@ -609,8 +609,12 @@ int main(int argc, char** argv)
     j["geschenken"] = sqlw.queryJRet("select datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer});
     
     j["pagemeta"]["title"]="Kamerlid";
-    j["og"]["title"] = "Persoon";
-    j["og"]["description"] = "Persoon";
+    string tv = lid[0]["tussenvoegsel"];
+    if(!tv.empty())
+      tv += ' ';
+    
+    j["og"]["title"] = (string)lid[0]["roepnaam"] + " "+tv + (string)lid[0]["achternaam"];
+    j["og"]["description"] = (string)lid[0]["functie"];
     j["og"]["imageurl"] = "https://berthub.eu/tkconv/personphoto/"+to_string(nummer);
 
     inja::Environment e;
