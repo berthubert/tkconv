@@ -858,14 +858,13 @@ int main(int argc, char** argv)
   };
 
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
-  doTemplate("vragen.html", "vragen.html");
+  doTemplate("vragen.html", "vragen.html"); // unlisted
   doTemplate("commissies.html", "commissies.html");
-  doTemplate("verslagen.html", "verslagen.html");
 
   doTemplate("commissie.html", "commissie.html");
 
   doTemplate("search.html", "search.html");
-  doTemplate("search2.html", "search.html");
+
   doTemplate("kamerleden.html", "kamerleden.html", "select fractiezetel.gewicht, persoon.*, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' order by afkorting, fractiezetel.gewicht");
   
   doTemplate("geschenken.html", "geschenken.html", "select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer,substr(persoongeschenk.bijgewerkt,0,11)  pgbijgewerkt from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by persoongeschenk.bijgewerkt desc");
@@ -1280,7 +1279,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/verslag.html", data), "text/html");
   });
 
-  svr.Get("/verslagen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+  svr.Get("/verslagen.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     
     auto verslagen = sqlw.query("select * from vergadering,verslag where verslag.vergaderingid=vergadering.id and datum > '2023-01-01' and status != 'Casco' order by datum desc, verslag.updated desc");
 
@@ -1290,6 +1289,11 @@ int main(int argc, char** argv)
       string vid = get<string>(v["vergaderingId"]);
       if(seen.count(vid))
 	continue;
+      string datum = get<string>(v["datum"]);
+      datum.resize(10);
+      v["datum"] = datum;
+      string aanvangstijd = get<string>(v["aanvangstijd"]);
+      v["aanvangstijd"] = aanvangstijd.substr(11, 5);
       tmp.push_back(v);
 
       seen.insert(vid);
@@ -1299,8 +1303,17 @@ int main(int argc, char** argv)
       return std::tie(get<string>(a["datum"]), get<string>(a["aanvangstijd"])) >
 	std::tie(get<string>(b["datum"]), get<string>(b["aanvangstijd"]));
     });
-    res.set_content(packResultsJsonStr(tmp), "application/json");
-    fmt::print("Returned {} vergaderverslagen\n", tmp.size());
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    nlohmann::json data;
+    data["recenteVerslagen"] = packResultsJson(tmp);
+    data["pagemeta"]["title"]="";
+    data["og"]["title"] = "Recente verslagen";
+    data["og"]["description"] = "Recente verslagen uit de Tweede Kamer";
+    data["og"]["imageurl"] = "";
+    
+    res.set_content(e.render_file("./partials/verslagen.html", data), "text/html");
+
   });
 
   
