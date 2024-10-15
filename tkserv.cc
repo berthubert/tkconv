@@ -287,13 +287,13 @@ bool getVoteDetail(LockedSqw& sqlw, const std::string& besluitId, VoteResult& vr
 {
   // er is een mismatch tussen Stemming en Persoon, zie https://github.com/TweedeKamerDerStaten-Generaal/OpenDataPortaal/issues/150
   // dus we gebruiken die tabel maar niet hier
-  auto votes = sqlw.query("select * from Stemming where besluitId=?", {besluitId});
+  auto votes = sqlw.query("select persoonId,soort,actorFractie,fractieGrootte,actorNaam from Stemming where besluitId=?", {besluitId});
   if(votes.empty())
     return false;
-  cout<<"Got "<<votes.size()<<" votes for "<<besluitId<<endl;
+  //  cout<<"Got "<<votes.size()<<" votes for "<<besluitId<<endl;
   bool hoofdelijk = false;
   if(!get<string>(votes[0]["persoonId"]).empty()) {
-    fmt::print("Hoofdelijke stemming!\n");
+    //fmt::print("Hoofdelijke stemming!\n");
     hoofdelijk=true;
   }
   
@@ -857,7 +857,6 @@ int main(int argc, char** argv)
     });
   };
 
-  doTemplate("stemmingen.html", "stemmingen.html");
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html");
   doTemplate("commissies.html", "commissies.html");
@@ -1005,7 +1004,7 @@ int main(int argc, char** argv)
 
   svr.Get("/activiteiten.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     // from 4 days ago into the future
-    string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)-4*86500));
+    string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)-4*86400));
     
     auto acts = sqlw.queryJRet("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > ? order by datum asc", {dlim}); 
 
@@ -1342,37 +1341,47 @@ int main(int argc, char** argv)
      
   */
 
-  svr.Get("/stemmingen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto besluiten = sqlw.query("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum < '2024-10-20' and datum > '2024-08-13' order by datum desc,agendapuntZaakBesluitVolgorde asc"); // XX hardcoded date
+  svr.Get("/stemmingen.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string start = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 21 * 86400));
 
-    nlohmann::json j = nlohmann::json::array();
+    auto besluiten = sqlw.queryJRet("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum desc,agendapuntZaakBesluitVolgorde asc", {start}); 
 
+    nlohmann::json stemmingen = nlohmann::json::array();
     for(auto& b : besluiten) {
-      //      cout<<"Besluit "<<get<string>(b["zonderwerp"])<<endl;
       VoteResult vr;
-      if(!getVoteDetail(sqlw, get<string>(b["besluitid"]), vr))
+      if(!getVoteDetail(sqlw, b["besluitid"], vr))
 	continue;
-      
+
+      /*
       fmt::print("{}, voor: {} ({}), tegen: {} ({}), niet deelgenomen: {} ({})\n",
-		 get<string>(b["besluitid"]),
+		 (string)b["besluitid"],
 		 vr.voorpartij, vr.voorstemmen,
 		 vr.tegenpartij, vr.tegenstemmen,
 		 vr.nietdeelgenomenpartij, vr.nietdeelgenomen);
-
-      decltype(besluiten) tmp{b};
-      nlohmann::json jtmp = packResultsJson(tmp)[0];
-      jtmp["voorpartij"] = vr.voorpartij;
-      jtmp["tegenpartij"] = vr.tegenpartij;
-      jtmp["voorstemmen"] = vr.voorstemmen;
-      jtmp["tegenstemmen"] = vr.tegenstemmen;
-      jtmp["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
-      j.push_back(jtmp);
+      */
+      string datum = b["datum"]; // 2024-10-10T12:13:14
+      datum[10]=' ';
+      datum.resize(16);
+      b["datum"] = datum;
+      b["voorpartij"] = vr.voorpartij;
+      b["tegenpartij"] = vr.tegenpartij;
+      b["voorstemmen"] = vr.voorstemmen;
+      b["tegenstemmen"] = vr.tegenstemmen;
+      b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
+      stemmingen.push_back(b);
     }
-    // als document er bij komt kan je deze aantrekkelijke url gebruiken
-    // https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2024Z10238&did=2024D24219
+    nlohmann::json data;
+    data["stemmingen"] = stemmingen;
     
-    res.set_content(j.dump(), "application/json");
-    fmt::print("Returned {} besluiten\n", j.size());
+    inja::Environment e;
+    e.set_html_autoescape(true); 
+
+    data["pagemeta"]["title"]="Stemmingen";
+    data["og"]["title"] = "Stemmingen";
+    data["og"]["description"] = "Stemmingen";
+    data["og"]["imageurl"] = "";
+
+    res.set_content(e.render_file("./partials/stemmingen.html", data), "text/html");
   });
 
   

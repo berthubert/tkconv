@@ -1,14 +1,8 @@
 {% extends "base.html" %}
 
 {% block div %}
-x-data="{
-				  stemmingen: []
-				  }" x-init="getGen('stemmingen', 'stemmingen', $data);"
 {% endblock %}
 
-{% block javascript %}
-{{ super() }}
-{% endblock %}
 
 {% block main %}
 <h4>Recente stemmingen</h4>
@@ -22,24 +16,24 @@ x-data="{
       <th>Voor</th><th>Tegen</th>
     </tr>
   </thead>
-  <template x-for="d in stemmingen">
+  {% for d in stemmingen %}
     <tbody>
       <tr>
-	<td x-text="d.datum.substring(0,10)"></td>
-	<td x-html="'<a href=zaak.html?nummer='+d.znummer+'>' + d.zonderwerp +'</a>'"></td>
-	<td x-text="d.indiener"></td>
-	<td x-text="d.besluittekst"></td>	  
+	<td> {{d.datum}} </td>
+	<td><a href="zaak.html?nummer={{d.znummer}}">{{d.zonderwerp}}</a></td>
+	<td>{{d.indiener}} </td>
+	<td>{{d.besluittekst}}</td>	  
 	
-	<td x-text="d.voorstemmen"></td>
-	<td x-text="d.tegenstemmen"></td>
+	<td>{{default(d.voorstemmen, "")}}</td>
+	<td>{{default(d.tegenstemmen, "")}}</td>
       </tr>
       <tr>
 	<td></td>
-	<td x-text="'Voor: ' + d.voorpartij.join(' | ')"></td>
-	<td colspan="4" x-text="'Tegen: ' + d.tegenpartij.join(' | ')"></td>
+	<td><b>Voor</b>: {{ join(d.voorpartij, " | ") }}</td>
+	<td colspan="4"><b>Tegen</b>: {{ join(d.tegenpartij, " | ") }}</td>
       </tr>
     </tbody>
-  </template>
+    {% endfor %}
 </table>
 
 {% endblock %}
