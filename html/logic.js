@@ -1,4 +1,4 @@
-let dateAscending = true;
+let dateDescending = true;
 
 function recentInit(f)
 {
@@ -198,15 +198,15 @@ function orderByDate(f)
     console.log("We gaan sorteren!");
     f.foundDocs=f.foundDocs.sort(function(a,b) {
 	if(a.datum < b.datum)
-	    return dateAscending ? 1 : -1;
+	    return dateDescending ? 1 : -1;
 	if(a.datum > b.datum)
-	    return dateAscending ? -1 : 1;
+	    return dateDescending ? -1 : 1;
 	return 0;
     });
 
-    let columnText = dateAscending ? "Datum &#x25BC" : "Datum &#x25B2";
+    let columnText = dateDescending ? "Datum &#x25BC" : "Datum &#x25B2";
     document.querySelectorAll("table.striped > thead > tr > th > a")[0].innerHTML = columnText;
-    dateAscending = !dateAscending;
+    dateDescending = !dateDescending;
 }
 
 function orderByScore(f)
