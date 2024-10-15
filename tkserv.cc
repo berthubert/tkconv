@@ -271,13 +271,16 @@ struct VoteResult
   int voorstemmen=0, tegenstemmen=0, nietdeelgenomen=0;
 };
 
-// XXX does not deal with *former* members, should return with all affiliations ever
 static string getPartyFromNumber(LockedSqw& sqlw, int nummer)
 {
-  auto party = sqlw.query("select afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.nummer=? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.totEnMet=''", {nummer});
+  auto party = sqlw.query("select afkorting, persoon.functie from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.nummer=? and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid order by fractiezetelpersoon.van desc limit 1", {nummer});
   if(party.empty())
     return "";
-  return std::get<string>(party[0]["afkorting"]);
+
+  if(get<string>(party[0]["functie"]) != "Tweede Kamerlid")
+    return "Ooit " +std::get<string>(party[0]["afkorting"])+ " kamerlid";
+  else
+    return std::get<string>(party[0]["afkorting"]);
 }
 
 bool getVoteDetail(LockedSqw& sqlw, const std::string& besluitId, VoteResult& vr)
@@ -1148,7 +1151,7 @@ int main(int argc, char** argv)
     data["docactors"]= sqlw.queryJRet("select DocumentActor.*, Persoon.nummer from DocumentActor left join Persoon on Persoon.id=Documentactor.persoonId where documentId=? order by relatie", {documentId});
 
     for(auto& da : data["docactors"]) {
-      if(da.count(nummer))
+      if(da["nummer"] != "")
 	da["fractie"] = getPartyFromNumber(sqlw, (int)da["nummer"]);
     }
     
