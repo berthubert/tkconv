@@ -1,26 +1,17 @@
 {% extends "base.html" %}
 {% block div %}
-x-data="{
-				meta: {},
-				loaded: false
-				}" x-init="verslaginit($data);"
 {% endblock %}
 
 {% block javascript %}
-{{ super() }}
 {% endblock %}
 
 {% block customheader %}
-<h4 x-text="'Datum ' +meta.datum.substr(0, 10) + '. Laatste update: ' +meta.updated.replace('T', '&nbsp;').substr(0, 16) "></h4>
-<h4 x-text="meta.zaal"></h4>
-<h4 x-text="meta.soort + '/' + meta.status"></h4>
+<h5>Datum {{datum}}. Laatste update: {{updated}}</h5>
+<h5>{{zaal}}</h5>
+<h6>{{soort}} / {{status}}</h6>
 {% endblock %}
 
 {% block main %}
-<template x-if="loaded">
-
-    <div style="margin: 0 auto; max-width: 50em;" x-html="meta.htmlverslag"></div>
-
-</template>
+    <div style="margin: 0 auto; max-width: 50em;">{{htmlverslag}}</div>
 {% endblock %}
 	

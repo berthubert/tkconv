@@ -862,7 +862,6 @@ int main(int argc, char** argv)
   doTemplate("vragen.html", "vragen.html");
   doTemplate("commissies.html", "commissies.html");
   doTemplate("verslagen.html", "verslagen.html");
-  doTemplate("verslag.html", "verslag.html");
 
   doTemplate("commissie.html", "commissie.html");
 
@@ -1250,25 +1249,36 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/vergadering/:vergaderingid", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    string id = req.path_params.at("vergaderingid"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
-    auto verslagen = sqlw.query("select * from vergadering,verslag where verslag.vergaderingid=vergadering.id and status != 'Casco' and vergadering.id=? order by datum desc, verslag.updated desc limit 1", {id});
+  svr.Get("/verslag.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
+    string id = req.get_param_value("vergaderingid"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
+    auto verslagen = sqlw.queryJRet("select *,substr(datum,0,11) datum from vergadering,verslag where verslag.vergaderingid=vergadering.id and status != 'Casco' and vergadering.id=? order by datum desc, verslag.updated desc limit 1", {id});
     if(verslagen.empty()) {
       res.status = 404;
       res.set_content("Geen vergadering gevonden", "text/plain");
       return;
     }
+
+    nlohmann::json data = verslagen[0];
     
     // 2024-09-19T12:19:10.3141655Z
-    string updated = get<string>(verslagen[0]["updated"]);
+    string updated = data["updated"];
     struct tm tm;
     strptime(updated.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
     time_t then = timegm(&tm);
-    verslagen[0]["updated"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
+    data["updated"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
     // this accidentally gets the "right" id 
-    verslagen[0]["htmlverslag"]=getHtmlForDocument(get<string>(verslagen[0]["id"]), true);
-    auto ret = packResultsJson(verslagen);
-    res.set_content(ret[0].dump(), "application/json");
+
+    inja::Environment e;
+    e.set_html_autoescape(false); // XX 
+
+    data["pagemeta"]["title"]=data["onderwerp"];
+    data["og"]["title"] = data["onderwerp"];
+    data["og"]["description"] = (string)data["titel"];
+    data["og"]["imageurl"] = "";
+
+    bulkEscape(data); 
+    data["htmlverslag"]=getHtmlForDocument(data["id"], true);
+    res.set_content(e.render_file("./partials/verslag.html", data), "text/html");
   });
 
   svr.Get("/verslagen", [&sqlw](const httplib::Request &req, httplib::Response &res) {
