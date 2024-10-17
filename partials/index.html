@@ -2,6 +2,12 @@
 {% block javascript %}{% endblock %}
 {% block div %}{% endblock %}
 
+<form action="/search.html">
+  <input name="q" size="80" placeholder="Snel zoeken in Tweede Kamer data" type="text" autofocus>
+  <input name="twomonths" value="false" type="hidden">
+  <input name="soorten" value="alles" type="hidden">
+</form>
+
 {% block customheader %}
 Meest recente documenten (live updates)
 <small>

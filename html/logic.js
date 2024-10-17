@@ -1,3 +1,5 @@
+let dateDescending = true;
+
 function recentInit(f)
 {
     setInterval(getRecentDocs, 60000, f);
@@ -196,11 +198,15 @@ function orderByDate(f)
     console.log("We gaan sorteren!");
     f.foundDocs=f.foundDocs.sort(function(a,b) {
 	if(a.datum < b.datum)
-	    return 1;
+	    return dateDescending ? 1 : -1;
 	if(a.datum > b.datum)
-	    return -1;
+	    return dateDescending ? -1 : 1;
 	return 0;
     });
+
+    let columnText = dateDescending ? "Datum &#x25BC" : "Datum &#x25B2";
+    document.querySelectorAll("table.striped > thead > tr > th > a")[0].innerHTML = columnText;
+    dateDescending = !dateDescending;
 }
 
 function orderByScore(f)
@@ -208,6 +214,8 @@ function orderByScore(f)
     f.foundDocs=f.foundDocs.sort(function(a,b) {
 	return a.score - b.score;
     });
+
+    document.querySelectorAll("table.striped > thead > tr > th > a")[0].innerText = "Datum";
 }
 
 // for search
