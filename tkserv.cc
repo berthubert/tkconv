@@ -1124,7 +1124,7 @@ int main(int argc, char** argv)
     string nummer = req.get_param_value("nummer"); // 2023D41173
 
     nlohmann::json data = nlohmann::json::object();
-    auto ret=sqlw.query("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer from Document,DocumentVersie where nummer=? and document.id=documentversie.documentid limit 1", {nummer});
+    auto ret=sqlw.query("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document,DocumentVersie where nummer=? and document.id=documentversie.documentid limit 1", {nummer});
     if(ret.empty()) {
       res.set_content("Found nothing!!", "text/plain");
       return;
