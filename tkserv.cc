@@ -1462,12 +1462,19 @@ int main(int argc, char** argv)
     res.set_content(buf, "text/html");
     res.status = 500; 
   });
-
+  
+  svr.set_pre_routing_handler([](const auto& req, auto& res) {
+    fmt::print("Req: {}\n", req.path);
+    return httplib::Server::HandlerResponse::Unhandled;
+  });
+  
   svr.set_post_routing_handler([](const auto& req, auto& res) {
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
 
   });
+
+  svr.set_payload_max_length(1024 * 1024); // 1MB
   
   string root = "./html/";
   if(argc > 2)
@@ -1476,7 +1483,16 @@ int main(int argc, char** argv)
   int port = 8089;
   if(argc > 1)
     port = atoi(argv[1]);
-  fmt::print("Listening on port {} serving html from {}\n",
-	     port, root);
+  
+  fmt::print("Listening on port {} serving html from {}, using {} threads\n",
+	     port, root,std::thread::hardware_concurrency());
+
+  svr.set_socket_options([](socket_t sock) {
+    int yes = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+	       reinterpret_cast<const void *>(&yes), sizeof(yes));
+  });
+  
   svr.listen("0.0.0.0", port);
+  fmt::print("Exiting - {}\n", strerror(errno));
 }
