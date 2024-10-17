@@ -474,7 +474,7 @@ int main(int argc, char** argv)
       }
       id = get<string>(ret[0]["id"]);
       contentType = get<string>(ret[0]["contentType"]);
-      fmt::print("'{}' {}\n", id, contentType);
+
     }
     // docx to pdf is better for embedded images it appears
     // XXX disabled
@@ -580,10 +580,6 @@ int main(int argc, char** argv)
     return;
   });
 
-  svr.Get("/kamerleden/?", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto leden = sqlw.queryJRet("select fractiezetel.gewicht, persoon.*, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' order by afkorting, fractiezetel.gewicht");
-    res.set_content(leden.dump(), "application/json");    
-  });
 
   svr.Get("/commissies/?", [&sqlw](const httplib::Request &req, httplib::Response &res) {
 
@@ -734,39 +730,6 @@ int main(int argc, char** argv)
   });    
 
 
-  svr.Get("/persoonplus/:id", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    string id = req.path_params.at("id"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
-    cout<<"Lookup for "<<id<<endl;
-    auto persoon = sqlw.query("select * from Persoon where id=?", {id});
-
-    if(persoon.empty()) {
-      res.status = 404;
-      return;
-    }
-
-    nlohmann::json j = nlohmann::json::object();
-    j["persoon"] = packResultsJson(persoon)[0];
-
-    j["docs"] = sqlw.queryJRet("select datum,nummer,soort,onderwerp from Document,DocumentActor where relatie like '%ondertekenaar%' and DocumentActor.DocumentId = Document.id and persoonId=? order by 1 desc", {id});
-
-    j["moties"] = sqlw.queryJRet("select document.nummer, besluit.id besluitid, zaak.id zaakid, zaak.nummer zaaknummer, Document.id, Document.datum,document.soort,document.onderwerp,document.titel,besluit.soort,besluit.tekst,besluit.opmerking from Document,DocumentActor,Link,Zaak,besluit where Document.soort like 'Motie%' and DocumentId=Document.id and relatie like '%ondertekenaar' and persoonid=? and link.van = document.id and link.linkSoort='Zaak' and zaak.id=link.naar and besluit.zaakid=zaak.id order by datum desc", {id});
-    
-    for(auto& m : j["moties"]) {
-      VoteResult vr;
-      if(!getVoteDetail(sqlw, m["besluitid"], vr))
-	continue;
-      m["voorpartij"] = vr.voorpartij;
-      m["tegenpartij"] = vr.tegenpartij;
-      m["voorstemmen"] = vr.voorstemmen;
-      m["tegenstemmen"] = vr.tegenstemmen;
-      m["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
-      m["aangenomen"] = vr.voorstemmen > vr.tegenstemmen;
-    }
-    // hier kan een mooie URL van gebakken worden
-    //  https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2024Z10238&did=2024D24219
-    
-    res.set_content(j.dump(), "application/json");
-  });
 
   
 
@@ -913,7 +876,7 @@ int main(int argc, char** argv)
   doTemplate("geschenken.html", "geschenken.html", "select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer,substr(persoongeschenk.bijgewerkt,0,11)  pgbijgewerkt from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by persoongeschenk.bijgewerkt desc");
 
 
-  doTemplate("toezeggingen.html", "toezeggingen.html", "select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger,activiteit.datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");
+  doTemplate("toezeggingen.html", "toezeggingen.html", "select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger, substr(activiteit.datum, 0, 11) datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");
 
   
   svr.Get("/index.html", [&sqlw](const httplib::Request &req, httplib::Response &res) {
@@ -1032,8 +995,6 @@ int main(int argc, char** argv)
     }
     data["besluiten"] = besluiten;
 
-    cout<<data.dump()<<endl;
-    
     inja::Environment e;
     e.set_html_autoescape(true);
 
@@ -1292,7 +1253,6 @@ int main(int argc, char** argv)
     bulkEscape(data); 
 
     if(!externeid.empty() && haveExternalIdFile(externeid)) {
-      fmt::print("Got an external id present: {}\n", externeid);
       data["content"] = getBareHtmlFromExternal(externeid);
     }
     else if(get<string>(ret[0]["contentType"])=="application/pdf") {
@@ -1384,11 +1344,6 @@ int main(int argc, char** argv)
   
   // select * from persoonGeschenk, Persoon where Persoon.id=persoonId order by Datum desc
 
-  svr.Get("/geschenken", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by Datum desc"); 
-    res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} geschenken\n", docs.size());
-  });
 
   /* stemmingen. Poeh. Een stemming is eigenlijk een Stem, en ze zijn allemaal gekoppeld aan een besluit.
      een besluit heeft een Zaak en een Agendapunt
@@ -1443,30 +1398,6 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/unplanned-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select * from Activiteit where datum='' order by updated desc"); 
-    res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} unplanned activities\n", docs.size());
-  });
-
-
-  svr.Get("/future-besluiten", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
-    auto docs = sqlw.query("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener, besluit.tekst from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum asc,agendapuntZaakBesluitVolgorde asc", {dlim}); 
-    
-    res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} besluiten\n", docs.size());
-  });
-
-
-  
-  svr.Get("/future-activities", [&sqlw](const httplib::Request &req, httplib::Response &res) {
-    auto docs = sqlw.query("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp,voortouwAfkorting from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > '2024-09-29' order by datum asc"); // XX hardcoded date
-
-    res.set_content(packResultsJsonStr(docs), "application/json");
-    fmt::print("Returned {} activities\n", docs.size());
-  });
-
 
   svr.Post("/search", [&sqlw](const httplib::Request &req, httplib::Response &res) {
     string term = req.get_file_value("q").content;
