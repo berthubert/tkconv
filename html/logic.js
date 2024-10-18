@@ -178,6 +178,28 @@ async function commissieinit(f)
     }
 }
 
+async function activiteitinit(f)
+{
+    let url = new URL(window.location.href)
+    f.nummer = url.searchParams.get("nummer");
+    return getActiviteitDetails(f);
+}
+
+async function getActiviteitDetails(f)
+{
+//    const url = new URL(window.location.href);
+ //   url.searchParams.set("zaak", f.nummer);
+   // history.pushState({}, "", url);
+
+    const response = await fetch('activiteit/'+f.nummer);
+    if (response.ok === true) {
+        const data = await response.json();
+        f["activiteit"] = data;
+       console.log(data);
+       f["loaded"]=true;
+    }
+}
+
 
 function ksdinit(f)
 {
