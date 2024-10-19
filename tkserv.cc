@@ -1464,14 +1464,13 @@ int main(int argc, char** argv)
   });
   
   svr.set_pre_routing_handler([](const auto& req, auto& res) {
-    fmt::print("Req: {}\n", req.path);
+    fmt::print("Req: {} {} {}\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "");
     return httplib::Server::HandlerResponse::Unhandled;
   });
   
   svr.set_post_routing_handler([](const auto& req, auto& res) {
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
-
   });
 
   svr.set_payload_max_length(1024 * 1024); // 1MB
