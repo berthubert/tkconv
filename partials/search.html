@@ -6,7 +6,8 @@ soorten: '',
 twomonths: false,
 searchQuery: '',
 message: '',
-alternatief: ''
+alternatief: '',
+busy: false
 }" x-init="init($data);"
 {% endblock %}
 
@@ -33,12 +34,47 @@ alternatief: ''
   </div>
 </fieldset>
 </small>
-  <small>Zoeken op <strong>Joe Biden</strong> vindt alle documenten met ergens <i>Joe</i> en ergens <i>Biden</i>. Zoeken op <strong>"Joe Biden"</strong> vindt alleen die twee woorden naast elkaar. Zoeken op <strong>Hubert NOT Bruls</strong> vindt documenten met daarin Hubert maar niet Bruls. De hoofdletters in NOT zijn belangrijk.</small>
+  <small>Zoeken op <strong>Joe Biden</strong> vindt alle documenten met ergens <i>Joe</i> en ergens <i>Biden</i>. Zoeken op <strong>"Joe Biden"</strong> vindt alleen die twee woorden naast elkaar. Zoeken op <strong>Hubert NOT Bruls</strong> vindt documenten met daarin Hubert maar niet Bruls. De hoofdletters in <strong>NOT</strong> zijn belangrijk.</small>
 </form>
+<dialog id="bevestig-email">
+  <form method="dialog">
+    <p>
+      <label>
+        Voor alerts, bevestig eerst je email adres:
+        <input type="text" required />
+      </label>
+    </p>
+    <div>
+      <input type="submit" id="normal-close" value="Bevestig" />
+      <input type="submit" id="js-close" value="Annuleer" />
+    </div>
+  </form>
+</dialog>
+<output></output>
+<dialog id="wachtmail">
+  <form method="dialog">
+    <p>
+        Er is een mail naar je verstuurd met een bevestigingslink. Klik daarop en je alert is actief!
+    </p>
+    <div>
+      <input type="submit" id="normal-close" value="Ok" />
+    </div>
+  </form>
+</dialog>
+
+
+
 {% endblock %}
 
 {% block main %}
 <span x-html="alternatief"></span>
+<template x-if="busy">
+<center>
+  <span aria-busy="true"></span>
+</center>
+</template>
+
+<template x-if="!busy">
 <table class="striped">
   <thead>
     <tr>

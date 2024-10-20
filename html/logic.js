@@ -161,7 +161,7 @@ function init(f)
 	f.soorten = url.searchParams.get("soorten");
     else
 	f.soorten= "alles";
-    console.log(f.soorten);
+
     if(f.searchQuery != null)
 	getSearchResults(f);
 }
@@ -195,7 +195,6 @@ async function getActiviteitDetails(f)
     if (response.ok === true) {
         const data = await response.json();
         f["activiteit"] = data;
-       console.log(data);
        f["loaded"]=true;
     }
 }
@@ -229,6 +228,8 @@ async function getSearchResults(f)
 {
     if(f.searchQuery == '' || f.searchQuery == null)
 	return;
+    f.busy = true;
+
     const url = new URL(window.location.href);
     url.searchParams.set("q", f.searchQuery);
     url.searchParams.set("twomonths", f.twomonths);
@@ -266,10 +267,13 @@ async function getSearchResults(f)
         f.foundDocs = data["results"];
 	
 	f.message = `${data["milliseconds"]} milliseconden`;
-	console.log(data);
+	f.busy=false;
     }
     else {
 	f.foundDocs=[];
+	f.busy=false;
 	f.message = `Geen resultaten - probeer "${f.searchQuery}"`;
     }
 }
+
+
