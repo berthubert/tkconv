@@ -16,14 +16,15 @@ busy: false
 {% endblock %}
 
 {% block customheader %}
+
 <p></p>
 <form @submit.prevent="getSearchResults($data);">
   <fieldset role="group">
-    <input name="q" size="80" placeholder="zoektekst, documentnummer, zaaknummer, activiteitnummer..." type="text" x-model="searchQuery" autofocus>
-    <label><input name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2&nbsp;maanden</label>
+    <input x-bind:disabled="busy" name="q" size="80" placeholder="zoektekst, documentnummer, zaaknummer, activiteitnummer..." type="text" x-model="searchQuery" autofocus>
+    <label><input x-bind:disabled="busy" name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2&nbsp;maanden</label>
   </fieldset>
   <small>
-<fieldset>
+<fieldset x-bind:disabled="busy">
   <div>
     <input type="radio" id="alles" name="soorten" value="alles" checked x-model="soorten" @change="getSearchResults($data);"/>
     <label for="alles">Alles</label>
