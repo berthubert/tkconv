@@ -226,7 +226,7 @@ async function getKSDDocs(f)
 
 async function getSearchResults(f)
 {
-    if(f.searchQuery == '' || f.searchQuery == null)
+    if(f.searchQuery == '' || f.searchQuery == null || f.busy)
 	return;
     f.busy = true;
 
@@ -271,8 +271,8 @@ async function getSearchResults(f)
     }
     else {
 	f.foundDocs=[];
-	f.busy=false;
 	f.message = `Geen resultaten - probeer "${f.searchQuery}"`;
+	f.busy=false;
     }
 }
 
