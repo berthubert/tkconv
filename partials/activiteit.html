@@ -22,11 +22,16 @@ id="recent-docs" x-data="{
 <template x-if="activiteit['videourl'].length">
   <div>
     <a x-bind:href="activiteit['videourl']+'/video'">Link naar debat direct</a>
-    
-    
     <div style="position: relative; width: 100%; max-width: 650px;"><div style="padding-top: 56.25%; width: 100%;"><iframe style="position: absolute; left: 0; top: 0; width: 100%; height: 100%" x-bind:src="activiteit['videourl']+'/embedded'" frameborder="0" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe></div></div>
   </div>
 </template>
+<template x-if="activiteit['meta'].noot.length > 0">
+  <div style="border-width:1px; border-style:solid; border-color:#222222; padding: 0.5em; max-width: 50em; ">
+    <h4>Noot</h4>
+    <div x-html="activiteit['meta'].noot"></div>
+  </div>
+</template>
+
 <h4>Betrokkenen</h4>
 <ul>
   <template x-for="a in activiteit['actors']">
