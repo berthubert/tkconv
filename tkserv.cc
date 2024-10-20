@@ -1405,37 +1405,61 @@ int main(int argc, char** argv)
       term = "\"" + term + "\"";
     }
     
-    SQLiteWriter idx("tkindex.sqlite3");
+    SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     idx.query("ATTACH DATABASE ':memory:' as tmp");
-    cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"'"<<endl;
+    
+    static auto s_uc = make_shared<int>(0);
+    cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"', " <<
+      s_uc.use_count()<<" ongoing"<<endl;
     DTime dt;
     dt.start();
     std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> matches; // ugh
+    int mseclimit = 10000;
+
+    shared_ptr<int> uc = s_uc;
+    
+    if(s_uc.use_count() > 8) {
+      mseclimit = 1000;
+      fmt::print(">6 searchs ongoing, limiting to {}\n", mseclimit);
+    }
+    else if(s_uc.use_count() > 5) {
+      mseclimit = 2000;
+      fmt::print(">3 searchs ongoing, limiting to {}\n", mseclimit);
+    }
+    
     if(soorten=="moties") {
-      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort='Motie' order by score limit 280", {term, limit});
+      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort='Motie' order by score limit 280", {term, limit}, mseclimit);
     }
     else if(soorten=="vragenantwoorden") {
-      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort in ('Schriftelijke vragen', 'Antwoord schriftelijke vragen', 'Antwoord schriftelijke vragen (nader)')  order by score limit 280", {term, limit});
+      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort in ('Schriftelijke vragen', 'Antwoord schriftelijke vragen', 'Antwoord schriftelijke vragen (nader)')  order by score limit 280", {term, limit}, mseclimit);
     }
     else {
-      // put the matches in a temporary table
-      idx.queryT("create table tmp.uuids as SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch WHERE docsearch match ? and datum > ? order by score limit 280", {term, limit});
+      matches = idx.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch WHERE docsearch match ? and datum > ? order by score limit 280", {term, limit}, mseclimit);
       
-      matches =  idx.queryT("select uuid,meta.Document.onderwerp, meta.Document.bijgewerkt, meta.Document.titel, nummer, datum, snip, score FROM uuids,meta.Document where tmp.uuids.uuid=Document.id");
+      for(auto& m : matches) {
+	auto doc =  idx.queryT("select onderwerp, bijgewerkt, titel, nummer, datum FROM meta.Document where id=?",
+			      {get<string>(m["uuid"])});
+	if(doc.empty())
+	  continue;
+	for(const auto& f : doc[0])
+	  m[f.first]=f.second;
+      }
+      for(auto& m : matches) {
+	if(m.count("onderwerp")) // already matched as document
+	  continue;
       
-      auto matchesVerslag = idx.queryT("SELECT uuid,meta.Vergadering.titel as onderwerp, meta.Vergadering.id as vergaderingId, meta.Verslag.updated as bijgewerkt, '' as titel, nummer, datum, snip, score FROM uuids, meta.Verslag, meta.Vergadering WHERE uuid = Verslag.id and Vergadering.id = Verslag.vergaderingId");
-      
-      for(auto& mv : matchesVerslag) {
-	/*
-	fmt::print("Verslag match: {} {} verslagId {}\n", get<string>(mv["onderwerp"]),
-		   get<string>(mv["vergaderingId"]),
-		   get<string>(mv["uuid"])		 
-		 );
-	*/
-	mv["category"]="Vergadering";
-	mv["nummer"] =get<string>(mv["vergaderingId"]).substr(0, 8);
-	matches.push_back(mv);
+	auto verslag = idx.queryT("SELECT titel as onderwerp, Vergadering.id as vergaderingId, Verslag.updated as bijgewerkt, '' as titel, Vergadering.datum FROM meta.Verslag, meta.Vergadering WHERE Verslag.id = ? and Vergadering.id = Verslag.vergaderingId", {get<string>(m["uuid"])});
+	
+	if(verslag.empty()) {
+	  fmt::print("Weird - uuid {} is not a Document and not a Verslag?\n", get<string>(m["uuid"]));
+	  continue;
+	}
+	for(const auto& f : verslag[0])
+	  m[f.first]=f.second;
+
+	m["category"]="Vergadering";
+	m["nummer"] =get<string>(verslag[0]["vergaderingId"]).substr(0, 8);
       }
     }
     auto usec = dt.lapUsec();
