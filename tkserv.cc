@@ -478,6 +478,7 @@ int main(int argc, char** argv)
       contentType = get<string>(ret[0]["contentType"]);
 
     }
+    sqlw.release();
     // docx to pdf is better for embedded images it appears
     // XXX disabled
     if(0 && contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
@@ -511,6 +512,7 @@ int main(int argc, char** argv)
     else
       id = get<string>(ret[0]["id"]);
 
+    sqlw.release();
     string content = getRawDocument(id);
     res.set_content(content, get<string>(ret[0]["contentType"]));
   });
@@ -518,8 +520,7 @@ int main(int argc, char** argv)
   svr.Get("/personphoto/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 1234
     cout<<"persoon nummer: "<<nummer<<endl;
-    auto sqlw = tp.getLease();
-    auto ret=sqlw->queryT("select * from Persoon where nummer=? order by rowid desc limit 1", {nummer});
+    auto ret=tp.getLease()->queryT("select * from Persoon where nummer=? order by rowid desc limit 1", {nummer});
 
     if(ret.empty()) {
       res.status = 404;
@@ -550,9 +551,8 @@ int main(int argc, char** argv)
 
   // officiele publicatie redirect
   svr.Get("/op/:extid", [&tp](const httplib::Request &req, httplib::Response &res) {
-    auto sqlw = tp.getLease();
     string extid=req.path_params.at("extid"); 
-    auto docs = sqlw->queryT("select nummer from documentversie,document where externeidentifier=? and documentversie.documentid=document.id", {extid});
+    auto docs = tp.getLease()->queryT("select nummer from documentversie,document where externeidentifier=? and documentversie.documentid=document.id", {extid});
     if(docs.empty()) {
       res.status = 404;
       res.set_content(fmt::format("No such external identifier {}", extid), "text/plain");
