@@ -30,10 +30,15 @@ lease->queryT("select count(1) from Document");
 
 As long as 'lease' is alive, the instance is all yours. Once lease goes out of
 scope, the object is returned to the pool. The -> syntax allows you to call
-methods on SQLiteWriter.
+methods on SQLiteWriter. If you need a reference to your Thing, use get() (much
+like smart pointers).
 
 Many threads can use getLease() at the same time, and returns are of course
 also threadsafe.
+
+If you no longer need a lease, you can call its release() method to return it
+to the pool. If you think the state of your object is bad, you can call the
+abandon() method, which will delete the object and not return it to the pool.
 
 If you allow ThreadPool to go out of scope (or if you destroy it) while there
 are still active leases, this will throw an exception and likely kill your
@@ -79,6 +84,21 @@ struct ThingPool
     --d_out;
     d_pool.push_back(thing);
   }
+
+  void abandon(T* thing)
+  {
+    --d_out;
+    delete thing;
+  }
+
+  void clear()
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    for(auto& t : d_pool) {
+      delete t;
+    }
+    d_pool.clear();
+  }
   
   struct Lease
   {
@@ -97,6 +117,20 @@ struct ThingPool
       else {
 	// cout<<"Lease destroyed, not returning thing"<<endl;
       }
+    }
+
+    void release()
+    {
+      d_parent->giveBack(d_thing);
+      d_thing = nullptr;
+      d_parent = nullptr; 
+    }
+
+    void abandon()
+    {
+      d_parent->abandon(d_thing);
+      d_thing = nullptr;
+      d_parent = nullptr; 
     }
 
     Lease(const Lease&) = delete;
