@@ -194,3 +194,22 @@ string getSubdirForExternalID(const std::string& in)
   siphash((const void*) in.c_str(), in.length(), k, out, outlen);
   return fmt::sprintf("%02x/%02x", out[4], out[6]);
 }
+
+time_t getTstamp(const std::string& str)
+{
+  //  2024-09-17T13:00:00
+  //  2024-09-17T13:00:00+0200
+  struct tm tm={};
+  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  
+  return timelocal(&tm);
+}
+
+time_t getTstampUTC(const std::string& str)
+{
+  //  2024-09-17T13:00:00Z
+  struct tm tm={};
+  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  
+  return timegm(&tm);
+}

@@ -9,7 +9,7 @@
 
 using namespace std;
 
-vector<string> split_string(const string& input)
+static vector<string> split_string(const string& input)
 {
   istringstream iss(input);
   vector<string> tokens;
@@ -19,13 +19,10 @@ vector<string> split_string(const string& input)
   return tokens;
 }
 
-struct simple_walker: pugi::xml_tree_walker
+struct sprekers_walker: pugi::xml_tree_walker
 {
   virtual bool for_each(pugi::xml_node& node)
   {
-    //    for (int i = 0; i < depth(); ++i) std::cout << "  "; // indentation
-    
-    //    std::cout << "name='" << node.name() << "', value='" << node.value() << "'\n";
     if(string(node.name()) == "sprekers") {
       found = node;
       return false;
@@ -35,34 +32,135 @@ struct simple_walker: pugi::xml_tree_walker
   pugi::xml_node found;
 };
 
+struct tekst_walker : pugi::xml_tree_walker
+{
+  virtual bool for_each(pugi::xml_node& node)
+  {
+    string nv= node.value();
+    if(!tekst.empty() && *tekst.rbegin()!=' ' && !nv.empty() && nv[0]!=' ')
+      tekst += " ";
+    tekst += nv;
+    return true;
+  }
+  string tekst;
+};
+
+struct spreektijd_walker: pugi::xml_tree_walker
+{
+  virtual bool for_each(pugi::xml_node& node)
+  {
+    string name = node.name();
+    if(name == "woordvoerder" || name=="interrumpant") {
+      auto spreker = node.child("spreker");
+      auto begintijd = node.child("markeertijdbegin").child_value();
+      auto eindtijd = node.child("markeertijdeind").child_value();
+      bool isVoorzitter = string(node.child("isvoorzitter").child_value())=="true";
+      auto d = getTstamp(eindtijd) - getTstamp(begintijd);
+      string sprekerId = spreker.attribute("objectid").value();
+      // || sprekerId=="c7aa0e9d-3370-4c56-a461-682e83bcab4f"
+      if(d > 900 || d < 0 ) {
+	fmt::print("{} ({}): {} - {} {} {} seconds\n",
+		   spreker.child("achternaam").child_value(),
+		   sprekerId,
+		   begintijd,
+		   eindtijd, name, d);
+      }
+      TextTime tt;
+
+      tt.seconds = d;
+
+      if(isVoorzitter)  {
+	seconds[sprekerId].voorzitterSeconds += d;
+	tt.type="voorzitter";
+      }
+      else if(name=="woordvoerder") {
+	seconds[sprekerId].woordvoerderSeconds += d;
+	tt.type = name;
+      }
+      else if(name=="interrumpant") {
+	seconds[sprekerId].interrumpantSeconds += d;
+	tt.type = name;
+      }
+      else
+	throw std::runtime_error("Impossible spreker type "+name);
+
+      tekst_walker tw;
+      node.child("tekst").traverse(tw);
+      tt.tekst = tw.tekst;
+      //      cout<<"tekst: '"<< tw.tekst <<"'\n";
+      
+      seconds[sprekerId].texts.push_back({begintijd, tt});
+	
+    }
+    return true; // continue traversal
+  }
+  struct TextTime
+  {
+    string type;
+    string tekst;
+    int seconds = 0;
+  };
+
+  struct Times
+  {
+    int woordvoerderSeconds = 0;
+    int interrumpantSeconds = 0;
+    int voorzitterSeconds = 0;
+    int sum() {
+      return woordvoerderSeconds + interrumpantSeconds + voorzitterSeconds;
+    }
+    vector<pair<string,TextTime>> texts;
+  };
+
+  std::unordered_map<string, Times> seconds;
+};
+
 
 int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
+  sqlw.queryT("create table if not exists VergaderingSpreker (vergaderingId TEXT, verslagId, persoonId TEXT)");
+  sqlw.queryT("create unique index if not exists uniidx on VergaderingSpreker(vergaderingId, verslagId, persoonId)");
 
+  sqlw.queryT("create table if not exists VergaderingSprekerTekst (vergaderingId TEXT, verslagId, persoonId TEXT, beginTijd TEXT)");
+  sqlw.queryT("create unique index if not exists unisidx on VergaderingSprekerTekst(vergaderingId, verslagId, persoonId, beginTijd)");
+  
   string limit="2023-01-01";
+
   auto alleVerslagen = sqlw.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category from Verslag,Vergadering where status!= 'Casco' and Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
 
+  // the model is, if we've seen *something* from a verslag, we won't parse it again
+  auto doneVerslagen = sqlw.queryT("select distinct(verslagId) s from VergaderingSpreker");
+  unordered_set<string> doneAlready;
+  for(auto& dv: doneVerslagen)
+    doneAlready.insert(get<string>(dv["s"]));
+  
   set<string> seenvergadering;
   decltype(alleVerslagen) wantVerslagen;
   for(auto& v: alleVerslagen) {
     string vid = get<string>(v["vergaderingid"]);
     if(seenvergadering.count(vid)) 
       continue;
-    wantVerslagen.push_back(v);
+    if(!doneAlready.count(get<string>(v["id"])))
+      wantVerslagen.push_back(v);
     seenvergadering.insert(vid);
   }
 
   for(auto& v : wantVerslagen) {
     pugi::xml_document pnode;
     string id = get<string>(v["id"]);
-    if (!pnode.load_file(makePathForId(id).c_str())) {
-      cout<<"Could not load '"<<id<<"' from "<<makePathForId(id).c_str()<<endl;
+    string fname = makePathForId(id).c_str();
+    if (!pnode.load_file(fname.c_str())) {
+      cout<<"Could not load '"<<id<<"' from "<< fname <<endl;
       return -1;
     }
-    simple_walker walker;
+    //    fmt::print("Loaded {}\n", fname);
+    sprekers_walker walker;
     pnode.traverse(walker);
-    
+
+    spreektijd_walker sw;
+    pnode.traverse(sw);
+
     /*
     <spreker soort="Minister" objectid="6695f235-a643-4413-bc45-9c81ee79fa56">
 <aanhef>De heer</aanhef>
@@ -84,84 +182,94 @@ int main(int argc, char** argv)
   */
 
     set<string> seen;
-  for(auto& spreker : walker.found.children("spreker")) {
-    //    spreker.print(cout, "\t", pugi::format_raw);
-    string sprekerid=spreker.attribute("objectid").value();
-    string achternaam=spreker.child("achternaam").child_value();
-    string voornaam=spreker.child("voornaam").child_value();
-    string functie=spreker.child("functie").child_value();
-    if(functie != "lid Tweede Kamer")
-      continue;
-    if(seen.count(sprekerid))
-      continue;
-    seen.insert(sprekerid);
-    cout <<"'"<<voornaam << "' '" << achternaam << "' - "<<functie<<endl;
-
-    if(achternaam=="Ram")
-      achternaam="Ram ";
-    else if(achternaam=="Boomsma" && voornaam == "Diederik")
-      voornaam += " ";
-    else if(achternaam=="Patijn" && voornaam == "Mariëtte")
-      voornaam += " ";
-    else if(achternaam=="Soepboer" && voornaam == "Aant Jelle")
-      voornaam += " ";
-    else if(achternaam=="Welzijn" && voornaam == "Merlien")
-      voornaam += " ";
-    else if(achternaam=="Eppink" && voornaam == "Derk Jan")
-      voornaam += " ";
-    else if(achternaam=="El Abassi" && voornaam == "Ismail")
-      achternaam = "Abassi el";
-    else if(achternaam=="Koerhuis" && voornaam == "Daniël")
-      voornaam = "Daniel";
-    
-    auto p = sqlw.queryT("select * from Persoon where achternaam=? and roepnaam=? and tussenvoegsel=''",
-		{achternaam,
-		 voornaam});
-
-    if(p.empty()) {
-      auto stukjes = split_string(achternaam);
+    for(auto& spreker : walker.found.children("spreker")) {
+      //    spreker.print(cout, "\t", pugi::format_raw);
+      string sprekerid=spreker.attribute("objectid").value();
+      string achternaam=spreker.child("achternaam").child_value();
+      string voornaam=spreker.child("voornaam").child_value();
+      string functie=spreker.child("functie").child_value();
+      if(functie != "lid Tweede Kamer")
+	continue;
+      if(seen.count(sprekerid))
+	continue;
+      seen.insert(sprekerid);
+      //      cout <<"'"<<voornaam << "' '" << achternaam << "' - "<<functie<<endl;
       
-      //      <achternaam>Nispen van</achternaam>
-
-      for(unsigned int snip = 1; snip < stukjes.size(); ++snip) {
-	string nachternaam;
-	string tussenvoegsel;
-	for(unsigned int n = 0 ; n < stukjes.size() ; ++n) {
-	  cout<<n<<"'"<<stukjes[n]<<"'"<<endl;
-	  if(n < stukjes.size() - snip ) {
-	    if(!nachternaam.empty())
-	      nachternaam+=" ";
-	    nachternaam+=stukjes[n];
+      if(achternaam=="Patijn" && voornaam == "Mariëtte")
+	voornaam += " ";
+      else if(achternaam=="Eppink" && voornaam == "Derk Jan")
+	voornaam += " ";
+      else if(achternaam=="El Abassi" && voornaam == "Ismail")
+	achternaam = "Abassi el";
+      else if(achternaam=="Koerhuis" && voornaam == "Daniël")
+	voornaam = "Daniel";
+      
+      auto p = sqlw.queryT("select * from Persoon where achternaam=? and roepnaam=? and tussenvoegsel=''",
+			   {achternaam,
+			    voornaam});
+      
+      if(p.empty()) {
+	auto stukjes = split_string(achternaam);
+	
+	//      <achternaam>Nispen van</achternaam>
+	
+	for(unsigned int snip = 1; snip < stukjes.size(); ++snip) {
+	  string nachternaam;
+	  string tussenvoegsel;
+	  for(unsigned int n = 0 ; n < stukjes.size() ; ++n) {
+	    //	    cout<<n<<"'"<<stukjes[n]<<"'"<<endl;
+	    if(n < stukjes.size() - snip ) {
+	      if(!nachternaam.empty())
+		nachternaam+=" ";
+	      nachternaam+=stukjes[n];
+	    }
+	    else {
+	      if(!tussenvoegsel.empty())
+		tussenvoegsel += " ";
+	      tussenvoegsel += stukjes[n];
+	    }
 	  }
-	  else {
-	    if(!tussenvoegsel.empty())
-	      tussenvoegsel += " ";
-	    tussenvoegsel += stukjes[n];
-	  }
+	  //	  fmt::print("Poging 2 achternaam '{}', tussenvoegsel '{}'\n",
+	  //		     nachternaam, tussenvoegsel);
+	  p = sqlw.queryT("select * from Persoon where achternaam=? and tussenvoegsel=? and roepnaam=?",
+			  {
+			    nachternaam, tussenvoegsel, voornaam
+			  });
+	  if(!p.empty())
+	    break;
 	}
-	fmt::print("Poging 2 achternaam '{}', tussenvoegsel '{}'\n",
-		   nachternaam, tussenvoegsel);
-	p = sqlw.queryT("select * from Persoon where achternaam=? and tussenvoegsel=? and roepnaam=?",
-			{
-			  nachternaam, tussenvoegsel, voornaam
-			});
-	if(!p.empty())
-	  break;
+	
       }
-      
-    }
-    cout<<" "<<p.size()<<" matches\n";
-    if(p.size()==1) {
-      cout<<sprekerid<< " -> "<< get<string>(p[0]["id"])<<endl;
-      sqlw.addValue({{"vergaderingId", get<string>(v["vergaderingid"])},
-	    {"verslagId", get<string>(v["vergaderingid"])},
-	    {"persoonId", get<string>(p[0]["id"])},
-	    {"sprekerId", sprekerid}}, "VergaderingSpreker");
-	  
-    }
-    else
-      cout<<"Oops!\n"<<endl;
-  }
+      //      cout<<" "<<p.size()<<" matches\n";
+      if(p.size()==1) {
+	//	cout<<sprekerid<< " -> "<< get<string>(p[0]["id"])<<endl;
+	sqlw.addOrReplaceValue({{"vergaderingId", get<string>(v["vergaderingid"])},
+				{"verslagId", get<string>(v["id"])},
+				{"persoonId", get<string>(p[0]["id"])},
+				{"sprekerId", sprekerid},
+				{"spreekSeconden", sw.seconds[sprekerid].sum()},
+				{"woordvoerderSeconden", sw.seconds[sprekerid].woordvoerderSeconds},
+				{"interrumpantSeconden", sw.seconds[sprekerid].interrumpantSeconds},
+				{"voorzitterSeconden", sw.seconds[sprekerid].voorzitterSeconds}
+				}, "VergaderingSpreker");
 
+	auto& si = sw.seconds[sprekerid];
+	for(auto& t : si.texts) {
+	  sqlw.addOrReplaceValue({
+	      {"vergaderingId", get<string>(v["vergaderingid"])},
+	      {"verslagId", get<string>(v["id"])},
+	      {"persoonId", get<string>(p[0]["id"])},
+	      {"sprekerId", sprekerid},
+	      {"beginTijd", t.first},
+	      {"tekst", t.second.tekst},
+	      {"type", t.second.type},
+	      {"seconden", t.second.seconds}
+	    }, "VergaderingSprekerTekst");
+	}
+	
+      }
+      else
+	cout<<"Oops - "<<p.size()<< " '"<<achternaam<<"' '"<<voornaam<<"'"<<endl;
+    }
   }
 }

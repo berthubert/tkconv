@@ -44,3 +44,6 @@ bool isRtf(const std::string& fname);
 bool isXML(const std::string& fname);
 uint64_t getRandom64();
 bool endsWith(const std::string& str, const std::string& suffix);
+
+time_t getTstamp(const std::string& str);
+time_t getTstampUTC(const std::string& str);

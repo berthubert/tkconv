@@ -337,24 +337,6 @@ bool getVoteDetail(SQLiteWriter& sqlw, const std::string& besluitId, VoteResult&
   return true;
 }
 
-time_t getTstamp(const std::string& str)
-{
-  //  2024-09-17T13:00:00
-  //  2024-09-17T13:00:00+0200
-  struct tm tm={};
-  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
-  
-  return timelocal(&tm);
-}
-
-time_t getTstampUTC(const std::string& str)
-{
-  //  2024-09-17T13:00:00Z
-  struct tm tm={};
-  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
-  
-  return timegm(&tm);
-}
 
 
 // this processes .odt from officielepublicaties and turns it into HTML
@@ -647,9 +629,15 @@ int main(int argc, char** argv)
       }
     }
     j["zaken"] = zaken;
-    auto verslagen = packResultsJson(sqlw->queryT("select vergaderingid,datum,soort,zaal,titel from VergaderingSpreker,Persoon,Vergadering where vergadering.id=vergaderingid and Persoon.id=persoonId and persoon.nummer=? and soort != 'Plenair' order by datum desc", {nummer}));
-
-    j["verslagen"] = verslagen;
+    auto gesproken = packResultsJson(sqlw->queryT("select vergaderingspreker.vergaderingid, substr(datum,0,11) datum,soort,zaal,titel,round(1.0*sum(seconden)/60,1) as minuten from VergaderingSpreker,VergaderingSprekerTekst,Persoon,Vergadering where vergadering.id=vergaderingspreker.vergaderingid and Persoon.id=vergaderingspreker.persoonId and persoon.nummer=? and vergaderingsprekertekst.persoonId = Persoon.id and vergaderingsprekertekst.vergaderingid = vergaderingspreker.vergaderingid group by 1 order by datum desc", {nummer}));
+    for(auto& g : gesproken) {
+      double mins = (double)g["minuten"];
+      string minuten = fmt::sprintf("%.1f", mins);
+      replaceSubstring(minuten, ".", ",");
+      g["minuten"] = minuten;
+    }
+    
+    j["gesproken"] = gesproken;
 
     j["activiteiten"] = packResultsJson(sqlw->queryT("select substr(activiteit.datum, 0, 11) datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer}));
 
