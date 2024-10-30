@@ -34,9 +34,36 @@
       </tbody>
     </table>
   </details>
-
 <p></p>
 <details open>
+  <summary role="button">Gesproken</summary>
+  <table class="striped">
+    <thead>
+      <tr>
+        <th>Datum</th>
+	<th>Titel</th>
+	<th>Soort</th>
+	<th>Zaal</th>
+	<th>Minuten</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in gesproken %} 
+        <tr>
+	  <td>{{v.datum}}</td>
+	  <td><a href="verslag.html?vergaderingid={{v.vergaderingId}}">{{v.titel}}</a></td>
+	  <td>{{v.soort}}</td>
+	  <td>{{v.zaal}}</td>
+	  <td>{{v.minuten}}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+
+  
+<p></p>
+<details>
   <summary role="button">Activiteiten</summary>
   <table class="striped">
     <thead>
@@ -59,6 +86,8 @@
     </tbody>
   </table>
 </details>
+
+
 
 <p></p>
 <details open>
