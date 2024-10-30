@@ -1,4 +1,5 @@
 #define CPPHTTPLIB_USE_POLL
+#define CPPHTTPLIB_THREAD_POOL_COUNT 32
 #include <fmt/format.h>
 #include <fmt/printf.h>
 #include <fmt/os.h>
@@ -443,6 +444,8 @@ int main(int argc, char** argv)
   
   signal(SIGPIPE, SIG_IGN); // every TCP application needs this
   httplib::Server svr;
+  svr.set_keep_alive_max_count(1); 
+  svr.set_keep_alive_timeout(1);  
 
   svr.Get("/getdoc/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     auto sqlw = tp.getLease();
@@ -1506,7 +1509,7 @@ int main(int argc, char** argv)
     port = atoi(argv[1]);
   
   fmt::print("Listening on port {} serving html from {}, using {} threads\n",
-	     port, root,std::thread::hardware_concurrency());
+	     port, root, CPPHTTPLIB_THREAD_POOL_COUNT);
 
   svr.set_socket_options([](socket_t sock) {
     int yes = 1;
