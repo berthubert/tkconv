@@ -10,7 +10,7 @@
 
 {% block main %}
   <details>
-    <summary  role="button">Zaken</summary>
+    <summary  role="button">Zaken ({{ length(zaken) }})</summary>
     <table class="striped">
       <thead>
 	<tr>
@@ -36,7 +36,7 @@
   </details>
 <p></p>
 <details open>
-  <summary role="button">Gesproken</summary>
+  <summary role="button">Gesproken ({{length(gesproken)}})</summary>
   <table class="striped">
     <thead>
       <tr>
@@ -64,7 +64,7 @@
   
 <p></p>
 <details>
-  <summary role="button">Activiteiten</summary>
+  <summary role="button">Activiteiten ({{length(activiteiten)}})</summary>
   <table class="striped">
     <thead>
       <tr>
@@ -91,7 +91,7 @@
 
 <p></p>
 <details open>
-  <summary role="button">Geschenken</summary>
+  <summary role="button">Geschenken ({{length(geschenken)}})</summary>
   <table class="striped">
     <thead>
       <tr>
