@@ -40,21 +40,23 @@ int main(int argc, char** argv)
         next = fmt::format("https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Feed?skiptoken={}&category={}", skiptoken, category);
       }
       else {
-	fmt::print("Could not get a skiptoken for category {}??\n", category);
+	fmt::print("Could not get a skiptoken for category {}. First run?\n", category);
       }
     }
     catch(std::exception& e) {
       fmt::print("Could not get a 'next' from database for category {}, starting from scratch\n", category);
     }
-    int entries=0;  
+    int catentries=0;  
 
     while(!next.empty()) {
+      int entries = 0;
       httplib::Client cli("https://gegevensmagazijn.tweedekamer.nl");
       cli.set_connection_timeout(10, 0); 
       cli.set_read_timeout(10, 0); 
       cli.set_write_timeout(10, 0); 
       
-      fmt::print("Retrieving from {}\n", next);
+      fmt::print("Retrieving from {}.. ", next);
+      cout.flush();
       auto res = cli.Get(next);
 
       if(!res) {
@@ -80,6 +82,7 @@ int main(int argc, char** argv)
 	string updated = node.child("updated").child_value();
 	string enclosure;
 	entries++;
+	catentries++;
 	for (auto link : node.children("link")) {
 	  if(link.attribute("rel").value() == string("enclosure")) {
 	    enclosure = link.attribute("href").value();
@@ -102,8 +105,9 @@ int main(int argc, char** argv)
 	node.print(xml, "\t", pugi::format_raw);
 	sqlw.addValue({{"category", category},{"id", id}, {"skiptoken", skiptoken}, {"enclosure", enclosure}, {"updated", updated}, {"xml", xml.str()}}, category);
       }
+      fmt::print("got {} entries\n", entries);
       usleep(100000);
     }
-    cout<<"Done - saw "<<entries<<" new entries"<<endl;
+    cout<<"Done - saw "<<catentries<<" new entries for category"<<endl;
   }
 }
