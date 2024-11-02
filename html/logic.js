@@ -23,7 +23,7 @@ async function getGenKSD(orig, dest, f)
 	    else
 		ksdnamen.push(element.nummer +" " +element.titel);
 	}
-	config= {
+	var config= {
 	    placeHolder: "Kamerstukdossier titel",
 	    data: {
 		src: ksdnamen
@@ -54,9 +54,9 @@ async function getGenKSD(orig, dest, f)
 		    selection: (event) => {
 			const selection = event.detail.selection.value;
 			autoCompleteJS.input.value = selection;
-			selected = selection.split(" ")[0];
+			let selected = selection.split(" ")[0];
 			// https://berthub.eu/tkconv/ksd.html?ksd=25424
-			fspl = selected.split("-");
+			let fspl = selected.split("-");
 			const num = fspl[0];
 			let toevoeging="";
 
@@ -81,7 +81,7 @@ async function getGenVragen(orig, dest, f)
 	for (const element of data) {
 	    ksdnamen.push(element.nummer +" " + element.onderwerp);
 	}
-	config= {
+	var config= {
 	    placeHolder: "Vraag",
 	    data: {
 		src: ksdnamen
