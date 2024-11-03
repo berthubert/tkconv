@@ -43,7 +43,7 @@
     </html>
   </xsl:template>
 
-  <xsl:template match="metadata|kamerstukkop" />
+  <xsl:template match="metadata|kamerstukkop|kamervraagkop|kamervraagnummer" />
 
   <xsl:template match="kamerstuk">
     <article>
@@ -51,13 +51,32 @@
     </article>
   </xsl:template>
 
+  <xsl:template match="kamervragen">
+    <article>
+      <xsl:apply-templates select="*" />
+      <xsl:if
+        test=".//noot">
+        <div id="noten">
+          <hr />
+          <xsl:apply-templates select=".//noot" mode="noten" />
+        </div>
+      </xsl:if>
+    </article>
+  </xsl:template>
+  
   <xsl:template match="dossier">
     <h1 class="dossiertitel">
       <xsl:apply-templates select="*" />
     </h1>
   </xsl:template>
 
-  <xsl:template match="dossiernr|dossier/titel|begrotingshoofdstuk">
+  <xsl:template match="kamervraagomschrijving">
+    <h1 class="kamervraagomschrijving">
+      <xsl:apply-templates/>
+    </h1>
+  </xsl:template>
+  
+  <xsl:template match="dossiernr|dossier/titel|begrotingshoofdstuk|kamervraagonderwerp">
     <xsl:apply-templates />
   </xsl:template>
 
@@ -131,7 +150,8 @@
 
   <xsl:template
     match="amendement|amendement-lid|algemeen|voorstel-wet|aanhef|wettekst|
-    wijzig-lid|wijzig-divisie|wijziging|voorstel-sluiting|slotformulering">
+    wijzig-lid|wijzig-divisie|wijziging|voorstel-sluiting|slotformulering|
+    vraag">
     <div class="{local-name()}">
       <xsl:apply-templates select="*" />
     </div>
@@ -284,7 +304,13 @@
     </em>
   </xsl:template>
 
-  <xsl:template match="extref[@doc]">
+  <xsl:template match="extref[@soort='URL']">
+    <a href="{@doc}">
+      <xsl:apply-templates />
+    </a>
+  </xsl:template>
+  
+  <xsl:template match="extref[@soort='document']">
     <a href="/tkconv/op/{@doc}">
       <xsl:apply-templates />
     </a>
@@ -499,6 +525,12 @@
     </p>
   </xsl:template>
 
+  <xsl:template match="vraag/nr">
+    <h2 class="stuktitel">
+      <xsl:apply-templates/>
+    </h2>
+  </xsl:template>
+  
   <!-- Helps the author of this xslt to see what still needs to be done -->
   <xsl:template match="*">
     <xsl:message terminate="no">
