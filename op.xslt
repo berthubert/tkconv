@@ -54,13 +54,7 @@
   <xsl:template match="kamervragen">
     <article>
       <xsl:apply-templates select="*" />
-      <xsl:if
-        test=".//noot">
-        <div id="noten">
-          <hr />
-          <xsl:apply-templates select=".//noot" mode="noten" />
-        </div>
-      </xsl:if>
+      <xsl:call-template name="voetnoten"/>
     </article>
   </xsl:template>
   
@@ -76,7 +70,7 @@
     </h1>
   </xsl:template>
   
-  <xsl:template match="dossiernr|dossier/titel|begrotingshoofdstuk|kamervraagonderwerp">
+  <xsl:template match="dossiernr|dossier/titel|begrotingshoofdstuk|kamervraagonderwerp|organisatie">
     <xsl:apply-templates />
   </xsl:template>
 
@@ -88,13 +82,7 @@
       <xsl:apply-templates select="datumtekst" />
       <xsl:apply-templates select="officiele-inhoudsopgave|voorstel-wet|amendement|algemeen" />
     </div>
-    <xsl:if
-      test=".//noot">
-      <div id="noten">
-        <hr />
-        <xsl:apply-templates select=".//noot" mode="noten" />
-      </div>
-    </xsl:if>
+    <xsl:call-template name="voetnoten"/>>
   </xsl:template>
 
   <xsl:template match="stuknr">
@@ -120,15 +108,15 @@
     </sup>
   </xsl:template>
 
-  <xsl:template match="noot" mode="noten">
+  <xsl:template match="noot" mode="voetnoten">
     <div class="voet noot snp-mouseoffset snb-pinned notedefault"
       id="supernote-note-ID-{generate-id()}">
       <h5 class="note-close"><a class="note-close" href="#close-ID-{generate-id()}">X</a> Noot </h5>
-      <xsl:apply-templates mode="noten" />
+      <xsl:apply-templates mode="voetnoten" />
     </div>
   </xsl:template>
 
-  <xsl:template match="noot.nr" mode="noten">
+  <xsl:template match="noot.nr" mode="voetnoten">
     <sup>
       <span class="nootnum" id="ID-{generate-id()}">
         <xsl:apply-templates />
@@ -136,7 +124,7 @@
     </sup>
   </xsl:template>
 
-  <xsl:template match="noot.al" mode="noten">
+  <xsl:template match="noot.al" mode="voetnoten">
     <p>
       <xsl:apply-templates />
     </p>
@@ -151,7 +139,7 @@
   <xsl:template
     match="amendement|amendement-lid|algemeen|voorstel-wet|aanhef|wettekst|
     wijzig-lid|wijzig-divisie|wijziging|voorstel-sluiting|slotformulering|
-    vraag">
+    vraag|antwoord">
     <div class="{local-name()}">
       <xsl:apply-templates select="*" />
     </div>
@@ -469,6 +457,13 @@
     <table>
       <xsl:apply-templates />
     </table>
+    <xsl:if
+      test=".//noot[@type='tabel']">
+      <div class="tabelnoten">
+        <hr />
+        <xsl:apply-templates select=".//noot[@type='tabel']" mode="voetnoten" />
+      </div>
+    </xsl:if>
   </xsl:template>
 
   <xsl:template match="tgroup">
@@ -525,7 +520,7 @@
     </p>
   </xsl:template>
 
-  <xsl:template match="vraag/nr">
+  <xsl:template match="vraag/nr|antwoord/nr">
     <h2 class="stuktitel">
       <xsl:apply-templates/>
     </h2>
@@ -612,6 +607,16 @@
     </xsl:choose>
   </xsl:template>
   
+  <xsl:template name="voetnoten">
+    <xsl:if
+      test=".//noot[@type='voet']">
+      <div id="noten">
+        <hr />
+        <xsl:apply-templates select=".//noot[@type='voet']" mode="voetnoten" />
+      </div>
+    </xsl:if>
+  </xsl:template>
+
   <func:function name="smop:tokenize">
     <xsl:param name="string"/>
     <xsl:param name="delimiters"/>
