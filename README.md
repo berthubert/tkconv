@@ -1,6 +1,8 @@
 # Tools om de Tweede Kamer open data te gebruiken
 bert hubert / bert@hubertnet.nl / https://berthub.eu/
 
+> Er is nu [ook een blogpost met een eindgebruikershandleiding](https://berthub.eu/articles/posts/welkom-bij-opentk/)!
+
 Om te beginnen grote dank aan het [Team Open Data van Tweede Kamer](https://opendata.tweedekamer.nl/) voor het
 beschikbaar stellen van zulke overweldigende hoeveelheden open data!  Ook
 hulde voor de activisten (zoals bij [Openstate](https://openstate.eu) en [1848.nl](https://1848.nl)) die jaren lang hebben
