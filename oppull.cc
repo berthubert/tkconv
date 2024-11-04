@@ -88,8 +88,12 @@ int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
   string ftype="odt";
+  if(argc > 1)
+    ftype=argv[1];
   string suffix ="."+ftype;
   string limit="2023-01-01";
+  if(argc > 2)
+    limit = argv[2];
   auto wantDocs = sqlw.queryT("select externeidentifier from Document,DocumentVersie where documentid=document.id and document.datum > ? and externeidentifier != ''", {limit});
   cout<<"Got "<<wantDocs.size()<<" external identifiers to look at"<<endl;
   
