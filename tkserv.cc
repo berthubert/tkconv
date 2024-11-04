@@ -672,7 +672,7 @@ int main(int argc, char** argv)
     // Hasref: {"activiteit", "agendapunt", "gerelateerdVanuit", "kamerstukdossier", "vervangenVanuit"}
 
 
-    z["activiteiten"] = packResultsJson(sqlw->queryT("select * from Activiteit,Link where Link.van=? and Activiteit.id=link.naar", {zaakid}));
+    z["activiteiten"] = packResultsJson(sqlw->queryT("select * from Activiteit,Link where Link.van=? and Activiteit.id=link.naar order by datum desc", {zaakid}));
     z["agendapunten"] = packResultsJson(sqlw->queryT("select Agendapunt.* from Agendapunt,Link where Link.van=? and Agendapunt.id=link.naar", {zaakid}));
     for(auto &d : z["agendapunten"]) {
       d["activiteit"] = packResultsJson(sqlw->queryT("select *, substr(aanvangstijd, 0, 17) aanvangstijd from Activiteit where id=?", {(string)d["activiteitId"]}))[0];
@@ -680,7 +680,12 @@ int main(int argc, char** argv)
       aanv[10]=' ';
       d["activiteit"]["aanvangstijd"]=aanv;
     }
-
+    auto& ap = z["agendapunten"];
+    sort(ap.begin(), ap.end(),
+	 [](const auto& a, const auto& b) {
+	   return a["activiteit"]["aanvangstijd"] > b["activiteit"]["aanvangstijd"];
+	 }
+	 );
     z["gerelateerd"] = packResultsJson(sqlw->queryT("select * from Zaak,Link where Link.van=? and Zaak.id=link.naar and linkSoort='gerelateerdVanuit'", {zaakid}));
     z["vervangenVanuit"] = packResultsJson(sqlw->queryT("select * from Zaak,Link where Link.van=? and Zaak.id=link.naar and linkSoort='vervangenVanuit'", {zaakid}));
     z["vervangenDoor"] = packResultsJson(sqlw->queryT("select * from Zaak,Link where Link.naar=? and Zaak.id=link.van and linkSoort='vervangenVanuit'", {zaakid}));
@@ -694,7 +699,7 @@ int main(int argc, char** argv)
     z["kamerstukdossier"]= packResultsJson(sqlw->queryT("select * from kamerstukdossier where id=?",
 							{(string)z["zaak"]["kamerstukdossierId"]}));
 
-    z["besluiten"] = packResultsJson(sqlw->queryT("select substr(datum,0,17) datum, besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum asc", {nummer}));
+    z["besluiten"] = packResultsJson(sqlw->queryT("select substr(datum,0,17) datum, besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum desc", {nummer}));
 
     
     for(auto& b : z["besluiten"]) {
