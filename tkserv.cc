@@ -574,12 +574,6 @@ int main(int argc, char** argv)
   });
 
 
-  svr.Get("/commissies/?", [&tp](const httplib::Request &req, httplib::Response &res) {
-
-    auto j = packResultsJson(tp.getLease()->queryT("select commissieid,max(datum) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc")); 
-
-    res.set_content(j.dump(), "application/json");    
-  });
 
   svr.Get("/commissie/:id", [&tp](const httplib::Request &req, httplib::Response &res) {
     string id = req.path_params.at("id");
@@ -591,7 +585,7 @@ int main(int argc, char** argv)
     j["activiteiten"] = packResultsJson(sqlw->queryT("select * from ActiviteitActor,Activiteit where commissieId=? and Activiteit.id=ActiviteitActor.activiteitid order by datum desc limit 20", {id}));
 
     auto tmp = packResultsJson(sqlw->queryT("select activiteit.*, 'Voortouwcommissie' as relatie from activiteit,commissie where voortouwNaam like commissie.naam and commissie.id=? order by datum desc limit 20", {id}));
-    fmt::print("Got {} voortouw\n", tmp.size());
+
     for(const auto& t : tmp)
       j["activiteiten"].push_back(t);
 		   
@@ -859,7 +853,7 @@ int main(int argc, char** argv)
 
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html"); // unlisted
-  doTemplate("commissies.html", "commissies.html");
+  doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");
 
   doTemplate("commissie.html", "commissie.html");
 
