@@ -53,6 +53,9 @@ int main(int argc, char** argv)
 {
   SQLiteWriter todo("tk.sqlite3");
   string limit="2008-01-01";
+  if(argc > 1)
+    limit = argv[1];
+
   fmt::print("Getting docs since {}\n", limit);
   auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category, contentLength from Document where datum > ?", {limit});
 
@@ -74,7 +77,10 @@ int main(int argc, char** argv)
   }
   fmt::print("Would like to index {} most recent verslagen\n", wantVerslagen.size());
 
-  string idxfname = argc<2 ? "tkindex.sqlite3" : argv[1];
+  string idxfname = "tkindex.sqlite3";
+  if(argc > 2)
+    idxfname = argv[2];
+  
   SQLiteWriter sqlw(idxfname, {{"indexed", {{"uuid", "PRIMARY KEY"}}}});
 
   sqlw.queryT(R"(
