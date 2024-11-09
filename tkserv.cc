@@ -610,7 +610,7 @@ int main(int argc, char** argv)
     nlohmann::json j = nlohmann::json::object();
     j["meta"] = lid[0];
 
-    auto zaken = packResultsJson(sqlw->queryT("select substr(zaak.gestartOp,0,11) gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc", {(string)lid[0]["id"]}));
+    auto zaken = packResultsJson(sqlw->queryT("select substr(zaak.gestartOp,0,11) gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc, nummer desc", {(string)lid[0]["id"]}));
 
     for(auto& z: zaken) {
       z["aangenomen"]="";
@@ -1394,7 +1394,6 @@ int main(int argc, char** argv)
     
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
-    idx.query("ATTACH DATABASE ':memory:' as tmp");
     
     static auto s_uc = make_shared<int>(0);
     cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"', " <<
