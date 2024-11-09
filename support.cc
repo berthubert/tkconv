@@ -1,10 +1,13 @@
 #include "support.hh"
 #include <fmt/format.h>
 #include <fmt/printf.h>
+#include <fmt/chrono.h>
 #include <sys/stat.h>
 #include <vector>
 #include <random>
 #include "siphash.h"
+#include <sclasses.hh>
+#include "base64.hpp"
 
 using namespace std;
 
@@ -119,6 +122,25 @@ uint64_t getRandom64()
   return ((uint64_t)rd() << 32) | rd();
 }
 
+string getLargeId()
+{
+  uint64_t id = getRandom64();
+  string ret = base64::to_base64(std::string((char*)&id, sizeof(id)));
+  ret.resize(ret.size()-1); // this base64url implementation pads, somehow
+  id = getRandom64();
+  ret += base64::to_base64(std::string((char*)&id, sizeof(id)));
+  ret.resize(ret.size()-1); // this base64url implementation pads, somehow
+
+  for(auto& c : ret) {
+    if(c == '/')
+      c = '_';
+    else if(c == '+')
+      c = '-';
+  }
+  return ret;
+}
+
+
 // Function to check if a string ends with a particular suffix
 bool endsWith(const std::string& str, const std::string& suffix) {
     // Check if the suffix is longer than the string itself
@@ -212,4 +234,97 @@ time_t getTstampUTC(const std::string& str)
   strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
   
   return timegm(&tm);
+}
+
+
+// do not put UTF-8 in the subject yet
+void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody)
+{
+  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@";
+  if(from.find_first_not_of(allowed) != string::npos || to.find_first_not_of(allowed) != string::npos) {
+    throw std::runtime_error("Illegal character in from or to address");
+  }
+
+  ComboAddress mailserver(server, 25);
+  Socket s(mailserver.sin4.sin_family, SOCK_STREAM);
+
+  SocketCommunicator sc(s);
+  sc.connect(mailserver);
+  string line;
+  auto sponge= [&](int expected) {
+    while(sc.getLine(line)) {
+      if(line.size() < 4)
+        throw std::runtime_error("Invalid response from SMTP server: '"+line+"'");
+      if(stoi(line.substr(0,3)) != expected)
+        throw std::runtime_error("Unexpected response from SMTP server: '"+line+"'");
+      if(line.at(3) == ' ')
+        break;
+    }
+  };
+
+  sponge(220);
+  sc.writen("EHLO dan\r\n");
+  sponge(250);
+
+  sc.writen("MAIL From:<"+from+">\r\n");
+  sponge(250);
+
+  sc.writen("RCPT To:<"+to+">\r\n");
+  sponge(250);
+
+  sc.writen("DATA\r\n");
+  sponge(354);
+  sc.writen("From: "+from+"\r\n");
+  sc.writen("To: "+to+"\r\n");
+  sc.writen("Subject: "+subject+"\r\n");
+  
+
+  sc.writen(fmt::format("Message-Id: <{}@trifecta.hostname>\r\n", getRandom64()));
+  
+  //Date: Thu, 28 Dec 2023 14:31:37 +0100 (CET)
+  sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
+
+  string sepa="_----------=_MCPart_121613240";
+  if(htmlBody.empty()) {
+    sc.writen("Content-Type: text/plain; charset=\"utf-8\"\r\n");
+    sc.writen("Content-Transfer-Encoding: base64\r\n");
+  }
+  else {
+    sc.writen("Content-Type: multipart/alternative; boundary=\""+sepa+"\"\r\n");
+    sc.writen("MIME-Version: 1.0\r\n");
+  }
+  sc.writen("\r\n");
+
+
+  if(!htmlBody.empty()) {
+    sc.writen("This is a multi-part message in MIME format\r\n\r\n");
+
+    sc.writen("--"+sepa+"\r\n");
+    sc.writen("Content-Type: text/plain; charset=\"utf-8\"; format=\"fixed\"\r\n");
+    sc.writen("Content-Transfer-Encoding: base64\r\n\r\n");
+  }
+  string b64 = base64::to_base64(textBody);
+
+  int linelen = 72;
+  int pos = 0;
+  for(pos = 0 ; pos < (int)b64.length() - linelen; pos += linelen) {
+    sc.writen(b64.substr(pos, linelen)+"\r\n");
+  }
+  if(htmlBody.empty()) {
+    sc.writen(b64.substr(pos) +"\r\n.\r\n");
+    sponge(250);
+    return;
+  }
+  sc.writen("--"+sepa+"\r\n");
+  sc.writen("Content-Type: text/html; charset=\"utf-8\"\r\n");
+  sc.writen("Content-Transfer-Encoding: base64\r\n\r\n");
+  b64 = base64::to_base64(htmlBody);
+  pos = 0;
+  for(pos = 0 ; pos < (int)b64.length() - linelen; pos += linelen) {
+    sc.writen(b64.substr(pos, linelen)+"\r\n");
+  }
+  sc.writen(b64.substr(pos) +"\r\n");
+  sc.writen("--"+sepa+"--\r\n.\r\n");
+  sponge(250);
+  return;
 }

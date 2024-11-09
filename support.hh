@@ -43,7 +43,9 @@ bool isDoc(const std::string& fname);
 bool isRtf(const std::string& fname);
 bool isXML(const std::string& fname);
 uint64_t getRandom64();
+std::string getLargeId();
 bool endsWith(const std::string& str, const std::string& suffix);
 
 time_t getTstamp(const std::string& str);
 time_t getTstampUTC(const std::string& str);
+void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody="");

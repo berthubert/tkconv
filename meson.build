@@ -5,7 +5,7 @@ thread_dep = dependency('threads')
 json_dep = dependency('nlohmann_json')
 fmt_dep = dependency('fmt', version: '>10', static: true)
 pugi_dep = dependency('pugixml')
-
+simplesockets_dep = dependency('simplesockets', static: true)
 cpphttplib = dependency('cpp-httplib')
 sqlitewriter_dep = dependency('sqlitewriter', static: true)
 doctest_dep=dependency('doctest')
@@ -23,7 +23,8 @@ executable('tkconv', 'tkconv.cc',
 	argparse_dep, vcs_dep])
 
 executable('tkparse', 'tkparse.cc', 'support.cc', 'siphash.cc', 
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	dependencies: [sqlitedep, json_dep, fmt_dep, simplesockets_dep,
+	cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 
@@ -36,29 +37,39 @@ executable('tkgetxml', 'tkgetxml.cc',
 	argparse_dep, vcs_dep])
 
 
-executable('tkbot', 'tkbot.cc', 
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+executable('tkbot', 'tkbot.cc', 'support.cc', 'siphash.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
+	sqlitewriter_dep, pugi_dep, simplesockets_dep,
 	argparse_dep, vcs_dep])
 
 executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc',
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	dependencies: [sqlitedep, json_dep, fmt_dep,
+	simplesockets_dep,
+	cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 executable('tkpull', 'tkpull.cc', 'support.cc', 'siphash.cc',
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
+	simplesockets_dep,
+	sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 executable('oppull', 'oppull.cc', 'support.cc', 'siphash.cc',
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	dependencies: [sqlitedep, json_dep,
+	simplesockets_dep,
+	fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 
 executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc',
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	dependencies: [sqlitedep, json_dep,
+	simplesockets_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+	dependencies: [sqlitedep, json_dep, fmt_dep,
+	simplesockets_dep,
+	cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 
