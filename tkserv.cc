@@ -213,57 +213,18 @@ static string getHtmlForDocument(const std::string& id, bool bare=false)
   return ret;
 }
 
-static string getPDFForDocx(const std::string& id)
-{
-  if(isPresentNonEmpty(id, "doccache", ".pdf") && cacheIsNewer(id, "doccache", ".pdf", "docs")) {
-    string fname = makePathForId(id, "doccache", ".pdf");
-    string ret = getContentsOfFile(fname);
-    if(!ret.empty()) {
-      fmt::print("Had a cache hit for {} PDF\n", id);
-      return ret;
-    }
-    // otherwise fall back to normal process
-  }
-  // 
-  string fname = makePathForId(id);
-  string command = fmt::format("pandoc -s --metadata \"margin-left:1cm\" --metadata \"margin-right:1cm\" -V fontfamily=\"dejavu\"  --variable mainfont=\"DejaVu Serif\" --variable sansfont=Arial --pdf-engine=xelatex -f docx -t pdf '{}'",
-			  fname);
-  FILE* pfp = popen(command.c_str(), "r");
-  if(!pfp)
-    throw runtime_error("Unable to perform conversion for '"+command+"': "+string(strerror(errno)));
-  
-  shared_ptr<FILE> fp(pfp, pclose);
-  char buffer[4096];
-  string ret;
-  for(;;) {
-    int len = fread(buffer, 1, sizeof(buffer), fp.get());
-    if(!len)
-      break;
-    ret.append(buffer, len);
-  }
-  if(ferror(fp.get()))
-    throw runtime_error("Unable to perform pandoc: "+string(strerror(errno)));
-
-  string rsuffix ="."+to_string(getRandom64());
-  string oname = makePathForId(id, "doccache", "", true);
-  {
-    auto out = fmt::output_file(oname+rsuffix);
-    out.print("{}", ret);
-  }
-  if(rename((oname+rsuffix).c_str(), (oname+".pdf").c_str()) < 0) {
-    unlink((oname+rsuffix).c_str());
-    fmt::print("Rename of cached PDF failed\n");
-  }
-  
-  return ret;
-}
-
 static string getRawDocument(const std::string& id)
 {
-  string fname = makePathForId(id);
+  string fname;
+  if(isPresentNonEmpty(id, "improvdocs")) {
+    fmt::print("we have a better version of {}\n", id);
+    fname = makePathForId(id, "improvdocs");
+  }
+  else
+    fname = makePathForId(id);
   string ret = getContentsOfFile(fname);
   if(ret.empty())
-     throw runtime_error("Unable to perform pdftotext: "+string(strerror(errno)));
+     throw runtime_error("Unable to get raw document: "+string(strerror(errno)));
   return ret;
 }
 
@@ -383,10 +344,8 @@ std::string getBareHtmlFromExternal(const std::string& id)
     unlink((oname+rsuffix).c_str());
     fmt::print("Rename of cached ODT->HTML failed: {}\n", strerror(t));
   }
-
   
   return ret;
-
 }
 
 
