@@ -1,7 +1,6 @@
 #include "thingpool.hh"
 #include "inja.hpp"
 #include <iostream>
-#include "siphash.h"
 #include <fmt/printf.h>
 #include <fmt/os.h>
 #include "support.hh"

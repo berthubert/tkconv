@@ -10,6 +10,7 @@ cpphttplib = dependency('cpp-httplib')
 sqlitewriter_dep = dependency('sqlitewriter', static: true)
 doctest_dep=dependency('doctest')
 argparse_dep = dependency('argparse', version: '>=3')
+openssl_dep = dependency('openssl')
 
 vcs_ct=vcs_tag(command: ['git', 'describe', '--tags', '--always', '--dirty', '--abbrev=9'], 
       input:'git_version.h.in',
@@ -18,56 +19,56 @@ vcs_ct=vcs_tag(command: ['git', 'describe', '--tags', '--always', '--dirty', '--
 
 vcs_dep= declare_dependency (sources: vcs_ct)
 
-executable('tkconv', 'tkconv.cc', 
+executable('tkconv', 'tkconv.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('tkparse', 'tkparse.cc', 'support.cc', 'siphash.cc', 
+executable('tkparse', 'tkparse.cc', 'support.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, simplesockets_dep,
 	cpphttplib, sqlitewriter_dep, pugi_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, openssl_dep])
 
 
-executable('tkdisco', 'tkdisco.cc', 
+executable('tkdisco', 'tkdisco.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('tkgetxml', 'tkgetxml.cc', 
+executable('tkgetxml', 'tkgetxml.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 
-executable('tkbot', 'tkbot.cc', 'support.cc', 'siphash.cc',
+executable('tkbot', 'tkbot.cc', 'support.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
 	sqlitewriter_dep, pugi_dep, simplesockets_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, openssl_dep])
 
-executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc',
+executable('tkindex', 'tkindex.cc', 'support.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep,
 	simplesockets_dep,
 	cpphttplib, sqlitewriter_dep, pugi_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, openssl_dep])
 
-executable('tkpull', 'tkpull.cc', 'support.cc', 'siphash.cc',
+executable('tkpull', 'tkpull.cc', 'support.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
 	simplesockets_dep,
 	sqlitewriter_dep, pugi_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, openssl_dep])
 
-executable('oppull', 'oppull.cc', 'support.cc', 'siphash.cc',
+executable('oppull', 'oppull.cc', 'support.cc',
 	dependencies: [sqlitedep, json_dep,
 	simplesockets_dep,
 	fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, openssl_dep])
 
 
-executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc',
+executable('tkserv', 'tkserv.cc', 'support.cc',
 	dependencies: [sqlitedep, json_dep,
 	simplesockets_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, openssl_dep])
 
-executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
-	dependencies: [sqlitedep, json_dep, fmt_dep,
+executable('playground', 'playground.cc', 'support.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, openssl_dep,
 	simplesockets_dep,
 	cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
