@@ -7,7 +7,7 @@
 #include <random>
 #include "siphash.h"
 #include <sclasses.hh>
-#include "base64.hpp"
+#include <openssl/evp.h>
 
 using namespace std;
 
@@ -23,6 +23,16 @@ static bool fileStartsWith(const std::string& fname, const std::string& start)
   return (memcmp(&buf[0], start.c_str(), start.size())==0);
 }
 
+namespace base64 {
+
+std::string to_base64(std::string_view data) {
+  std::string out((((4 * data.length() / 3) + 3) & ~3) + 1, 0);
+  int actual = EVP_EncodeBlock((uint8_t*)out.data(), (uint8_t*)data.data(), data.length());
+  out.resize(actual);
+  return out;
+}
+
+}
 
 bool isPDF(const std::string& fname)
 {
