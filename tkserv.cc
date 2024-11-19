@@ -1464,7 +1464,7 @@ int main(int argc, char** argv)
     try {
       std::rethrow_exception(ep);
     } catch (std::exception &e) {
-      snprintf(buf, sizeof(buf), fmt, e.what());
+      snprintf(buf, sizeof(buf), fmt, htmlEscape(e.what()).c_str());
     } catch (...) { // See the following NOTE
       snprintf(buf, sizeof(buf), fmt, "Unknown Exception");
     }
