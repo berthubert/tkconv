@@ -5,11 +5,47 @@
 #include <sys/stat.h>
 #include <vector>
 #include <random>
-#include "siphash.h"
 #include <sclasses.hh>
 #include "base64.hpp"
+#include <openssl/evp.h>
 
 using namespace std;
+
+/*int siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
+            const size_t outlen);
+
+    Computes a SipHash value
+    *in: pointer to input data (read-only)
+    inlen: input data length in bytes (any size_t value)
+    *k: pointer to the key data (read-only), must be 16 bytes 
+    *out: pointer to output data (write-only), outlen bytes must be allocated
+    outlen: length of the output in bytes, must be 8 or 16
+*/
+static int siphash(const void *in, const size_t inlen, const void *k, uint8_t *out, size_t outlen)
+{
+  const OSSL_PARAM params[] = {
+    OSSL_PARAM_size_t("size", &outlen),
+    OSSL_PARAM_END
+  };
+  
+  unsigned char *p = EVP_Q_mac(
+    nullptr,
+    "SIPHASH",
+    nullptr,
+    nullptr,
+    params,
+    k,
+    16,
+    (const unsigned char*)in,
+    inlen,
+    out,
+    outlen,
+    nullptr);
+  if (!p)
+    throw runtime_error("Can't compute SipHash value");
+  
+  return 0;
+}
 
 static bool fileStartsWith(const std::string& fname, const std::string& start)
 {
@@ -195,16 +231,6 @@ bool haveExternalIdFile(const std::string& id, const std::string& prefix, const 
 }
 
 
-/*int siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
-            const size_t outlen);
-
-    Computes a SipHash value
-    *in: pointer to input data (read-only)
-    inlen: input data length in bytes (any size_t value)
-    *k: pointer to the key data (read-only), must be 16 bytes 
-    *out: pointer to output data (write-only), outlen bytes must be allocated
-    outlen: length of the output in bytes, must be 8 or 16
-*/
 
 // returns "f3/12", used for external id's 
 string getSubdirForExternalID(const std::string& in)
