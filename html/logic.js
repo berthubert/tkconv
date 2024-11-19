@@ -252,7 +252,7 @@ async function getSearchResults(f)
     else if(/^[0-9][0-9][0-9][0-9][0-9]$/.test(f.searchQuery)) {
 	f.alternatief = `<p><em>Bedoelt u mogelijk kamerstukdossier <a href="ksd.html?ksd=${f.searchQuery}&toevoeging=">${f.searchQuery}</a>?</em></p>`;
     }
-    else if(/^kst-.*$/.test(f.searchQuery)) {
+    else if(/^kst-[0-9-]+$/.test(f.searchQuery)) {
 	f.alternatief = `<p><em>Bedoelt u mogelijk kamerstuk <a href="op/${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
     }
     
