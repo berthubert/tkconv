@@ -9,38 +9,16 @@
 #include <map>
 #include "httplib.h"
 #include "sqlwriter.hh"
+#include "argparse/argparse.hpp"
 #include "jsonhelper.hh"
 #include "support.hh"
 #include "pugixml.hpp"
 #include "inja.hpp"
 #include "thingpool.hh"
+#include "sws.hh"
 
 using namespace std;
-static void replaceSubstring(std::string &originalString, const std::string &searchString, const std::string &replaceString) {
-  size_t pos = originalString.find(searchString);
-  
-  while (pos != std::string::npos) {
-    originalString.replace(pos, searchString.length(), replaceString);
-    pos = originalString.find(searchString, pos + replaceString.length());
-  }
-}
 
-static std::string htmlEscape(const std::string& data)
-{
-  std::string buffer;
-  buffer.reserve(1.1*data.size());
-  for(size_t pos = 0; pos != data.size(); ++pos) {
-    switch(data[pos]) {
-    case '&':  buffer.append("&amp;");       break;
-    case '\"': buffer.append("&quot;");      break;
-    case '\'': buffer.append("&apos;");      break;
-    case '<':  buffer.append("&lt;");        break;
-    case '>':  buffer.append("&gt;");        break;
-    default:   buffer.append(&data[pos], 1); break;
-    }
-  }
-  return buffer;
-}
 
 template<class UnaryFunction>
 void recursive_iterate(nlohmann::json& j, UnaryFunction f)
@@ -380,65 +358,57 @@ auto getVerslagen(SQLiteWriter& sqlw, int days)
 
 int main(int argc, char** argv)
 {
-  SQLiteWriter unlockedsqlw("tk.sqlite3");
+  argparse::ArgumentParser args("tkserv", "0.0");
+
+  args.add_argument("--rnd-admin-password").help("Create admin user if necessary, and set a random password").default_value(string(""));
+  args.add_argument("--insecure-cookie").help("Use an insecure cookie, for non-https operations").default_value(string(""));
+  try {
+    args.parse_args(argc, argv);
+  }
+  catch (const std::runtime_error& err) {
+    std::cout << err.what() << std::endl << args;
+    std::exit(1);
+  }
+
+  
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
   
   signal(SIGPIPE, SIG_IGN); // every TCP application needs this
-  httplib::Server svr;
-  svr.set_keep_alive_max_count(1); 
-  svr.set_keep_alive_timeout(1);  
+  SQLiteWriter userdb("user.sqlite3");
+  std::mutex userdblock;
+  LockedSqw ulsqw{userdb, userdblock};
+  
+  SimpleWebSystem sws(tp, ulsqw);
+  sws.d_svr.set_keep_alive_max_count(1); 
+  sws.d_svr.set_keep_alive_timeout(1);
+  sws.standardFunctions();
 
-  svr.Get("/getdoc/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
-    auto sqlw = tp.getLease();
-    string nummer=req.path_params.at("nummer"); // 2023D41173
-    cout<<"getdoc nummer: "<<nummer<<endl;
+  if(args.is_used("--rnd-admin-password")) {
+    bool changed=false;
+    string pw = getLargeId();
 
-    string id, contentType;
-    if(nummer.length()==36 && nummer.find_first_not_of("0123456789abcdef-") == string::npos) {
-      id = nummer;
-      auto ret = sqlw->queryT("select contentType from Document where id=?", {id});
-      if(!ret.empty()) {
-	contentType = get<string>(ret[0]["contentType"]);
-      }
-      else {
-	ret = sqlw->queryT("select contentType from Verslag where id=?", {id});
-	if(ret.empty()) {
-	  fmt::print("Kon {} niet vinden, niet als document, niet als verslag\n", id);
-	  res.set_content("Found nothing!!", "text/plain");
-	  res.status=404;
-	  return;
-	}
-	contentType = get<string>(ret[0]["contentType"]);
+    try {
+      if(sws.d_users.userHasCap("admin", Capability::Admin)) {
+        cout<<"Admin user existed already, updating password to: "<< pw << endl;
+        sws.d_users.changePassword("admin", pw);
+        changed=true;
       }
     }
-    else {
-      auto ret=sqlw->queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
-      if(ret.empty()) {
-	res.set_content("Found nothing!!", "text/plain");
-	res.status=404;
-	return;
-      }
-      id = get<string>(ret[0]["id"]);
-      contentType = get<string>(ret[0]["contentType"]);
+    catch(...) {
+    }
 
+    if(!changed) {
+      fmt::print("Creating user admin with password: {}\n", pw);
+      sws.d_users.createUser("admin", pw, "", true);
     }
-    sqlw.release();
-    // docx to pdf is better for embedded images it appears
-    // XXX disabled
-    if(0 && contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      string content = getPDFForDocx(id);
-      res.set_content(content, "application/pdf");
-    }
-    else {
-      string content = getHtmlForDocument(id);
-      res.set_content(content, "text/html; charset=utf-8");
-    }
-  });
-
+    if(args.get<string>("rnd-admin-password") != "continue")
+      return EXIT_SUCCESS;
+  }
+  
   // hoe je de fractienaam krijgt bij een persoonId:
   //  select f.afkorting from FractieZetelPersoon fzp,FractieZetel fz,Fractie f, Persoon p where fzp.fractieZetelId = fz.id and fzp.persoonId = p.id and p.id = ?
   
-  svr.Get("/getraw/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/getraw/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"getraw nummer: "<<nummer<<endl;
     string id;
@@ -461,7 +431,7 @@ int main(int argc, char** argv)
     res.set_content(content, get<string>(ret[0]["contentType"]));
   });
 
-  svr.Get("/personphoto/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/personphoto/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 1234
     cout<<"persoon nummer: "<<nummer<<endl;
     auto ret=tp.getLease()->queryT("select * from Persoon where nummer=? order by rowid desc limit 1", {nummer});
@@ -476,7 +446,7 @@ int main(int argc, char** argv)
     res.set_content(content, "image/jpeg");
   });
 
-  svr.Get("/sitemap-(20\\d\\d).txt", [&tp](const auto& req, auto& res) {
+  sws.d_svr.Get("/sitemap-(20\\d\\d).txt", [&tp](const auto& req, auto& res) {
     auto sqlw=tp.getLease();
     string year = req.matches[1];
     year += "-%";
@@ -494,7 +464,7 @@ int main(int argc, char** argv)
   });
 
   // officiele publicatie redirect
-  svr.Get("/op/:extid", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/op/:extid", [&tp](const httplib::Request &req, httplib::Response &res) {
     string extid=req.path_params.at("extid"); 
     auto docs = tp.getLease()->queryT("select nummer from documentversie,document where externeidentifier=? and documentversie.documentid=document.id", {extid});
     if(docs.empty()) {
@@ -507,7 +477,7 @@ int main(int argc, char** argv)
     res.set_header("Location", "../document.html?nummer="+dest);
   });
   
-  svr.Get("/sitemap-(20\\d\\d-\\d\\d).txt", [&tp](const auto& req, auto& res) {
+  sws.d_svr.Get("/sitemap-(20\\d\\d-\\d\\d).txt", [&tp](const auto& req, auto& res) {
     auto sqlw = tp.getLease();
     string year = req.matches[1];
     year += "-%";
@@ -524,7 +494,7 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/jarig-vandaag", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/jarig-vandaag", [&tp](const httplib::Request &req, httplib::Response &res) {
     string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
     auto sqlw = tp.getLease();
     auto jarig = packResultsJson(sqlw->queryT("select geboortedatum,roepnaam,initialen,tussenvoegsel,achternaam,afkorting,persoon.nummer from Persoon,fractiezetelpersoon,fractiezetel,fractie where geboortedatum like ? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid order by achternaam, roepnaam", {f}));
@@ -532,30 +502,21 @@ int main(int argc, char** argv)
     return;
   });
 
-
-
-  svr.Get("/commissie/:id", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/commissie/:id", [&tp](const httplib::Request &req, httplib::Response &res) {
     string id = req.path_params.at("id");
     auto sqlw = tp.getLease();
     nlohmann::json j = nlohmann::json::object();
     j["leden"] = packResultsJson(sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting, commissiezetel.gewicht, CommissieZetelVastPersoon.functie cfunctie, persoon.*, fractie.afkorting fafkorting from Commissie,CommissieZetel,CommissieZetelVastPersoon, Persoon,fractiezetelpersoon,fractiezetel,fractie where Persoon.id=commissiezetelvastpersoon.PersoonId and CommissieZetel.commissieId = Commissie.id and CommissieZetelVastpersoon.CommissieZetelId = commissiezetel.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.persoonId = Persoon.id and commissie.id=? and fractie.datumInactief='' and fractiezetelpersoon.totEnMet='' and CommissieZetelVastPersoon.totEnMet='' order by commissiezetel.gewicht", {id})); 
 
     j["zaken"] = packResultsJson(sqlw->queryT("select * from ZaakActor,Zaak where commissieId=? and Zaak.id=ZaakActor.zaakid order by gestartOp desc limit 20", {id}));
-    j["activiteiten"] = packResultsJson(sqlw->queryT("select * from ActiviteitActor,Activiteit where commissieId=? and Activiteit.id=ActiviteitActor.activiteitid order by datum desc limit 20", {id}));
 
-    auto tmp = packResultsJson(sqlw->queryT("select activiteit.*, 'Voortouwcommissie' as relatie from activiteit,commissie where voortouwNaam like commissie.naam and commissie.id=? order by datum desc limit 20", {id}));
-
-    for(const auto& t : tmp)
-      j["activiteiten"].push_back(t);
+    j["activiteiten"] = packResultsJson(sqlw->queryT("select Activiteit.*, 'Voortouwcommissie' as relatie from Activiteit,Commissie where commissie.id=? and voortouwnaam like commissie.naam  union all select Activiteit.*, relatie from ActiviteitActor,Activiteit where commissieId=? and Activiteit.id=ActiviteitActor.activiteitid order by datum desc limit 50", {id, id}));
 		   
-    sort(j["activiteiten"].begin(), j["activiteiten"].end(), [](auto& a, auto&b) {
-      return a["datum"] > b["datum"];
-    });
     res.set_content(j.dump(), "application/json");    
   });
 
   
-  svr.Get("/persoon.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/persoon.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     int nummer = atoi(req.get_param_value("nummer").c_str());
     auto sqlw = tp.getLease();
     auto lid = packResultsJson(sqlw->queryT("select * from Persoon where persoon.nummer=?", {nummer}));
@@ -611,9 +572,8 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/persoon.html", j), "text/html");
     return;
   });
-
   
-  svr.Get("/zaak.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/zaak.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.get_param_value("nummer");
     nlohmann::json z = nlohmann::json::object();
     auto sqlw = tp.getLease();
@@ -629,7 +589,6 @@ int main(int argc, char** argv)
 
     // Multi: {"activiteit", "agendapunt", "gerelateerdVanuit", "vervangenVanuit"}
     // Hasref: {"activiteit", "agendapunt", "gerelateerdVanuit", "kamerstukdossier", "vervangenVanuit"}
-
 
     z["activiteiten"] = packResultsJson(sqlw->queryT("select * from Activiteit,Link where Link.van=? and Activiteit.id=link.naar order by datum desc", {zaakid}));
     z["agendapunten"] = packResultsJson(sqlw->queryT("select Agendapunt.* from Agendapunt,Link where Link.van=? and Agendapunt.id=link.naar", {zaakid}));
@@ -659,7 +618,6 @@ int main(int argc, char** argv)
 							{(string)z["zaak"]["kamerstukdossierId"]}));
 
     z["besluiten"] = packResultsJson(sqlw->queryT("select substr(datum,0,17) datum, besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum desc", {nummer}));
-
     
     for(auto& b : z["besluiten"]) {
       string datum = b["datum"];
@@ -688,7 +646,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/zaak.html", z), "text/html");
   });    
 
-  svr.Get("/activiteit/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/activiteit/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2024A02517
     auto sqlw = tp.getLease();
     cout<<"/activiteit/:nummer: "<<nummer<<endl;
@@ -794,12 +752,11 @@ int main(int argc, char** argv)
       fmt::print("Error getting debatdirect link: {}\n", e.what());
     }
     res.set_content(r.dump(), "application/json");
-    
   });
 
 
   auto doTemplate = [&](const string& name, const string& file, const string& q = string()) {
-    svr.Get("/"+name+"(/?.*)", [&tp, name, file, q](const httplib::Request &req, httplib::Response &res) {
+    sws.d_svr.Get("/"+name+"(/?.*)", [&tp, name, file, q](const httplib::Request &req, httplib::Response &res) {
       inja::Environment e;
       e.set_html_autoescape(true);
       nlohmann::json data;
@@ -831,12 +788,12 @@ int main(int argc, char** argv)
   doTemplate("toezeggingen.html", "toezeggingen.html", "select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger, substr(activiteit.datum, 0, 11) datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");
 
   
-  svr.Get("/index.html", [](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/index.html", [](const httplib::Request &req, httplib::Response &res) {
     res.status = 301;
     res.set_header("Location", "./");
   });
   
-  svr.Get("/", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/", [&tp](const httplib::Request &req, httplib::Response &res) {
     auto sqlw = tp.getLease();
     
     bool onlyRegeringsstukken = req.has_param("onlyRegeringsstukken") && req.get_param_value("onlyRegeringsstukken") != "0";
@@ -906,11 +863,12 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/index.html", data), "text/html");
   });
 
-  svr.Get("/recente-kamervragen", [&tp](const httplib::Request &req, httplib::Response &res) {
+  // experimental, for vragen.html
+  sws.d_svr.Get("/recente-kamervragen", [&tp](const httplib::Request &req, httplib::Response &res) {
     res.set_content(packResultsJson(tp.getLease()->queryT("select nummer,onderwerp,naam,gestartOp from Zaak,ZaakActor where zaakid=zaak.id and relatie='Indiener' and gestartOp > '2018-01-01' and soort = 'Schriftelijke vragen' order by gestartOp desc")).dump(), "application/json"); // XXX hardcoded date
   });
   
-  svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     nlohmann::json data;
     auto lease = tp.getLease();
     auto ovragen =  packResultsJson(lease->queryT("select *, max(persoon.nummer) filter (where relatie ='Indiener') as persoonnummer, max(zaakactor.functie) filter (where relatie='Gericht aan') as aan, max(naam) filter (where relatie='Indiener') as indiener from openvragen,zaakactor,persoon where zaakactor.zaakid = openvragen.id and persoon.id = zaakactor.persoonId group by openvragen.id order by gestartOp desc"));
@@ -939,8 +897,46 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/open-vragen.html", data), "text/html");
   });
 
+    sws.d_svr.Get("/getdoc/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
+    auto sqlw = tp.getLease();
+    string nummer=req.path_params.at("nummer"); // 2023D41173
 
-  svr.Get("/besluiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string id, contentType;
+    if(nummer.length()==36 && nummer.find_first_not_of("0123456789abcdef-") == string::npos) {
+      id = nummer;
+      auto ret = sqlw->queryT("select contentType from Document where id=?", {id});
+      if(!ret.empty()) {
+	contentType = get<string>(ret[0]["contentType"]);
+      }
+      else {
+	ret = sqlw->queryT("select contentType from Verslag where id=?", {id});
+	if(ret.empty()) {
+	  fmt::print("Kon {} niet vinden, niet als document, niet als verslag\n", id);
+	  res.set_content("Found nothing!!", "text/plain");
+	  res.status=404;
+	  return;
+	}
+	contentType = get<string>(ret[0]["contentType"]);
+      }
+    }
+    else {
+      auto ret=sqlw->queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
+      if(ret.empty()) {
+	res.set_content("Found nothing!!", "text/plain");
+	res.status=404;
+	return;
+      }
+      id = get<string>(ret[0]["id"]);
+      contentType = get<string>(ret[0]["contentType"]);
+
+    }
+    sqlw.release();
+    string content = getHtmlForDocument(id);
+    res.set_content(content, "text/html; charset=utf-8");
+  });
+
+
+  sws.d_svr.Get("/besluiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     nlohmann::json data;
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
     auto besluiten =  packResultsJson(tp.getLease()->queryT("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener, besluit.tekst from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum asc,agendapuntZaakBesluitVolgorde asc", {dlim}));
@@ -960,10 +956,9 @@ int main(int argc, char** argv)
     
     res.set_content(e.render_file("./partials/besluiten.html", data), "text/html");
   });
-
   
-  // this is still alpine based though somehow!
-  svr.Get("/activiteit.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  // this is still alpine.js based though somehow!
+  sws.d_svr.Get("/activiteit.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.get_param_value("nummer");
     nlohmann::json data;
     auto act = packResultsJson(tp.getLease()->queryT("select * from Activiteit where nummer=?", {nummer}));
@@ -984,7 +979,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/activiteit.html", data), "text/html");
   });
 
-  svr.Get("/activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     // from 4 days ago into the future
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)-4*86400));
     
@@ -1012,7 +1007,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/activiteiten.html", data), "text/html");
   });
 
-  svr.Get("/ongeplande-activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/ongeplande-activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     auto acts = packResultsJson(tp.getLease()->queryT("select * from Activiteit where datum='' order by updated desc"));
 
     for(auto& a : acts) {
@@ -1037,7 +1032,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/ongeplande-activiteiten.html", data), "text/html");
   });
   
-  svr.Get("/ksd.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/ksd.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     int nummer=atoi(req.get_param_value("ksd").c_str()); // 36228
     string toevoeging=req.get_param_value("toevoeging").c_str();
     auto sqlw = tp.getLease();
@@ -1064,14 +1059,14 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/ksd.html", data), "text/html");
   });
   
-  svr.Get("/get/:nummer", [](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/get/:nummer", [](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     res.status = 301;
     res.set_header("Location", "../document.html?nummer="+nummer);
     res.set_content("Redirecting..", "text/plain");
   });
 
-  svr.Get("/document.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/document.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.get_param_value("nummer"); // 2023D41173
     auto sqlw = tp.getLease();
     
@@ -1222,7 +1217,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/getorig.html", data), "text/html");
   });
   
-  svr.Get("/verslag.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/verslag.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string id = req.get_param_value("vergaderingid"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
     auto verslagen = packResultsJson(tp.getLease()->queryT("select *,substr(datum,0,11) datum from vergadering,verslag where verslag.vergaderingid=vergadering.id and status != 'Casco' and vergadering.id=? order by datum desc, verslag.updated desc limit 1", {id}));
     if(verslagen.empty()) {
@@ -1255,7 +1250,7 @@ int main(int argc, char** argv)
   });
 
   
-  svr.Get("/verslagen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/verslagen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     auto tmp = getVerslagen(tp.getLease().get(), 2*365);
     inja::Environment e;
     e.set_html_autoescape(true);
@@ -1270,10 +1265,7 @@ int main(int argc, char** argv)
   });
 
   
-  // create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort="Schriftelijke vragen") as numvragen, count(1) filter (where Document.soort like "Antwoord schriftelijke vragen%" or (Document.soort="Mededeling" and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > '2019-09-09' group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc
-
-
-  svr.Get("/recent-kamerstukdossiers", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/recent-kamerstukdossiers", [&tp](const httplib::Request &req, httplib::Response &res) {
     
     auto docs = tp.getLease()->queryT("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,kamerstukdossier.toevoeging,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2020-01-01' group by kamerstukdossier.id,toevoeging order by 2 desc");
     // XXX hardcoded date
@@ -1294,7 +1286,7 @@ int main(int argc, char** argv)
      
   */
 
-  svr.Get("/stemmingen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/stemmingen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string start = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 21 * 86400));
     auto sqlw = tp.getLease();
     auto besluiten = packResultsJson(sqlw->queryT("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum desc,agendapuntZaakBesluitVolgorde asc", {start})); 
@@ -1337,7 +1329,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/stemmingen.html", data), "text/html");
   });
 
-  svr.Post("/search", [](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Post("/search", [](const httplib::Request &req, httplib::Response &res) {
     string term = req.get_file_value("q").content;
     string twomonths = req.get_file_value("twomonths").content;
     string soorten = req.get_file_value("soorten").content;
@@ -1416,8 +1408,19 @@ int main(int argc, char** argv)
     res.set_content(response.dump(), "application/json");
   });
 
+
+  sws.wrapPost({}, "/login-or-create", [](auto &cr) {
+    string email = cr.req.get_file_value("email").content;
+    string ip=cr.getIP(), agent= cr.req.get_header_value("User-Agent");
+    string sessionid = cr.sessions.createSessionForUser(email, agent, ip);
+    cr.res.set_header("Set-Cookie",
+                     "opentk_session="+sessionid+"; SameSite=Strict; Path=/; HttpOnly; " + cr.sws.d_extraCookieSpec +" Max-Age="+to_string(5*365*86400));
+    cout<<"Logged in user '"<< email <<"'"<<endl;
+    nlohmann::json j{{"ok", 1}};
+    return j;
+  });
   
-  svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
+  sws.d_svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
     auto fmt = "<h1>Error 500</h1><p>%s</p>";
     char buf[BUFSIZ];
     try {
@@ -1432,23 +1435,23 @@ int main(int argc, char** argv)
     res.status = 500; 
   });
   
-  svr.set_pre_routing_handler([&tp](const auto& req, auto& res) {
+  sws.d_svr.set_pre_routing_handler([&tp](const auto& req, auto& res) {
     fmt::print("Req: {} {} {} max-db {}\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
 	       (unsigned int)tp.d_maxout);
     return httplib::Server::HandlerResponse::Unhandled;
   });
   
-  svr.set_post_routing_handler([](const auto& req, auto& res) {
+  sws.d_svr.set_post_routing_handler([](const auto& req, auto& res) {
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
   });
 
-  svr.set_payload_max_length(1024 * 1024); // 1MB
+  sws.d_svr.set_payload_max_length(1024 * 1024); // 1MB
   
   string root = "./html/";
   if(argc > 2)
     root = argv[2];
-  svr.set_mount_point("/", root);
+  sws.d_svr.set_mount_point("/", root);
   int port = 8089;
   if(argc > 1)
     port = atoi(argv[1]);
@@ -1456,12 +1459,65 @@ int main(int argc, char** argv)
   fmt::print("Listening on port {} serving html from {}, using {} threads\n",
 	     port, root, CPPHTTPLIB_THREAD_POOL_COUNT);
 
-  svr.set_socket_options([](socket_t sock) {
+  sws.d_svr.set_socket_options([](socket_t sock) {
     int yes = 1;
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 	       reinterpret_cast<const void *>(&yes), sizeof(yes));
   });
   
-  svr.listen("0.0.0.0", port);
+  sws.d_svr.listen("0.0.0.0", port);
   fmt::print("Exiting - {}\n", strerror(errno));
 }
+
+
+
+/*
+static string getPDFForDocx(const std::string& id)
+{
+  if(isPresentNonEmpty(id, "doccache", ".pdf") && cacheIsNewer(id, "doccache", ".pdf", "docs")) {
+    string fname = makePathForId(id, "doccache", ".pdf");
+    string ret = getContentsOfFile(fname);
+    if(!ret.empty()) {
+      fmt::print("Had a cache hit for {} PDF\n", id);
+      return ret;
+    }
+    // otherwise fall back to normal process
+  }
+  // 
+  string fname = makePathForId(id);
+  string command = fmt::format("pandoc -s --metadata \"margin-left:1cm\" --metadata \"margin-right:1cm\" -V fontfamily=\"dejavu\"  --variable mainfont=\"DejaVu Serif\" --variable sansfont=Arial --pdf-engine=xelatex -f docx -t pdf '{}'",
+			  fname);
+  FILE* pfp = popen(command.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to perform conversion for '"+command+"': "+string(strerror(errno)));
+  
+  shared_ptr<FILE> fp(pfp, pclose);
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(ferror(fp.get()))
+    throw runtime_error("Unable to perform pandoc: "+string(strerror(errno)));
+
+  string rsuffix ="."+to_string(getRandom64());
+  string oname = makePathForId(id, "doccache", "", true);
+  {
+    auto out = fmt::output_file(oname+rsuffix);
+    out.print("{}", ret);
+  }
+  if(rename((oname+rsuffix).c_str(), (oname+".pdf").c_str()) < 0) {
+    unlink((oname+rsuffix).c_str());
+    fmt::print("Rename of cached PDF failed\n");
+  }
+  
+  return ret;
+}
+*/
+
+
+  /*
+  */

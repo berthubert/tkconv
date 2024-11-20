@@ -3,6 +3,7 @@ project('tkconv', 'cpp', default_options : ['cpp_std=c++20'])
 sqlitedep = dependency('sqlite3', version : '>3')
 thread_dep = dependency('threads')
 json_dep = dependency('nlohmann_json')
+bcryptcpp_dep = dependency('bcryptcpp', static: true)
 fmt_dep = dependency('fmt', version: '>10', static: true)
 pugi_dep = dependency('pugixml')
 simplesockets_dep = dependency('simplesockets', static: true)
@@ -61,10 +62,10 @@ executable('oppull', 'oppull.cc', 'support.cc', 'siphash.cc',
 	argparse_dep, vcs_dep])
 
 
-executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc',
+executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc', 'sws.cc',
 	dependencies: [sqlitedep, json_dep,
 	simplesockets_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
-	argparse_dep, vcs_dep])
+	argparse_dep, vcs_dep, bcryptcpp_dep])
 
 executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep,

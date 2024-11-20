@@ -328,3 +328,30 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   sponge(250);
   return;
 }
+
+
+void replaceSubstring(std::string &originalString, const std::string &searchString, const std::string &replaceString) {
+  size_t pos = originalString.find(searchString);
+  
+  while (pos != std::string::npos) {
+    originalString.replace(pos, searchString.length(), replaceString);
+    pos = originalString.find(searchString, pos + replaceString.length());
+  }
+}
+
+std::string htmlEscape(const std::string& data)
+{
+  std::string buffer;
+  buffer.reserve(1.1*data.size());
+  for(size_t pos = 0; pos != data.size(); ++pos) {
+    switch(data[pos]) {
+    case '&':  buffer.append("&amp;");       break;
+    case '\"': buffer.append("&quot;");      break;
+    case '\'': buffer.append("&apos;");      break;
+    case '<':  buffer.append("&lt;");        break;
+    case '>':  buffer.append("&gt;");        break;
+    default:   buffer.append(&data[pos], 1); break;
+    }
+  }
+  return buffer;
+}
