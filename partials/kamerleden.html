@@ -15,9 +15,16 @@
     {% for l in data %}
       <tr>
 	<td> {{l.afkorting}} </td>
-	<td> {{l.gewicht}} </td>
+	{% if l.fzgewicht <= 150 %}
+			     <td> {{l.fzgewicht}} </td>
+			     {% else %}
+			     <td>Vacature</td>
+	{% endif %}
 	<td> {{l.titels}} </td>
-	<td><a href="persoon.html?nummer={{l.nummer}}"> {{l.roepnaam}} {{l.tussenvoegsel}} {{l.achternaam}}</a></td>
+	{% if l.fzgewicht <= 150 %}	
+			     <td><a href="persoon.html?nummer={{l.nummer}}"> {{l.roepnaam}} {{l.tussenvoegsel}} {{l.achternaam}}</a></td>
+			     {% else %} <td>Vacature</td>
+			     {% endif %} 
       </tr>
       {% endfor %}
   </tbody>

@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     "CommissieContactinformatie", "CommissieZetel", "CommissieZetelVastPersoon",
     "CommissieZetelVervangerPersoon",
     "Document", "DocumentActor", "DocumentVersie", "Fractie",
-    "FractieZetel", "FractieZetelPersoon",
+    "FractieZetel", "FractieZetelPersoon", "FractieZetelVacature",
     "Kamerstukdossier", "Persoon",
     "PersoonGeschenk", "PersoonNevenfunctie", "PersoonNevenfunctieInkomsten",
     "PersoonReis", "Reservering",
@@ -546,6 +546,25 @@ Hasref: {"persoonNevenfunctie"}
 		       {"totEnMet", fields["totEnMet"]},
 		       {"fractieZetelId", fractieZetelId},
 		       {"persoonId", persoonId}
+	  },
+	  category);
+      }
+      else if(auto child = node.child("content").child("fractieZetelVacature")) {
+	auto child2 = *node.child("content").begin();
+	map<string,string> fields;
+	for(const auto&c : child2) {
+	  fields[c.name()]= c.child_value();
+	}
+	//{"functie": 100, "totEnMet": 86, "van": 100}
+	//Hasref: {"fractieZetel"}
+
+	string fractieZetelId = child2.child("fractieZetel").attribute("ref").value();
+	sqlw.addOrReplaceValue({{"id", id}, {"skiptoken", skiptoken}, {"bijgewerkt", bijgewerkt},
+		       {"updated", updated}, 
+		       {"functie", fields["functie"]},
+		       {"van", fields["van"]},
+		       {"totEnMet", fields["totEnMet"]},
+		       {"fractieZetelId", fractieZetelId}
 	  },
 	  category);
       }
