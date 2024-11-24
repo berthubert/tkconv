@@ -355,6 +355,50 @@ auto getVerslagen(SQLiteWriter& sqlw, int days)
   return tmp;
 }
 
+const std::array<std::string, 12> dutch_months = {
+    "januari", "februari", "maart", "april", "mei", "juni",
+    "juli", "augustus", "september", "oktober", "november", "december"
+};
+
+const std::array<std::string, 12> dutch_months_short = {
+    "jan", "feb", "mrt", "apr", "mei", "jun",
+    "jul", "aug", "sep", "okt", "nov", "dec"
+};
+
+string formatDutchDate(const std::string& isoDate) {
+    std::tm tm = {};
+    std::istringstream ss(isoDate);
+    ss >> std::get_time(&tm, "%Y-%m-%d");
+    
+    return fmt::format("{:02d} {} {:4d}", 
+        tm.tm_mday, 
+        dutch_months_short[tm.tm_mon], 
+        tm.tm_year + 1900);
+}
+
+string formatDutchDateTime(const std::string& isoDateTime) {
+    std::tm tm = {};
+    std::istringstream ss(isoDateTime);
+    ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M"); // Added T to match ISO format
+
+    // use dutch_months_short[tm.tm_mon]
+    return fmt::format("{:02d} {} {:4d} {:02d}:{:02d}", 
+        tm.tm_mday, 
+        dutch_months_short[tm.tm_mon], 
+        tm.tm_year + 1900,
+        tm.tm_hour,
+        tm.tm_min);
+}
+
+// create a function to setup the inja environment
+auto setupInja = [](inja::Environment& e) {
+  e.add_callback("formatDutchDate", [](const inja::Arguments& args) {
+    return formatDutchDate(args.at(0)->get<string>());
+  });
+  e.add_callback("formatDutchDateTime", [](const inja::Arguments& args) {
+    return formatDutchDateTime(args.at(0)->get<string>());
+  });
+};
 
 int main(int argc, char** argv)
 {
@@ -567,6 +611,7 @@ int main(int argc, char** argv)
     j["og"]["imageurl"] = "https://berthub.eu/tkconv/personphoto/"+to_string(nummer);
 
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
     
     res.set_content(e.render_file("./partials/persoon.html", j), "text/html");
@@ -641,6 +686,7 @@ int main(int argc, char** argv)
     z["og"]["imageurl"] = "";
 
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
     
     res.set_content(e.render_file("./partials/zaak.html", z), "text/html");
@@ -758,10 +804,12 @@ int main(int argc, char** argv)
   auto doTemplate = [&](const string& name, const string& file, const string& q = string()) {
     sws.d_svr.Get("/"+name+"(/?.*)", [&tp, name, file, q](const httplib::Request &req, httplib::Response &res) {
       inja::Environment e;
+      setupInja(e);
       e.set_html_autoescape(true);
+
       nlohmann::json data;
       if(!q.empty())
-	data["data"] = packResultsJson(tp.getLease()->queryT(q));
+      data["data"] = packResultsJson(tp.getLease()->queryT(q));
       
       data["pagemeta"]["title"]="";
       data["og"]["title"] = name;
@@ -803,7 +851,6 @@ int main(int argc, char** argv)
     auto recentDocs = packResultsJson(sqlw->queryT("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc, bijgewerkt desc",
 						  {dlim, !onlyRegeringsstukken}));
 
-    
     nlohmann::json out = nlohmann::json::array();
     unordered_set<string> seen;
     for(auto& rd : recentDocs) {
@@ -813,13 +860,6 @@ int main(int argc, char** argv)
       
       if(!rd.count("afkorting"))
 	rd["afkorting"]="";
-      string datum = ((string)rd["datum"]).substr(0,10);
-
-      rd["datum"]=datum;
-      string bijgewerkt = ((string)rd["bijgewerkt"]).substr(0,16);
-      replaceSubstring(bijgewerkt, "T", "\xc2\xa0"); // &nsbp;
-      replaceSubstring(bijgewerkt, "-", "\xe2\x80\x91"); // Non-Breaking Hyphen[1]
-      rd["bijgewerkt"] = bijgewerkt;
       if(((string)rd["titel"]).empty())
 	rd["titel"] = rd["soort"];
       out.push_back(rd);
@@ -829,12 +869,8 @@ int main(int argc, char** argv)
 
     auto recentVerslagen = packResultsJson(getVerslagen(sqlw.get(), 8));
     for(auto& rv : recentVerslagen) {
-      string datum = ((string)rv["datum"]).substr(0,10);
-
-      rv["datum"]=datum;
       time_t updated = getTstampUTC(rv["updated"]);
-      rv["bijgewerkt"] = fmt::format("{:%Y\xe2\x80\x91%m\xe2\x80\x91%d\xc2\xa0%H:%M}", fmt::localtime(updated));
-      //      rd["bijgewerkt"]=
+      rv["bijgewerkt"] = rv["updated"];
       rv["afkorting"]="Steno";
       // onderwerp should be ok
       rv["onderwerp"]=rv["titel"];
@@ -853,6 +889,7 @@ int main(int argc, char** argv)
     data["jarigVandaag"] = packResultsJson(sqlw->queryT("select geboortedatum,roepnaam,initialen,tussenvoegsel,achternaam,afkorting,persoon.nummer from Persoon,fractiezetelpersoon,fractiezetel,fractie where geboortedatum like ? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.totEnMet='' order by achternaam, roepnaam", {f}));
     
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
 
     data["pagemeta"]["title"]="";
@@ -874,7 +911,6 @@ int main(int argc, char** argv)
     auto ovragen =  packResultsJson(lease->queryT("select *, max(persoon.nummer) filter (where relatie ='Indiener') as persoonnummer, max(zaakactor.functie) filter (where relatie='Gericht aan') as aan, max(naam) filter (where relatie='Indiener') as indiener from openvragen,zaakactor,persoon where zaakactor.zaakid = openvragen.id and persoon.id = zaakactor.persoonId group by openvragen.id order by gestartOp desc"));
 
     for(auto& ov : ovragen) {
-      ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
       // ov.aan needs some work
       string aan = ov["aan"];
       replaceSubstring(aan, "minister van", "");
@@ -887,6 +923,7 @@ int main(int argc, char** argv)
     data["openVragen"] = ovragen;
     
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
 
     data["pagemeta"]["title"]="";
@@ -941,12 +978,10 @@ int main(int argc, char** argv)
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
     auto besluiten =  packResultsJson(tp.getLease()->queryT("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener, besluit.tekst from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum asc,agendapuntZaakBesluitVolgorde asc", {dlim}));
 
-    for(auto& b : besluiten) {
-      b["datum"] = ((string)b["datum"]).substr(0,10);
-    }
     data["besluiten"] = besluiten;
 
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
 
     data["pagemeta"]["title"]="";
@@ -969,6 +1004,7 @@ int main(int argc, char** argv)
       return;
     }
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
 
     data["pagemeta"]["title"]="";
@@ -988,16 +1024,12 @@ int main(int argc, char** argv)
     for(auto& a : acts) {
       a["naam"] = htmlEscape(a["naam"]);
       a["onderwerp"] = htmlEscape(a["onderwerp"]);
-      string datum = a["datum"];
-		       
-      datum=datum.substr(0,16);
-      replaceSubstring(datum, "T", "&nbsp;");
-      a["datum"]=datum;
     }
     nlohmann::json data = nlohmann::json::object();
     data["data"] = acts;
     inja::Environment e;
-    e.set_html_autoescape(false); // NOTE WELL!
+    e.set_html_autoescape(false);
+    setupInja(e);
 
     data["pagemeta"]["title"]="";
     data["og"]["title"] = "Activiteiten";
@@ -1013,16 +1045,12 @@ int main(int argc, char** argv)
     for(auto& a : acts) {
       a["onderwerp"] = htmlEscape(a["onderwerp"]);
       a["soort"] = htmlEscape(a["soort"]);
-      string datum = a["bijgewerkt"];
-		       
-      datum=datum.substr(0,16);
-      replaceSubstring(datum, "T", "&nbsp;");
-      a["bijgewerkt"]=datum;
     }
     nlohmann::json data = nlohmann::json::object();
     data["data"] = acts;
     inja::Environment e;
     e.set_html_autoescape(false); // NOTE WELL!
+    setupInja(e);
 
     data["pagemeta"]["title"]="";
     data["og"]["title"] = "Nog ongeplande activiteiten";
@@ -1049,6 +1077,7 @@ int main(int argc, char** argv)
     if(!meta.empty())
       data["meta"] = packResultsJson(meta)[0];
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(true);
 
     data["pagemeta"]["title"]="";
@@ -1187,6 +1216,7 @@ int main(int argc, char** argv)
     data["activiteiten"] = activiteiten;
 
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(false);
 
     data["pagemeta"]["title"]=get<string>(ret[0]["onderwerp"]);
@@ -1237,6 +1267,7 @@ int main(int argc, char** argv)
     // this accidentally gets the "right" id 
 
     inja::Environment e;
+    setupInja(e);
     e.set_html_autoescape(false); // XX 
 
     data["pagemeta"]["title"]=data["onderwerp"];
@@ -1254,8 +1285,12 @@ int main(int argc, char** argv)
     auto tmp = getVerslagen(tp.getLease().get(), 2*365);
     inja::Environment e;
     e.set_html_autoescape(true);
+    setupInja(e);
+
     nlohmann::json data;
-    data["recenteVerslagen"] = packResultsJson(tmp);
+    auto recenteVerslagen = packResultsJson(tmp);
+
+    data["recenteVerslagen"] = recenteVerslagen;
     data["pagemeta"]["title"]="";
     data["og"]["title"] = "Recente verslagen";
     data["og"]["description"] = "Recente verslagen uit de Tweede Kamer";
@@ -1304,10 +1339,7 @@ int main(int argc, char** argv)
 		 vr.tegenpartij, vr.tegenstemmen,
 		 vr.nietdeelgenomenpartij, vr.nietdeelgenomen);
       */
-      string datum = b["datum"]; // 2024-10-10T12:13:14
-      datum[10]=' ';
-      datum.resize(16);
-      b["datum"] = datum;
+
       b["voorpartij"] = vr.voorpartij;
       b["tegenpartij"] = vr.tegenpartij;
       b["voorstemmen"] = vr.voorstemmen;
@@ -1320,6 +1352,7 @@ int main(int argc, char** argv)
     
     inja::Environment e;
     e.set_html_autoescape(true); 
+    setupInja(e);
 
     data["pagemeta"]["title"]="Stemmingen";
     data["og"]["title"] = "Stemmingen";

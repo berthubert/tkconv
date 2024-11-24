@@ -17,7 +17,7 @@ id="recent-docs" x-data="{
   <p x-text="activiteit['meta'].nummer"></p>
 </hblock>
 
-<h4><span x-text="activiteit['meta'].datum.replace('T', ' ')"></span> <span x-text="activiteit['zaal'].naam"></span></h4>
+<h4><span x-text="new Date(activiteit['meta'].datum).toLocaleString('nl-NL', {dateStyle: 'medium', timeStyle: 'short'})"></span> <span x-text="activiteit['zaal'].naam"></span></h4>
 <h4 x-text="activiteit['meta'].voortouwNaam"></h4>	
 <template x-if="activiteit['videourl'].length">
   <div>
@@ -25,7 +25,7 @@ id="recent-docs" x-data="{
     <div style="position: relative; width: 100%; max-width: 650px;"><div style="padding-top: 56.25%; width: 100%;"><iframe style="position: absolute; left: 0; top: 0; width: 100%; height: 100%" x-bind:src="activiteit['videourl']+'/embedded'" frameborder="0" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe></div></div>
   </div>
 </template>
-<template x-if="activiteit['meta'].noot.length > 0">
+<template x-if="activiteit['meta']?.noot?.length > 0">
   <div style="border-width:1px; border-style:solid; border-color:#222222; padding: 0.5em; max-width: 50em; ">
     <h4>Noot</h4>
     <div x-html="activiteit['meta'].noot"></div>
