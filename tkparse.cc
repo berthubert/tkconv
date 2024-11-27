@@ -195,11 +195,7 @@ int main(int argc, char** argv)
       seen.insert(sprekerid);
       //      cout <<"'"<<voornaam << "' '" << achternaam << "' - "<<functie<<endl;
       
-      if(achternaam=="Patijn" && voornaam == "Mariëtte")
-	voornaam += " ";
-      else if(achternaam=="Eppink" && voornaam == "Derk Jan")
-	voornaam += " ";
-      else if(achternaam=="El Abassi" && voornaam == "Ismail")
+      if(achternaam=="El Abassi" && voornaam == "Ismail")
 	achternaam = "Abassi el";
       else if(achternaam=="Koerhuis" && voornaam == "Daniël")
 	voornaam = "Daniel";
