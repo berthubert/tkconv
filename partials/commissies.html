@@ -22,7 +22,7 @@
     <tr>
       <td><a href="commissie.html?id={{c.commissieId}}">{{c.naam}}</a></td> 
       <td>{{c.afkorting}}</td>
-      <td>{{c.mdatum}}</td>
+      <td>{{formatDutchDate(c.mdatum)}}</td>
     </tr>
     {% endif %}
     {% endfor %}

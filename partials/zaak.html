@@ -10,7 +10,7 @@
   <p>{{zaak.soort}}</p>
 </hgroup>
 
-<h4>Zaak {{zaak.nummer}}, gestart op {{zaak.gestartOp}}</h4>
+<h4>Zaak {{zaak.nummer}}, gestart op {{formatDutchDate(zaak.gestartOp)}}</h4>
 {% if length(kamerstukdossier) > 0 %}
   <p>
     Onderdeel van kamerstukdossier <a href="ksd.html?ksd={{kamerstukdossier.0.nummer}}

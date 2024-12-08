@@ -19,7 +19,7 @@
   {% for d in stemmingen %}
     <tbody>
       <tr>
-	<td> {{d.datum}} </td>
+	<td><time class="whitespace-nowrap" datetime="{{d.datum}}">{{formatDutchDateTime(d.datum)}}</time></td>
 	<td><a href="zaak.html?nummer={{d.znummer}}">{{d.zonderwerp}}</a></td>
 	<td>{{d.indiener}} </td>
 	<td>{{d.besluittekst}}</td>	  

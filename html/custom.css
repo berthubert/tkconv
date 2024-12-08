@@ -6,8 +6,11 @@ tr,td {
     font-size: 90%;
 }
 .interrumpant {
-          background-color: var(--pico-mark-background-color);
+    background-color: var(--pico-mark-background-color);
 }
 
 span.jarig::before { content: '🎈'; }
 
+.whitespace-nowrap {
+    white-space: nowrap;
+}

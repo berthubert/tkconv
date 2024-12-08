@@ -18,7 +18,7 @@
   <tbody>
     {% for d in data %}
     <tr>
-      <td>{{d.datum}}</td>
+      <td><time class="whitespace-nowrap" datetime="{{d.datum}}">{{formatDutchDate(d.datum)}}</time></td>
       <td>{{d.status}}</td>
       <td>{{d.voortouwAfkorting}}</td>
       <td><a href="activiteit.html?nummer={{d.activiteitNummer}}">{{d.tekst}}</a></td>

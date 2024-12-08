@@ -1,11 +1,21 @@
 th {
-    font-size: 100%;
+  font-size: 100%;
 }
-tr,td {
-    vertical-align: top;
-    font-size: 90%;
+
+tr,
+td {
+  vertical-align: top;
+  font-size: 90%;
 }
+
 .interrumpant {
-          background-color: var(--pico-mark-background-color);
+  background-color: var(--pico-mark-background-color);
 }
-span.jarig::before { content: '🎈'; }
+
+span.jarig::before {
+  content: "🎈";
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}

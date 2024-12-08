@@ -17,11 +17,11 @@
   <tbody>
 {% for d in besluiten %}    
       <tr>
-        <td>{{d.datum}}</td>
-	<td>{{d.aonderwerp}}</td>
-	<td><a href="zaak.html?nummer={{d.znummer}}">  {{d.zonderwerp}} </a></td>
-	<td>{{d.indiener}}</td>
-	<td>{{d.tekst}}</td>
+        <td><time class="whitespace-nowrap" datetime="{{d.datum}}">{{formatDutchDate(d.datum)}}</time></td>
+        <td>{{d.aonderwerp}}</td>
+        <td><a href="zaak.html?nummer={{d.znummer}}">  {{d.zonderwerp}} </a></td>
+        <td>{{d.indiener}}</td>
+        <td>{{d.tekst}}</td>
       </tr>
 {% endfor %}
   </tbody>
