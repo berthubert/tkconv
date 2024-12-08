@@ -506,6 +506,12 @@ int main(int argc, char** argv)
     string id = req.path_params.at("id");
     auto sqlw = tp.getLease();
     nlohmann::json j = nlohmann::json::object();
+
+    auto comm = sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting from Commissie where id=?", {id});
+    if(comm.empty())
+      return;
+    j["commissie"] = packResultsJson(comm)[0];
+    
     j["leden"] = packResultsJson(sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting, commissiezetel.gewicht, CommissieZetelVastPersoon.functie cfunctie, persoon.*, fractie.afkorting fafkorting from Commissie,CommissieZetel,CommissieZetelVastPersoon, Persoon,fractiezetelpersoon,fractiezetel,fractie where Persoon.id=commissiezetelvastpersoon.PersoonId and CommissieZetel.commissieId = Commissie.id and CommissieZetelVastpersoon.CommissieZetelId = commissiezetel.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.persoonId = Persoon.id and commissie.id=? and fractie.datumInactief='' and fractiezetelpersoon.totEnMet='' and CommissieZetelVastPersoon.totEnMet='' order by commissiezetel.gewicht", {id})); 
 
     j["zaken"] = packResultsJson(sqlw->queryT("select * from ZaakActor,Zaak where commissieId=? and Zaak.id=ZaakActor.zaakid order by gestartOp desc limit 20", {id}));
