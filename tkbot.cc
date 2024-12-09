@@ -28,7 +28,7 @@ bool emitIfNeeded(SQLiteWriter& sqlw, const ScannerHit& sh, const Scanner& sc)
 void logEmission(SQLiteWriter& sqlw, const ScannerHit&sh, const Scanner& sc)
 {
   string when = fmt::format("{:%Y-%m-%dT%H:%M:%S}", fmt::localtime(time(0)));
-  sqlw.addValue({{"identifier", sh.identifier}, {"userid", sc.d_userid}, {"soort", sc.d_soort}, {"timestamp", when}, {"scannnerId", sc.d_id}}, "sentNotification");
+  sqlw.addValue({{"identifier", sh.identifier}, {"userid", sc.d_userid}, {"soort", sc.d_soort}, {"timestamp", when}, {"scannerId", sc.d_id}}, "sentNotification");
 
 }
 
@@ -94,10 +94,11 @@ int main(int argc, char** argv)
       if(emitIfNeeded(sconfig, d, *scanner.get())) {
 	fmt::print("\tNummer {}\n", d.identifier);
 	all[scanner->d_userid][d.identifier].insert(scanner.get());
+	logEmission(sconfig, d, *scanner.get());
       }
       else
 	fmt::print("\t(skip Nummer {})\n", d.identifier);
-      logEmission(sconfig, d, *scanner.get());
+
     }
   }
   for(auto& [user, content] : all) {
