@@ -240,7 +240,7 @@ time_t getTstampUTC(const std::string& str)
 // do not put UTF-8 in the subject yet (although it might work)
 void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody)
 {
-  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@";
+  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@=";
   if(from.find_first_not_of(allowed) != string::npos || to.find_first_not_of(allowed) != string::npos) {
     throw std::runtime_error("Illegal character in from or to address");
   }
