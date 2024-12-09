@@ -73,7 +73,20 @@ state: -1
 
 <template x-if="state==4 || state==3">
   <div x-data="{monitors: []}" x-init="getMonitors($data)">
-    <div style="width: 20%"><input type="button" @click.prevent="doLogout($data);" value="Uitloggen"></div>
+    <div><input type="button" @click.prevent="doLogout($data);" value="Uitloggen"><details><summary role="button">Privacybeleid</summary>
+    <p>Privacybeleid: je data wordt aan niemand verkocht en met niemand gedeeld. Je kunt mail krijgen als je monitors definieert, of als je opnieuw in wil loggen.
+      Ik ga je nooit spammen. Als er ooit andere mail wordt gestuurd is dat omdat dat heel dringend nodig was (bijvoorbeeld als we gehacked zouden zijn). Behalve je emailadres en je monitors slaan we niets op. Niet eens je naam, en ook geen wachtwoord.
+      Wel worden er tijdelijk logfiles bijgehouden om storingen te onderzoeken, maar die logregels zijn niet aan je account gekoppeld.
+    </p>
+    <p>
+      OpenTK draait op <a href="https://www.lenovo.com/nl/nl/p/desktops/thinkcentre/m-series-tiny/thinkcentre-m70q/wmd00000405">mijn servertje</a> thuis nabij Den Haag, en niet op een cloud. De website zet, als je ingelogd bent, precies 1 session cookie (<em>tkconv_session</em>), en die
+      cookie is vastgeklonken aan deze website zodat hij niet kan lekken.
+    </p>
+    <p>
+      Voor vragen, inzage in je data, of verwijderverzoeken, neem contact op met <a href="https://berthub.eu">Bert Hubert</a>, bert@hubertnet.nl
+    </p>
+	
+    </details></div>
     <h4>Monitors voor <span x-text="email"></span> </h4>
     <p>Zodra een nieuw document of activiteit matcht op je monitors krijg je een email-bericht. Als een document meerdere keren matcht krijg maar een enkel bericht. Je kunt dus naar hartelust overlappende monitors plaatsen zodat je zeker weet dat je hoort van dingen die je boeien. Je kunt monitors plaatsen op: personen, commissies, activiteiten, zaken, kamerstukdossiers of zoekopdrachten. Doe dit door op het belletje <svg fill="#999999" height="1em" width="1em" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
 	 viewBox="0 0 300 300" xml:space="preserve">
