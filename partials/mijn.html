@@ -22,10 +22,13 @@ state: -1
 <template x-if="state==0">
   <div>
     <p>
-      Welkom! Als je monitors op onderwerpen/mensen/zaken/commissies/zoekvragen wilt plaatsen, vul dan hieronder je email adres in om deze te koppelen aan OpenTK. Als je dat al eerder had gedaan, vul dan ook je email adres in, dan krijg je een login-link opgestuurd:
+      Welkom! Als je monitors op onderwerpen/mensen/zaken/commissies/zoekvragen wilt plaatsen, vul dan hieronder je email adres in om deze te koppelen aan OpenTK. Als je dat al eerder had gedaan, vul dan ook je email adres in, dan krijg je een login-link opgestuurd: 
     </p>
     <form @submit.prevent="doRequestInvite($data);">
+      <fieldset role="group">
       <input x-model="email" name="email" size="80" placeholder="email address" autofocus required type="email">
+      <input type="submit" value="Verstuur">
+      </fieldset>
     </form>
     <p>Privacybeleid: je data wordt aan niemand verkocht en met niemand gedeeld. Je kunt mail krijgen als je monitors definieert, of als je opnieuw in wil loggen.
       Ik ga je nooit spammen. Als er ooit andere mail wordt gestuurd is dat omdat dat heel dringend nodig was (bijvoorbeeld als we gehacked zouden zijn). Behalve je emailadres en je monitors slaan we niets op. Niet eens je naam, en ook geen wachtwoord.
