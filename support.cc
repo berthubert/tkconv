@@ -276,10 +276,15 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   sponge(354);
   sc.writen("From: "+from+"\r\n");
   sc.writen("To: "+to+"\r\n");
-  sc.writen("Subject: "+subject+"\r\n");
+
+  string esubject = subject;
+  replaceSubstring(esubject, "\n", " "); // thank you wander nauta again!
+  replaceSubstring(esubject, "\r", " ");
+  
+  sc.writen("Subject: "+esubject+"\r\n");
   
 
-  sc.writen(fmt::format("Message-Id: <{}@trifecta.hostname>\r\n", getRandom64()));
+  sc.writen(fmt::format("Message-Id: <{}@opentk.hostname>\r\n", getRandom64()));
   
   //Date: Thu, 28 Dec 2023 14:31:37 +0100 (CET)
   sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
