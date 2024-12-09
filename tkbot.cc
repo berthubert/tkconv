@@ -148,7 +148,7 @@ int main(int argc, char** argv)
     string html = e2.render_file("./partials/email.html", data);
     
     sendEmail("10.0.0.2",
-			"bert@hubertnet.nl",
+			"opentk@hubertnet.nl",
 	      getEmailForUserId(sconfig, user),
 	      subject , msg, html);
   }
