@@ -257,16 +257,16 @@ async function getSearchResults(f)
     history.pushState({}, "", url);
     f.alternatief='';
     f.message='';
-    if(/2[0-9][0-9][0-9]Z[0-9]*/.test(f.searchQuery)) {
+    if(/^2[0-9][0-9][0-9]Z[0-9]*$/.test(f.searchQuery)) {
 	console.log("zaak match");
 	f.alternatief = `<p><em>Bedoelt u mogelijk zaak <a href="zaak.html?nummer=${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
     }
-    if(/2[0-9][0-9][0-9]A[0-9]*/.test(f.searchQuery)) {
+    if(/^2[0-9][0-9][0-9]A[0-9]*$/.test(f.searchQuery)) {
 	console.log("zaak match");
 	f.alternatief = `<p><em>Bedoelt u mogelijk activiteit <a href="activiteit.html?nummer=${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
     }
     
-    else if(/2[0-9][0-9][0-9]D[0-9]*/.test(f.searchQuery)) {
+    else if(/^2[0-9][0-9][0-9]D[0-9]*$/.test(f.searchQuery)) {
 	f.alternatief = `<p><em>Bedoelt u mogelijk document <a href="get/${f.searchQuery}">${f.searchQuery}</a>?</em></p>`;
     }
     else if(/^[0-9][0-9][0-9][0-9][0-9]$/.test(f.searchQuery)) {
