@@ -247,6 +247,8 @@ async function getSearchResults(f)
     if(f.searchQuery == '' || f.searchQuery == null || f.busy)
 	return;
     f.busy = true;
+    f.haveMonitor = false;
+    
 
     const url = new URL(window.location.href);
     url.searchParams.set("q", f.searchQuery);
