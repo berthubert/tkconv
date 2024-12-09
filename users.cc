@@ -22,7 +22,7 @@ void addTkUserManagement(SimpleWebSystem& sws)
 	if(!rows.empty()) {
 	  string session = cr.sessions.createSessionForUser(get<string>(rows[0]["user"]), "Passwordless login session", cr.getIP(), true, time(0)+86400); // authenticated session
 	  string dest=baseUrl + "/mijn.html?session="+session;
-	sendEmail("10.0.0.2", "bert@hubertnet.nl", email, "OpenTK log-in link",
+	sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "OpenTK log-in link",
 		  "Log in door op deze link te klikken: "+dest+"\nDeze link werkt maar *1* keer!",
 		  fmt::format("Log in door op deze link <a href='{}'>{}</a> te klikken. Let op, deze link werkt maar *1* keer!",
 			      dest, dest));
