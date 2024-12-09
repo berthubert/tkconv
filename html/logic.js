@@ -1,6 +1,5 @@
 "use strict";
 
-
 async function getGen(orig, dest, f) {
     
     const response = await fetch(orig);
@@ -169,13 +168,26 @@ function init(f)
 async function commissieinit(f)
 {
     let url = new URL(window.location.href)
-    f.id = url.searchParams.get("id");
-    const response = await fetch('commissie/'+f.id);
+    f.cid = url.searchParams.get("id");
+    const response = await fetch('commissie/'+f.cid);
     if (response.ok === true) {
         const data = await response.json();
-	f["data"] = data;
+	f.cdata = data;
 	f.loaded=true;
     }
+
+    const response2 = await fetch('/have-monitor/commissie/'+f.cid);
+    if (response2.ok === true) {
+        const data = await response2.json();
+	f.haveMonitor = data["have"] === 1;
+	f.monitorId = data["id"];
+	console.log(`data["have"] = ${data.have}, we just set f.haveMonitor = ${f.haveMonitor}`);
+    }
+    else {
+	console.log("Mis");
+    }
+    
+    
 }
 
 async function activiteitinit(f)
@@ -197,32 +209,38 @@ async function getActiviteitDetails(f)
         f["activiteit"] = data;
        f["loaded"]=true;
     }
+
+    const response2 = await fetch('/have-monitor/activiteit/'+f.nummer);
+    if (response2.ok === true) {
+        const data = await response2.json();
+	f.haveMonitor = data["have"] === 1;
+	f.monitorId = data["id"];
+	console.log(`data["have"] = ${data.have}`);
+    }
+    else {
+	console.log("Mis");
+    }
+
+    
 }
 
-
-function ksdinit(f)
+async function ksdinit(f)
 {
     let url = new URL(window.location.href)
     f.nummer = url.searchParams.get("ksd");
     f.toevoeging = url.searchParams.get("toevoeging");
-    getKSDDocs(f);
-}
 
-async function getKSDDocs(f)
-{
-//    const url = new URL(window.location.href);
- //   url.searchParams.set("ksd", f.nummer);
-   // history.pushState({}, "", url);
-
-    const response = await fetch('ksd/'+f.nummer+'/'+f.toevoeging);
-    if (response.ok === true) {
-        const data = await response.json();
-        f["docs"] = data["documents"];
-	f["meta"] = data["meta"];
+    const response2 = await fetch('/have-monitor/ksd/'+f.nummer+"?toevoeging="+f.toevoeging);
+    if (response2.ok === true) {
+        const data = await response2.json();
+	f.haveMonitor = data["have"] === 1;
+	f.monitorId = data["id"];
+	console.log(`data["have"] = ${data.have}`);
+    }
+    else {
+	console.log("Mis");
     }
 }
-
-
 
 async function getSearchResults(f)
 {

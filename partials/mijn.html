@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block div %}
+id="recent-docs" x-data="{
+email: '',
+id: '',
+state: -1
+}" x-init="doMijnInit($data)"
+
+{% endblock %}
+
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
+{% endblock %}
+
+{% block customheader %}
+<h1>Mijn OpenTK</h1>
+{% endblock %}
+
+{% block main %}
+<template x-if="state==0">
+  <div>
+    <p>
+      Welkom! Als je monitors op onderwerpen/mensen/zaken/commissies/zoekvragen wilt plaatsen, vul dan hieronder je email adres in om deze te koppelen aan OpenTK. Als je dat al eerder had gedaan, vul dan ook je email adres in, dan krijg je een login-link opgestuurd:
+    </p>
+    <form @submit.prevent="doRequestInvite($data);">
+      <input x-model="email" name="email" size="80" placeholder="email address" autofocus required type="email">
+    </form>
+    <p>Privacybeleid: je data wordt aan niemand verkocht en met niemand gedeeld. Je kunt mail krijgen als je monitors definieert, of als je opnieuw in wil loggen.
+      Ik ga je nooit spammen. Als er ooit andere mail wordt gestuurd is dat omdat dat heel dringend nodig was (bijvoorbeeld als we gehacked zouden zijn). Behalve je emailadres en je monitors slaan we niets op. Niet eens je naam, en ook geen wachtwoord.
+      Wel worden er tijdelijk logfiles bijgehouden om storingen te onderzoeken, maar die logregels zijn niet aan je account gekoppeld.
+    </p>
+    <p>
+      OpenTK draait op <a href="https://www.lenovo.com/nl/nl/p/desktops/thinkcentre/m-series-tiny/thinkcentre-m70q/wmd00000405">mijn servertje</a> thuis nabij Den Haag, en niet op een cloud. De website zet, als je ingelogd bent, precies 1 session cookie (<em>tkconv_session</em>), en die
+      cookie is vastgeklonken aan deze website zodat hij niet kan lekken.
+    </p>
+    <p>
+      Voor vragen, inzage in je data, of verwijderverzoeken, neem contact op met <a href="https://berthub.eu">Bert Hubert</a>, bert@hubertnet.nl
+    </p>
+  </div>
+</template>
+
+<template x-if="state==1">
+  <div>
+    <p>
+      Er is een email verstuurd naar <span x-text="email"></span> met daarin een link om je email adres te koppelen, of om opnieuw in te loggen.
+    </p>
+    <p>
+      Wacht op die email en klik op de link om verder te gaan! Check mogelijk ook je spamfolder.
+    </p>
+  </div>
+</template>
+
+<template x-if="state==2">
+  <div>
+    <p>
+      Welkom terug! Klik onderstaand op "koppelen" om de koppeling af te maken:
+    </p>
+    
+    <input type="button" value="koppelen" @click="doConfirmInvite($data)"></input> 
+  </div>
+</template>
+
+<template x-if="state==3">
+  <div>
+    Je email adres is nu gekoppeld, en je kunt nu monitors aanmaken door op het belletje te klikken naast zaken, bestanden, documenten, kamerleden, commissies, dossiers, zoekopdrachten en meer!
+  </div>
+</template>
+
+<template x-if="state==4 || state==3">
+  <div x-data="{monitors: []}" x-init="getMonitors($data)">
+    <div style="width: 20%"><input type="button" @click.prevent="doLogout($data);" value="Uitloggen"></div>
+    <h4>Monitors voor <span x-text="email"></span> </h4>
+    <p>Zodra een nieuw document of activiteit matcht op je monitors krijg je bericht. Als een document meerdere keren matcht krijg maar een enkel bericht. Je kunt dus naar hartelust overlappende monitors plaatsen zodat je zeker weet dat je hoort van dingen die je boeien. Je kunt monitors plaatsen op: personen, commissies, activiteiten, zaken, kamerstukdossiers of zoekopdrachten. Doe dit door op het belletje <svg fill="#999999" height="1em" width="1em" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 300 300" xml:space="preserve">
+<g>
+	<g>
+		<path d="M149.996,0C67.157,0,0.001,67.161,0.001,149.997S67.157,300,149.996,300s150.003-67.163,150.003-150.003
+			S232.835,0,149.996,0z M149.999,232.951c-10.766,0-19.499-8.725-19.499-19.499h38.995
+			C169.497,224.226,160.765,232.951,149.999,232.951z M215.889,193.9h-0.005v-0.001c0,7.21-5.843,7.685-13.048,7.685H97.16
+			c-7.208,0-13.046-0.475-13.046-7.685v-1.242c0-5.185,3.045-9.625,7.42-11.731l4.142-35.753c0-26.174,18.51-48.02,43.152-53.174
+			v-13.88c0-6.17,5.003-11.173,11.176-11.173c6.17,0,11.173,5.003,11.173,11.173V92c24.642,5.153,43.152,26.997,43.152,53.174
+			l4.142,35.758c4.375,2.109,7.418,6.541,7.418,11.726V193.9z"/>
+	</g>
+</g>
+</svg> te klikken op de relevante pagina's.
+      </p>
+    <table class="striped">
+      <thead>
+	<tr><th>Type</th><th>Omschrijving</th><th>X</th></tr>
+      </thead>
+      <tbody>
+      <template x-for="m in monitors">
+	<tr><td x-text="m.type"></td><td x-text="m.description"></td>
+	  <td><a @click.prevent="removeMonitorAndUpdate($data, m.id)" href="#">🗑</a></td>
+	</tr>
+      </template>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+
+
+{% endblock %}
+	

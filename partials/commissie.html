@@ -1,20 +1,25 @@
 {% extends "base.html" %}
-{% block div %}
-x-data="{			data: {},
-				loaded: false
-				}" x-init="commissieinit($data);"
-
-{% endblock %}
 
 {% block javascript %}
+<script defer src="user.js"></script>
 {{ super() }}
 {% endblock %}
 
+{% block div %}
+x-data="{
+kind: 'commissie',
+haveMonitor: false,
+monitorId: '',
+cdata: { commissie: { naam: '', cafkorting: ''} } , loaded: false, cid: ''}" x-init="commissieinit($data);"
+{% endblock %}
+
+
 {% block customheader %}
-<h3 x-text="data.commissie.naam + ' (' + data.commissie.cafkorting+')' "></h3>
+<p><b><span x-text="cdata.commissie.naam + ' (' + cdata.commissie.cafkorting+')'"></span></b> <span  x-html="makeBell($data, haveMonitor);"></span></p>
 {% endblock %}
 
 {% block main %}
+
 <template x-if="loaded">
   <details>
     <summary role="button">Leden</summary>
@@ -29,7 +34,7 @@ x-data="{			data: {},
 	</tr>
       </thead>
       <tbody>
-	<template x-for="l in data['leden']">
+	<template x-for="l in cdata['leden']">
           <tr>
 	    <td x-text="l.gewicht"></td>
 	    <td x-text="l.cfunctie"></td>
@@ -56,7 +61,7 @@ x-data="{			data: {},
 	</tr>
       </thead>
       <tbody>
-	<template x-for="z in data['zaken']">
+	<template x-for="z in cdata['zaken']">
           <tr>
 	    <td x-text="z.gestartOp.substr(0,10)"></td>
 	    <td x-text="z.titel"></td>
@@ -83,7 +88,7 @@ x-data="{			data: {},
 	</tr>
       </thead>
       <tbody>
-	<template x-for="a in data['activiteiten']">
+	<template x-for="a in cdata['activiteiten']">
           <tr>
 	    <td x-text="a.datum.substr(0,10)"></td>
 

@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% block div %}
+x-data="{
+haveMonitor: false,
+monitorId: '',
+nummer: '{{zaak.nummer}}',
+kind: 'zaak'
+}" x-init="checkMonitor($data)"
 {% endblock %}
+
+
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
+{% endblock %}
+
 
 {% block main %}
 
@@ -10,7 +24,7 @@
   <p>{{zaak.soort}}</p>
 </hgroup>
 
-<h4>Zaak {{zaak.nummer}}, gestart op {{zaak.gestartOp}}</h4>
+<h4>Zaak {{zaak.nummer}}, gestart op {{zaak.gestartOp}} <span x-html="makeBell($data, haveMonitor);"></span></h4>
 {% if length(kamerstukdossier) > 0 %}
   <p>
     Onderdeel van kamerstukdossier <a href="ksd.html?ksd={{kamerstukdossier.0.nummer}}

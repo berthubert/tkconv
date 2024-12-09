@@ -18,7 +18,7 @@
 #include "sws.hh"
 
 using namespace std;
-
+void addTkUserManagement(SimpleWebSystem& sws);
 
 template<class UnaryFunction>
 void recursive_iterate(nlohmann::json& j, UnaryFunction f)
@@ -382,7 +382,9 @@ int main(int argc, char** argv)
   sws.d_svr.set_keep_alive_max_count(1); 
   sws.d_svr.set_keep_alive_timeout(1);
   sws.standardFunctions();
-
+  addTkUserManagement(sws);
+  
+  
   if(args.is_used("--rnd-admin-password")) {
     bool changed=false;
     string pw = getLargeId();
@@ -778,6 +780,7 @@ int main(int argc, char** argv)
     });
   };
 
+  doTemplate("mijn.html", "mijn.html");
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html"); // unlisted
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");

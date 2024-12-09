@@ -119,8 +119,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
     sqlw.queryT("delete from docsearch where uuid=?", {di});
     sqlw.queryT("delete from indexed where uuid=?", {di});
   }
+  int remcount=1;
   for(const auto& di : reindex) {
-    fmt::print("Removing wrongly sized {} from index\n", di);
+    fmt::print("Removing wrongly sized {} from index ({}/{})\n", di, remcount, reindex.size());
+    remcount++;
     sqlw.queryT("delete from docsearch where uuid=?", {di});
     sqlw.queryT("delete from indexed where uuid=?", {di});
     skipids.erase(di);

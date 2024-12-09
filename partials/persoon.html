@@ -1,11 +1,28 @@
 {% extends "base.html" %}
 {% block div %}
+x-data="{
+haveMonitor: false,
+monitorId: '',
+nummer: {{meta.nummer}},
+kind: 'persoon'
+}" x-init="checkMonitor($data)"
+
+{% endblock %}
+
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
 {% endblock %}
 
 
 {% block customheader %}
-<h3> {{meta.roepnaam}} {{meta.tussenvoegsel}} {{meta.achternaam}} ({{meta.afkorting}})</h3>
-<img style="height: 175px" src="personphoto/{{meta.nummer}}"/>
+<h3> {{meta.roepnaam}} {{meta.tussenvoegsel}} {{meta.achternaam}} ({{meta.afkorting}})
+<span x-html="makeBell($data, haveMonitor);"></span>
+</h3>
+
+
+<img style="height: 175px" src="personphoto/{{meta.nummer}}"/> 
 {% endblock %}
 
 {% block main %}
