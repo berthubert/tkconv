@@ -89,16 +89,22 @@ int main(int argc, char** argv)
   map<string, map<string, set<Scanner*>>> all;
   for(auto& scanner : scanners) {
     fmt::print("{}\n", scanner->describe(tp.getLease().get()));
-    auto ds = scanner->get(tp.getLease().get());
-    for(const auto& d: ds) {
-      if(emitIfNeeded(sconfig, d, *scanner.get())) {
-	fmt::print("\tNummer {}\n", d.identifier);
-	all[scanner->d_userid][d.identifier].insert(scanner.get());
-	logEmission(sconfig, d, *scanner.get());
+    try {
+      auto ds = scanner->get(tp.getLease().get());
+      for(const auto& d: ds) {
+	if(emitIfNeeded(sconfig, d, *scanner.get())) {
+	  fmt::print("\tNummer {}\n", d.identifier);
+	  all[scanner->d_userid][d.identifier].insert(scanner.get());
+	  logEmission(sconfig, d, *scanner.get());
+	}
+	else
+	  fmt::print("\t(skip Nummer {})\n", d.identifier);
+	
       }
-      else
-	fmt::print("\t(skip Nummer {})\n", d.identifier);
-
+    }
+    catch(std::exception& e) {
+      fmt::print("Scanner {} failed: {}\n", scanner->describe(tp.getLease().get()),
+		 e.what());
     }
   }
   for(auto& [user, content] : all) {
@@ -115,6 +121,7 @@ int main(int argc, char** argv)
       nlohmann::json scannernames=nlohmann::json::array();
       for(auto& g : grp)
 	scannernames.push_back(g->describe(tp.getLease().get()));
+
       nlohmann::json docdescs=nlohmann::json::array();
       for(auto& d : docs) {
 	nlohmann::json ddesc;
