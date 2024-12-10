@@ -305,7 +305,7 @@ async function doLogout()
     const response = await fetch('logout', { method: "POST"});
     if (response.ok === true) {
         const data = await response.json();
-	window.location="";
+	window.location="mijn.html";
     }
     else {
 	console.log("error");
