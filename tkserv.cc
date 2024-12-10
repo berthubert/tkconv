@@ -374,7 +374,14 @@ int main(int argc, char** argv)
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
   
   signal(SIGPIPE, SIG_IGN); // every TCP application needs this
-  SQLiteWriter userdb("user.sqlite3");
+  SQLiteWriter userdb("user.sqlite3",
+		      {
+			{"users", {{"user", "PRIMARY KEY"}, {"email", "collate nocase"}}},
+			{"sessions", {{"user", "NOT NULL REFERENCES users(user) ON DELETE CASCADE"}}},
+			{"scanners", {{"userid", "NOT NULL REFERENCES users(user) ON DELETE CASCADE"}}}
+		      }
+		      );
+  
   std::mutex userdblock;
   LockedSqw ulsqw{userdb, userdblock};
   
