@@ -18,7 +18,7 @@
 #include "sws.hh"
 
 using namespace std;
-
+void addTkUserManagement(SimpleWebSystem& sws);
 
 template<class UnaryFunction>
 void recursive_iterate(nlohmann::json& j, UnaryFunction f)
@@ -418,7 +418,14 @@ int main(int argc, char** argv)
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
   
   signal(SIGPIPE, SIG_IGN); // every TCP application needs this
-  SQLiteWriter userdb("user.sqlite3");
+  SQLiteWriter userdb("user.sqlite3",
+		      {
+			{"users", {{"user", "PRIMARY KEY"}, {"email", "collate nocase"}}},
+			{"sessions", {{"user", "NOT NULL REFERENCES users(user) ON DELETE CASCADE"}}},
+			{"scanners", {{"userid", "NOT NULL REFERENCES users(user) ON DELETE CASCADE"}}}
+		      }
+		      );
+  
   std::mutex userdblock;
   LockedSqw ulsqw{userdb, userdblock};
   
@@ -426,7 +433,9 @@ int main(int argc, char** argv)
   sws.d_svr.set_keep_alive_max_count(1); 
   sws.d_svr.set_keep_alive_timeout(1);
   sws.standardFunctions();
-
+  addTkUserManagement(sws);
+  
+  
   if(args.is_used("--rnd-admin-password")) {
     bool changed=false;
     string pw = getLargeId();
@@ -550,6 +559,12 @@ int main(int argc, char** argv)
     string id = req.path_params.at("id");
     auto sqlw = tp.getLease();
     nlohmann::json j = nlohmann::json::object();
+
+    auto comm = sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting from Commissie where id=?", {id});
+    if(comm.empty())
+      return;
+    j["commissie"] = packResultsJson(comm)[0];
+    
     j["leden"] = packResultsJson(sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting, commissiezetel.gewicht, CommissieZetelVastPersoon.functie cfunctie, persoon.*, fractie.afkorting fafkorting from Commissie,CommissieZetel,CommissieZetelVastPersoon, Persoon,fractiezetelpersoon,fractiezetel,fractie where Persoon.id=commissiezetelvastpersoon.PersoonId and CommissieZetel.commissieId = Commissie.id and CommissieZetelVastpersoon.CommissieZetelId = commissiezetel.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.persoonId = Persoon.id and commissie.id=? and fractie.datumInactief='' and fractiezetelpersoon.totEnMet='' and CommissieZetelVastPersoon.totEnMet='' order by commissiezetel.gewicht", {id})); 
 
     j["zaken"] = packResultsJson(sqlw->queryT("select * from ZaakActor,Zaak where commissieId=? and Zaak.id=ZaakActor.zaakid order by gestartOp desc limit 20", {id}));
@@ -820,6 +835,7 @@ int main(int argc, char** argv)
     });
   };
 
+  doTemplate("mijn.html", "mijn.html");
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html"); // unlisted
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");

@@ -1,0 +1,5 @@
+{% for a in payload %}
+* {{ join(a.scannernames, ", ") }}:
+{% for b in a.hits %}http://berthub.eu/tkconv/get/{{b.nummer}}: {{ b.description }}
+{% endfor %}
+{% endfor %}

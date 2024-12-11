@@ -1,0 +1,13 @@
+ <meta name="x-apple-disable-message-reformatting" /> 
+<div>
+<ul>
+      {% for a in payload %}
+      <li>
+	{{ join(a.scannernames, ", ") }}:
+	<ul>
+	  {% for b in a.hits %}<li><a href="https://berthub.eu/tkconv/document.html?nummer={{ b.nummer }}">{{b.dispnummer}}</a>: {{ b.description }}</li>{% endfor %}
+	</ul>
+      </li>
+      {% endfor %}
+    </ul>
+</div>

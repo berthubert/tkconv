@@ -1,3 +1,5 @@
+#pragma once
+
 #include "thingpool.hh"
 #include "httplib.h"
 #include <string>
@@ -112,7 +114,7 @@ struct SimpleWebSystem
       std::vector<std::pair<const char*, SQLiteWriter::var_t>> values{{"user", user}, {"ip", getIP()}, {"tstamp", time(0)}};
       for(const auto& f : fields)
         values.push_back(f);
-      tp.getLease()->addValue(values, "log");
+      lsqw.addValue(values, "log");
       nlohmann::json j;
       for(const auto& v : values) {
         std::visit([&v,&j](auto&& arg) {

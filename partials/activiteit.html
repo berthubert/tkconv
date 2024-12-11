@@ -2,19 +2,22 @@
 {% block div %}
 id="recent-docs" x-data="{
 				nummer: '',
-				activiteit: {},
-				loaded: false
+activiteit: { zaal: '', videourl: '', meta: { onderwerp: '', datum: '', noot: ''} },
+loaded: false,
+kind: 'activiteit',
+haveMonitor: false
 }" x-init="activiteitinit($data);"
 {% endblock %}
 
 {% block javascript %}
+<script defer src="user.js"></script>
 {{ super() }}
 {% endblock %}
 
 {% block main %}
 <hblock>
   <h4 x-text="activiteit['meta'].onderwerp"></h4>
-  <p x-text="activiteit['meta'].nummer"></p>
+  <p><span x-text="activiteit['meta'].nummer"></span> <span x-html="makeBell($data, haveMonitor);"></span></p>
 </hblock>
 
 <h4><span x-text="new Date(activiteit['meta'].datum).toLocaleString('nl-NL', {dateStyle: 'medium', timeStyle: 'short'})"></span> <span x-text="activiteit['zaal'].naam"></span></h4>

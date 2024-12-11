@@ -1,10 +1,26 @@
 {% extends "base.html" %}
 
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
+{% endblock %}
+
+{% block div %}
+x-data="{
+nummer: '',
+toevoeging: '',
+haveMonitor: false,
+monitorId: '',
+kind: 'ksd'
+}" x-init="ksdinit($data);"
+
+{% endblock %}
 
 {% block main %}
 <hblock>
-<h4>{{meta.titel}}</h4>
-<p>Kamerstuk {{meta.nummer}} {{meta.toevoeging}}</p>
+<h4>{{meta.titel}} <span x-html="makeBell($data, haveMonitor);"></span></h4>
+<p>Kamerstuk {{meta.nummer}} {{meta.toevoeging}} </p>
 </hblock>
 
 <table class="striped">

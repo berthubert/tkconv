@@ -237,10 +237,10 @@ time_t getTstampUTC(const std::string& str)
 }
 
 
-// do not put UTF-8 in the subject yet
+// do not put UTF-8 in the subject yet (although it might work)
 void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody)
 {
-  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@";
+  const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@=";
   if(from.find_first_not_of(allowed) != string::npos || to.find_first_not_of(allowed) != string::npos) {
     throw std::runtime_error("Illegal character in from or to address");
   }
@@ -276,15 +276,20 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   sponge(354);
   sc.writen("From: "+from+"\r\n");
   sc.writen("To: "+to+"\r\n");
-  sc.writen("Subject: "+subject+"\r\n");
+
+  string esubject = subject;
+  replaceSubstring(esubject, "\n", " "); // thank you wander nauta again!
+  replaceSubstring(esubject, "\r", " ");
+  
+  sc.writen("Subject: "+esubject+"\r\n");
   
 
-  sc.writen(fmt::format("Message-Id: <{}@trifecta.hostname>\r\n", getRandom64()));
+  sc.writen(fmt::format("Message-Id: <{}@opentk.hostname>\r\n", getRandom64()));
   
   //Date: Thu, 28 Dec 2023 14:31:37 +0100 (CET)
   sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
 
-  string sepa="_----------=_MCPart_121613240";
+  string sepa="_----------=_MCPart_"+getLargeId();
   if(htmlBody.empty()) {
     sc.writen("Content-Type: text/plain; charset=\"utf-8\"\r\n");
     sc.writen("Content-Transfer-Encoding: base64\r\n");
@@ -310,6 +315,8 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   for(pos = 0 ; pos < (int)b64.length() - linelen; pos += linelen) {
     sc.writen(b64.substr(pos, linelen)+"\r\n");
   }
+  sc.writen(b64.substr(pos) +"\r\n");
+  
   if(htmlBody.empty()) {
     sc.writen(b64.substr(pos) +"\r\n.\r\n");
     sponge(250);
@@ -354,4 +361,9 @@ std::string htmlEscape(const std::string& data)
     }
   }
   return buffer;
+}
+
+std::string getTodayDBFormat()
+{
+  return fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)));
 }
