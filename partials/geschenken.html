@@ -7,18 +7,18 @@
       <thead>
       <tr>
         <th>Datum</th>
-	<th>Bijgewerkt</th>
-	<th>Naam</th>
+        <th>Bijgewerkt</th>
+        <th>Naam</th>
         <th>Omschrijving</th>
       </tr>
       </thead>
       <tbody>
       {% for d in data %}
       <tr>
-        <td>{{d.datum}}</td>
-	<td>{{d.pgbijgewerkt}}</td>
-	<td><a href="persoon.html?nummer={{d.nummer}}">{{d.roepnaam}} {{d.tussenvoegsel}} {{d.achternaam}}</a></td>
-	<td>{{d.omschrijving}}</td>
+        <td><time class="whitespace-nowrap" datetime="{{d.datum}}">{{formatDutchDate(d.datum)}}</time></td>
+        <td><time class="whitespace-nowrap" datetime="{{d.pgbijgewerkt}}">{{formatDutchDate(d.pgbijgewerkt)}}</time></td>
+        <td><a href="persoon.html?nummer={{d.nummer}}">{{d.roepnaam}} {{d.tussenvoegsel}} {{d.achternaam}}</a></td>
+        <td>{{d.omschrijving}}</td>
       </tr>
       {% endfor %}
       </tbody>

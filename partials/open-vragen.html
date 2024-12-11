@@ -12,7 +12,7 @@
       <table class="striped">
 	<thead>
 	  <tr>
-            <th>Datum</th>
+        <th>Datum</th>
 	    <th>Onderwerp</th>
 	    <th>1e Indiener</th>
 	    <th>Aan</th>
@@ -22,11 +22,11 @@
 	<tbody>
 	  {% for d in openVragen %}
           <tr>
-            <td>{{d.gestartOp}}</td>
-	    <td> <a href="get/{{d.docunummer}}"> {{d.onderwerp}} </a></td>
-	      <td> <a href="persoon.html?nummer={{d.persoonnummer}}">{{d.indiener}} ({{d.fractie}})</a> </td>
-	    <td> {{d.aan}} </td>
-	    <td> {% if d.numuitstel > 0 %} Ja {% endif %} </td>
+            <td><time class="whitespace-nowrap" datetime="{{d.gestartOp}}">{{formatDutchDate(d.gestartOp)}}</time></td>
+	    	<td> <a href="get/{{d.docunummer}}"> {{d.onderwerp}} </a></td>
+	     	<td> <a href="persoon.html?nummer={{d.persoonnummer}}">{{d.indiener}} ({{d.fractie}})</a> </td>
+	    	<td> {{d.aan}} </td>
+	    	<td> {% if d.numuitstel > 0 %} Ja {% endif %} </td>
           </tr>
 	  {% endfor %}
 	</tbody>

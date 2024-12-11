@@ -24,7 +24,7 @@ kind: 'zaak'
   <p>{{zaak.soort}}</p>
 </hgroup>
 
-<h4>Zaak {{zaak.nummer}}, gestart op {{zaak.gestartOp}} <span x-html="makeBell($data, haveMonitor);"></span></h4>
+<h4>Zaak {{zaak.nummer}}, gestart op {{ormatDutchDate(zaak.gestartOp)}} <span x-html="makeBell($data, haveMonitor);"></span></h4>
 {% if length(kamerstukdossier) > 0 %}
   <p>
     Onderdeel van kamerstukdossier <a href="ksd.html?ksd={{kamerstukdossier.0.nummer}}

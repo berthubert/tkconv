@@ -29,10 +29,10 @@ x-data="{  kamerstukdossiers: []  }" x-init="getGenKSD('recent-kamerstukdossiers
   <tbody>
     <template x-for="d in kamerstukdossiers">
       <tr>
-	<td x-text="d.mdatum.substring(0,10)"></td>
-	<td x-text="d.nummer + '&nbsp;' + d.toevoeging"></td>
-	<td x-html="'<a href=ksd.html?ksd='+d.nummer+'&toevoeging='+d.toevoeging+'>' + d.titel +'</a>'"></td>
-	<td x-text="d.hoogsteVolgnummer"></td>
+        <td class="whitespace-nowrap" x-text="new Date(d.mdatum).toLocaleDateString('nl-NL', {dateStyle: 'medium'})"></td>
+        <td x-text="d.nummer + '&nbsp;' + d.toevoeging"></td>
+        <td x-html="'<a href=ksd.html?ksd='+d.nummer+'&toevoeging='+d.toevoeging+'>' + d.titel +'</a>'"></td>
+        <td x-text="d.hoogsteVolgnummer"></td>
       </tr>
     </template>
   </tbody>
