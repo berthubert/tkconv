@@ -121,11 +121,12 @@ state: -1
       </p>
     <table class="striped">
       <thead>
-	<tr><th>Type</th><th>Omschrijving</th><th>X</th></tr>
+	<tr><th>Type</th><th>Omschrijving</th><th>Hits</th><th>X</th></tr>
       </thead>
       <tbody>
       <template x-for="m in monitors">
 	<tr><td x-text="m.type"></td><td x-text="m.description"></td>
+	  <td><span x-text="m.cnt"></span></td>
 	  <td><a @click.prevent="removeMonitorAndUpdate($data, m.id)" href="#">🗑</a></td>
 	</tr>
       </template>

@@ -166,24 +166,34 @@ void addTkUserManagement(SimpleWebSystem& sws)
   });
   
   sws.wrapGet({Capability::IsUser}, "/my-monitors", [](auto& cr) {
-    auto rows=cr.lsqw.query("select * from scanners where userid=? order by rowid desc", {cr.user});
-    vector<pair<string, unique_ptr<Scanner>>> scanners;
+    auto rows=cr.lsqw.query("select *,(select count(1) from sentNotification where scannerId = scanners.id) as cnt from scanners where userid=? order by rowid desc", {cr.user});
+    struct ScannerCombo
+    {
+      unique_ptr<Scanner> ptr;
+      int64_t count;
+    };
+    vector<pair<string, ScannerCombo> >scanners;
     std::lock_guard<std::mutex> l(cr.lsqw.sqwlock);
     for(auto& ts: rows) {
       if(auto iter = g_scanmakers.find(eget(ts,"soort")); iter != g_scanmakers.end()) {
-	// negative to get the sorting right
-	scanners.emplace_back(get<string>(ts["id"]), iter->second(cr.lsqw.sqw, get<string>(ts["id"])));
+	ScannerCombo sc;
+	sc.ptr = iter->second(cr.lsqw.sqw, get<string>(ts["id"]));
+	sc.count = get<int64_t>(ts["cnt"]);
+	scanners.emplace_back(get<string>(ts["id"]), std::move(sc));
+
       } // XXXX this is wrong we don't have an autolocking sqlwriter not to use it
     }
     
     nlohmann::json j;
     j["ok"]=1;
     nlohmann::json jmonitors=nlohmann::json::array();
-    for(auto& [id, scanner] : scanners) {
+    for(auto& [id, sc] : scanners) {
+      auto& [ptr, count] = sc;
       nlohmann::json jmon;
-      jmon["description"] = scanner->describe(cr.tp.getLease().get());
-      jmon["type"] = scanner->getType();
+      jmon["description"] = ptr->describe(cr.tp.getLease().get());
+      jmon["type"] = ptr->getType();
       jmon["id"] = id;
+      jmon["cnt"] = count;
       jmonitors.push_back(jmon);
     }
     j["monitors"] = jmonitors;
