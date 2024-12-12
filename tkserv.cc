@@ -355,6 +355,16 @@ auto getVerslagen(SQLiteWriter& sqlw, int days)
   return tmp;
 }
 
+string onderwerpToFilename(const std::string& onderwerp)
+{
+  string ret = onderwerp;
+  for(auto& c: ret) {
+    if(isalnum(c))
+      continue;
+    else c='-';
+  }
+  return ret;
+}
 
 int main(int argc, char** argv)
 {
@@ -420,23 +430,36 @@ int main(int argc, char** argv)
   sws.d_svr.Get("/getraw/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"getraw nummer: "<<nummer<<endl;
-    string id;
+    string id, onderwerp, contentType;
     auto sqlw = tp.getLease();
     auto ret=sqlw->queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
 
     if(ret.empty()) {
       ret = sqlw->queryT("select * from Verslag where id=? order by rowid desc limit 1", {nummer});
       if(ret.empty()) {
-	res.set_content("Found nothing!!", "text/plain");
+	res.set_content(fmt::format("Could not find a Verslag with id {}", id), "text/plain");
 	return;
       }
       id=nummer;
     }
-    else
+    else {
       id = get<string>(ret[0]["id"]);
+      onderwerp = eget(ret[0], "onderwerp");
+      contentType = eget(ret[0], "contentType");
+    }
 
     sqlw.release();
+    if(!onderwerp.empty()) {
+      string fname=nummer+"-"+onderwerpToFilename(onderwerp);
+      if(contentType =="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+	fname+=".docx";
+      else if(contentType=="application/pdf")
+	fname += ".pdf";
+      res.set_header("Content-Disposition",  fmt::format("inline; filename=\"{}\"", fname));
+    }
     string content = getRawDocument(id);
+
+
     res.set_content(content, get<string>(ret[0]["contentType"]));
   });
 
