@@ -236,6 +236,35 @@ time_t getTstampUTC(const std::string& str)
   return timegm(&tm);
 }
 
+// do not put \r in in
+string toQuotedPrintable(const std::string& in)
+{
+  string out;
+  string line;
+
+  for(const auto& c: in) {
+    if(c=='\n') {
+      out += line;
+      out += "\r\n"; // really
+      line.clear();
+      continue;
+    }
+    string part;
+    if(isprint(c) && c != '=')
+      part=c;
+    else
+      part = fmt::sprintf("=%02X", (int)(unsigned char)c);
+    
+    if(line.length() + part.length() >= 76) {
+      out += line;
+      out += "=\r\n";
+      line.clear();
+    }
+    line += part;
+  }
+  out += line;
+  return out;
+}
 
 // do not put UTF-8 in the subject yet (although it might work)
 void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody)
@@ -292,7 +321,7 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   string sepa="_----------=_MCPart_"+getLargeId();
   if(htmlBody.empty()) {
     sc.writen("Content-Type: text/plain; charset=\"utf-8\"\r\n");
-    sc.writen("Content-Transfer-Encoding: base64\r\n");
+    sc.writen("Content-Transfer-Encoding: quoted-printable\r\n");
   }
   else {
     sc.writen("Content-Type: multipart/alternative; boundary=\""+sepa+"\"\r\n");
@@ -306,27 +335,23 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
 
     sc.writen("--"+sepa+"\r\n");
     sc.writen("Content-Type: text/plain; charset=\"utf-8\"; format=\"fixed\"\r\n");
-    sc.writen("Content-Transfer-Encoding: base64\r\n\r\n");
+    sc.writen("Content-Transfer-Encoding: quoted-printable\r\n\r\n");
   }
-  string b64 = base64::to_base64(textBody);
+  string qp = toQuotedPrintable(textBody);
 
-  int linelen = 72;
-  int pos = 0;
-  for(pos = 0 ; pos < (int)b64.length() - linelen; pos += linelen) {
-    sc.writen(b64.substr(pos, linelen)+"\r\n");
-  }
-  sc.writen(b64.substr(pos) +"\r\n");
+  sc.writen(qp +"\r\n");
   
   if(htmlBody.empty()) {
-    sc.writen(b64.substr(pos) +"\r\n.\r\n");
+    sc.writen("\r\n.\r\n");
     sponge(250);
     return;
   }
   sc.writen("--"+sepa+"\r\n");
   sc.writen("Content-Type: text/html; charset=\"utf-8\"\r\n");
   sc.writen("Content-Transfer-Encoding: base64\r\n\r\n");
-  b64 = base64::to_base64(htmlBody);
-  pos = 0;
+  int linelen = 76;
+  string b64 = base64::to_base64(htmlBody);
+  int pos = 0;
   for(pos = 0 ; pos < (int)b64.length() - linelen; pos += linelen) {
     sc.writen(b64.substr(pos, linelen)+"\r\n");
   }
