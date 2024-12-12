@@ -263,7 +263,7 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   };
 
   sponge(220);
-  sc.writen("EHLO dan\r\n");
+  sc.writen("EHLO outer2.berthub.eu\r\n");
   sponge(250);
 
   sc.writen("MAIL From:<"+from+">\r\n");
