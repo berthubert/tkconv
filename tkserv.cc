@@ -1110,13 +1110,14 @@ int main(int argc, char** argv)
     auto sqlw = tp.getLease();
     
     nlohmann::json data = nlohmann::json::object();
-    auto ret=sqlw->queryT("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document,DocumentVersie where nummer=? and document.id=documentversie.documentid limit 1", {nummer});
+    auto ret=sqlw->queryT("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document left join DocumentVersie on DocumentVersie.documentId = Document.id where nummer=? limit 1", {nummer});
     if(ret.empty()) {
-      res.set_content("Found nothing!!", "text/plain");
+      res.set_content("Found nothing in document.html!!", "text/plain");
+      res.status = 404;
       return;
     }
 
-    string externeid = get<string>(ret[0]["externeidentifier"]);
+    string externeid = eget(ret[0], "externeidentifier");
     data["meta"] = packResultsJson(ret)[0];
     data["meta"]["datum"] = ((string)data["meta"]["datum"]).substr(0, 10);
 
