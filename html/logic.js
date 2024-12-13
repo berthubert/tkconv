@@ -176,7 +176,7 @@ async function commissieinit(f)
 	f.loaded=true;
     }
 
-    const response2 = await fetch('/have-monitor/commissie/'+f.cid);
+    const response2 = await fetch('have-monitor/commissie/'+f.cid);
     if (response2.ok === true) {
         const data = await response2.json();
 	f.haveMonitor = data["have"] === 1;
@@ -184,7 +184,7 @@ async function commissieinit(f)
 	console.log(`data["have"] = ${data.have}, we just set f.haveMonitor = ${f.haveMonitor}`);
     }
     else {
-	console.log("Mis");
+	console.log(`Mis commissie ${f.cid}`);
     }
     
     
@@ -210,7 +210,7 @@ async function getActiviteitDetails(f)
        f["loaded"]=true;
     }
 
-    const response2 = await fetch('/have-monitor/activiteit/'+f.nummer);
+    const response2 = await fetch('have-monitor/activiteit/'+f.nummer);
     if (response2.ok === true) {
         const data = await response2.json();
 	f.haveMonitor = data["have"] === 1;
@@ -230,7 +230,7 @@ async function ksdinit(f)
     f.nummer = url.searchParams.get("ksd");
     f.toevoeging = url.searchParams.get("toevoeging");
 
-    const response2 = await fetch('/have-monitor/ksd/'+f.nummer+"?toevoeging="+f.toevoeging);
+    const response2 = await fetch('have-monitor/ksd/'+f.nummer+"?toevoeging="+f.toevoeging);
     if (response2.ok === true) {
         const data = await response2.json();
 	f.haveMonitor = data["have"] === 1;
