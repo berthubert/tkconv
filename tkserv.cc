@@ -1113,7 +1113,7 @@ int main(int argc, char** argv)
        ranges::all_of(nummer.cbegin(), nummer.cend(),
 		      [](char c) { return isalnum(c) || c=='-'; })) {
       res.status = 301;
-      res.set_header("Location", "../verslag.html?vergaderingid="+nummer);
+      res.set_header("Location", "verslag.html?vergaderingid="+nummer);
       return;
     }
     
