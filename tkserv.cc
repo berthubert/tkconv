@@ -1108,6 +1108,14 @@ int main(int argc, char** argv)
   sws.d_svr.Get("/document.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.get_param_value("nummer"); // 2023D41173
     auto sqlw = tp.getLease();
+
+    if(nummer.length() > 13 &&
+       ranges::all_of(nummer.cbegin(), nummer.cend(),
+		      [](char c) { return isalnum(c) || c=='-'; })) {
+      res.status = 301;
+      res.set_header("Location", "../verslag.html?vergaderingid="+nummer);
+      return;
+    }
     
     nlohmann::json data = nlohmann::json::object();
     auto ret=sqlw->queryT("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document left join DocumentVersie on DocumentVersie.documentId = Document.id where nummer=? limit 1", {nummer});
