@@ -318,6 +318,8 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   //Date: Thu, 28 Dec 2023 14:31:37 +0100 (CET)
   sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
 
+  sc.writen("Auto-Submitted: auto-generated\r\nPrecedence: bulk\r\n");
+
   string sepa="_----------=_MCPart_"+getLargeId();
   if(htmlBody.empty()) {
     sc.writen("Content-Type: text/plain; charset=\"utf-8\"\r\n");
