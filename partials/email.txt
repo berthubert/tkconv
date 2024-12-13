@@ -1,5 +1,9 @@
+Nieuwe OpenTK documenten, gevonden door je monitors:
+
 {% for a in payload %}
 * {{ join(a.scannernames, ", ") }}:
-{% for b in a.hits %}http://berthub.eu/tkconv/get/{{b.nummer}}: {{ b.description }}
+{% for b in a.hits %}http://berthub.eu/tkconv/get/{{b.nummer}} - {{ b.description }}
 {% endfor %}
 {% endfor %}
+
+Op https://berthub.eu/tkconv/mijn.html kun je je monitors bijwerken of verwijderen. Als er problemen zijn, druk op reply en ik ga er mee aan de slag!
