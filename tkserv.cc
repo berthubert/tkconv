@@ -1492,6 +1492,19 @@ int main(int argc, char** argv)
   sws.d_svr.set_post_routing_handler([](const auto& req, auto& res) {
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
+
+    // Allow conditional GET and HEAD for all requests: if browsers, proxies or bots already have
+    // a response cached that is bytewise identical to what we've just generated, don't resend it.
+    if(res.status == 200 && (req.method == "GET" || req.method == "HEAD") && !res.has_header("ETag")) {
+      string etag = fmt::format("\"{:x}-{}\"", hash<string>{}(res.body), res.body.size());
+      res.set_header("ETag", etag);
+
+      if(req.get_header_value("If-None-Match", "") == etag) {
+        res.set_content("", "");
+        res.headers.erase("Content-Type");
+        res.status = 304;
+      }
+    }
   });
 
   sws.d_svr.set_payload_max_length(1024 * 1024); // 1MB
