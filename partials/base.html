@@ -7,7 +7,7 @@
     <meta property='og:description' content='{{ og.description }}'>
     <meta property='og:type' content='article'>
     <meta property='og:image' content='{{og.imageurl}}'>
-
+    {% block extrameta %} {% endblock %}>
     <link rel='stylesheet' href='pico.min.css'>
     <style>
       {% include "custom.css" %}
