@@ -238,13 +238,24 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     channel.append_child("description").append_child(pugi::node_pcdata).set_value("Meest recente parlementaire documenten");
     channel.append_child("link").append_child(pugi::node_pcdata).set_value("https://berthub.eu/tkconv/");
     channel.append_child("generator").append_child(pugi::node_pcdata).set_value("OpenTK");
-    string date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(time(0)));
-    channel.append_child("lastBuildDate").append_child(pugi::node_pcdata).set_value(date.c_str());
 
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
     bool onlyRegeringsstukken=false;
     auto rows = cr.tp.getLease()->queryT("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc, bijgewerkt desc",
 						  {dlim, !onlyRegeringsstukken});
+
+    time_t latest = time(0);
+    if(!rows.empty()) {
+      string maxbw;
+      for(const auto& r: rows) {
+	if(maxbw < eget(r, "bijgewerkt"))
+	  maxbw = eget(r, "bijgewerkt");
+      }
+      latest = getTstamp(maxbw);
+    }
+    string date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(latest));
+    channel.append_child("lastBuildDate").append_child(pugi::node_pcdata).set_value(date.c_str());
+
 
     for(const auto& r : rows) {
       pugi::xml_node item = channel.append_child("item");
