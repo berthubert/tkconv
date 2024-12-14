@@ -2,7 +2,8 @@
 #include "thingpool.hh"
 #include "sws.hh"
 #include "scanmon.hh"
-
+#include "pugixml.hpp"
+#include <fmt/chrono.h>
 using namespace std;
 
 void addTkUserManagement(SimpleWebSystem& sws)
@@ -10,7 +11,8 @@ void addTkUserManagement(SimpleWebSystem& sws)
   sws.wrapPost({}, "/create-user-invite", [](auto& cr) {
     string email = cr.req.get_file_value("email").content;
     nlohmann::json j;
-    string baseUrl="https://berthub.eu/tkconv";
+    //    string baseUrl="https://berthub.eu/tkconv";
+    string baseUrl="http://127.0.0.1:8089";
     
     if(email.empty()) {
       j["ok"]=0;
@@ -200,5 +202,79 @@ void addTkUserManagement(SimpleWebSystem& sws)
     return j;
   });
 
+  /*
+    <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Bert Hubert&#39;s writings</title>
+    <link>https://berthub.eu/articles/</link>
+    <description>Recent content on Bert Hubert&#39;s writings</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Fri, 13 Dec 2024 14:13:41 +0000</lastBuildDate><atom:link href="https://berthub.eu/articles/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Welkom bij OpenTK (deel 2): de monitors</title>
+      <link>https://berthub.eu/articles/posts/welkom-bij-opentk-deel-2/</link>
+      <pubDate>Fri, 13 Dec 2024 14:13:41 +0000</pubDate>
+      
+      <guid>https://berthub.eu/articles/posts/welkom-bij-opentk-deel-2/</guid>
+      <description>Welkom!
+Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws zijn. En soms juist omdat dingen (nog) niet in het nieuws zijn, maar er binnenkort wel besluiten over genomen gaan worden. De Tweede Kamer publiceert alles wat ze doen via een technische API, en dat is echt geweldig. Hierdoor kunnen we op Internet eigen viewers maken om deze data zo goed mogelijk zichtbaar te maken.</description>
+    </item>
+  */
+  
+
+  sws.wrapGet({}, "/index.xml", [](auto& cr) {
+    pugi::xml_document doc;
+    doc.append_attribute("standalone") = "yes";
+    doc.append_attribute("version") = "1.0";
+
+    doc.append_attribute("encoding") = "utf-8";
+    pugi::xml_node rss = doc.append_child("rss");
+    rss.append_attribute("version")="2.0";
+    rss.append_attribute("xmlns:atom")="http://www.w3.org/2005/Atom";
+
+    pugi::xml_node channel = rss.append_child("channel");
+    channel.append_child("title").append_child(pugi::node_pcdata).set_value("OpenTK main feed");
+    channel.append_child("description").append_child(pugi::node_pcdata).set_value("Meest recente parlementaire documenten");
+    channel.append_child("link").append_child(pugi::node_pcdata).set_value("https://berthub.eu/tkconv/");
+    channel.append_child("generator").append_child(pugi::node_pcdata).set_value("OpenTK");
+    string date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(time(0)));
+    channel.append_child("lastBuildDate").append_child(pugi::node_pcdata).set_value(date.c_str());
+
+    string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
+    bool onlyRegeringsstukken=false;
+    auto rows = cr.tp.getLease()->queryT("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc, bijgewerkt desc",
+						  {dlim, !onlyRegeringsstukken});
+
+    for(const auto& r : rows) {
+      pugi::xml_node item = channel.append_child("item");
+      string onderwerp = eget(r, "onderwerp");
+      item.append_child("title").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
+
+      onderwerp = eget(r, "naam")+" | " + eget(r, "titel") + " " + onderwerp;
+      
+      item.append_child("description").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
+
+      
+      item.append_child("link").append_child(pugi::node_pcdata).set_value(
+									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
+      item.append_child("guid").append_child(pugi::node_pcdata).set_value(eget(r, "nummer").c_str());
+
+
+
+      // 2024-12-06T06:01:10.2530000
+      string pubDate = eget(r, "bijgewerkt");
+      time_t then = getTstamp(pubDate);
+     
+      //      <pubDate>Fri, 13 Dec 2024 14:13:41 +0000</pubDate>
+      date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(then));
+      item.append_child("pubDate").append_child(pugi::node_pcdata).set_value(date.c_str());
+
+      
+    }
+    ostringstream str;
+    doc.save(str);
+    return make_pair<string,string>(str.str(), "application/xml");
+  });
   
 }  
