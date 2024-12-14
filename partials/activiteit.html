@@ -37,8 +37,11 @@ haveMonitor: false
 
 <h4>Betrokkenen</h4>
 <ul>
-  <template x-for="a in activiteit['actors']">
+  <template x-for="a in activiteit['persactors']">
     <li><span  x-text="`${a.relatie}: ${a.functie}`"></span> <a x-bind:href="`persoon.html?nummer=${a.nummer}`"> <span x-text="a.naam"></span></a>  </li>
+  </template>
+  <template x-for="a in activiteit['comactors']">
+    <li><span  x-text="`${a.relatie}: `"></span> <a x-bind:href="`commissie.html?id=${a.id}`"> <span x-text="a.naam"></span></a>  </li>
   </template>
 
 </ul>

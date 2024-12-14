@@ -698,8 +698,14 @@ int main(int argc, char** argv)
     nlohmann::json r = nlohmann::json::object();
     r["meta"] = packResultsJson(ret)[0];
     string activiteitId = r["meta"]["id"];
-    auto actors = sqlw->queryT("select ActiviteitActor.*, Persoon.nummer from ActiviteitActor left join Persoon on Persoon.id=ActiviteitActor.persoonId where activiteitId=? order by volgorde", {activiteitId});
-    r["actors"] = packResultsJson(actors);
+
+    
+    auto persactors = sqlw->queryT("select ActiviteitActor.*, Persoon.nummer from ActiviteitActor left join Persoon on Persoon.id=ActiviteitActor.persoonId where activiteitId=? and activiteitactor.relatie='Deelnemer' order by volgorde", {activiteitId});
+
+    auto comactors = sqlw->queryT("select ActiviteitActor.*, Commissie.id from ActiviteitActor left join Commissie on commissie.id=ActiviteitActor.commissieId where activiteitId=? and relatie like '%commissie%' order by volgorde", {activiteitId});
+    
+    r["persactors"] = packResultsJson(persactors);
+    r["comactors"] = packResultsJson(comactors);
     auto zalen = packResultsJson(sqlw->queryT("select * from Reservering,Zaal where Reservering.activiteitId = ? and zaal.id = zaalId", {activiteitId}));
     string zaalnaam;
     if(!zalen.empty()) {
