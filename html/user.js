@@ -126,18 +126,25 @@ async function removeMonitor(f)
 }
 
 
-
 async function checkMonitor(f)
 {
-    const response = await fetch(`have-monitor/${f.kind}/${f.nummer}`);
+    const response = await fetch('status');
     if (response.ok === true) {
         const data = await response.json();
-	console.log(`have-monitor: ${data}`);
-	f.haveMonitor=  data["have"] === 1;
-	f.monitorId = data["id"];
+	if(data.login === true ) {
+	    const response2 = await fetch(`have-monitor/${f.kind}/${f.nummer}`);
+	    if (response2.ok === true) {
+		const data = await response2.json();
+		console.log(`have-monitor: ${data}`);
+		f.haveMonitor=  data["have"] === 1;
+		f.monitorId = data["id"];
+	    }
+	    else
+		f.haveMonitor = false;
+	}
+	else
+	    f.haveMonitor = false;
     }
-    else
-	f.haveMonitor = false;
    
 }
 
