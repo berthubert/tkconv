@@ -821,8 +821,6 @@ int main(int argc, char** argv)
   doTemplate("vragen.html", "vragen.html"); // unlisted
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");
 
-  doTemplate("commissie.html", "commissie.html");
-
   doTemplate("search.html", "search.html");
 
   doTemplate("kamerleden.html", "kamerleden.html", R"(select fractiezetel.gewicht fzgewicht, persoon.titels, persoon.roepnaam, persoon.tussenvoegsel, persoon.achternaam, persoon.nummer, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' union all select fractiezetel.gewicht fzgewicht, "" titels, "" roepnaam, "" tussenvoegsel, "Vacature" achternaam, 0 nummer, afkorting from FractieZetelVacature,fractieZetel, fractie where totEnMet='' and fractiezetel.id = fractiezetelid and fractie.id = fractieid  order by afkorting, fzgewicht)");
@@ -1075,6 +1073,30 @@ int main(int argc, char** argv)
     data["og"]["imageurl"] = "";
     
     res.set_content(e.render_file("./partials/ongeplande-activiteiten.html", data), "text/html");
+  });
+
+  sws.d_svr.Get("/commissie.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string id =req.get_param_value("id");
+
+    auto deets = tp.getLease()->queryT("select * from commissie where id=?", {id});
+    if(deets.empty()) {
+      res.status = 404;
+      res.set_content("Geen commissie met id "+id, "text/plain");
+      return;
+    }
+    
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    nlohmann::json data;
+    data["pagemeta"]["title"]= eget(deets[0], "naam");
+    data["og"]["title"] = eget(deets[0], "naam");
+    data["og"]["description"] = eget(deets[0], "naam");
+    data["og"]["imageurl"] = "";
+
+    data["id"] = id;
+    data["naam"] = eget(deets[0], "naam");
+
+    res.set_content(e.render_file("./partials/commissie.html", data), "text/html");
   });
   
   sws.d_svr.Get("/ksd.html", [&tp](const httplib::Request &req, httplib::Response &res) {

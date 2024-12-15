@@ -5,6 +5,11 @@
 {{ super() }}
 {% endblock %}
 
+{% block extrameta %}
+<link rel="alternate" type="application/rss+xml" href="https://berthub.eu/tkconv/commissie/{{id}}/index.xml" title="OpenTK Feed voor {{naam}}" />
+{% endblock %}
+
+
 {% block div %}
 x-data="{
 kind: 'commissie',
