@@ -246,6 +246,10 @@ async function getSearchResults(f)
 {
     if(f.searchQuery == '' || f.searchQuery == null || f.busy)
 	return;
+
+    f.searchQuery = f.searchQuery.replace(/[\u201C\u201D]/g, '"'); 
+    //    “smart quotes”
+    //    "smart quotes" 
     f.busy = true;
     f.haveMonitor = false;
     
