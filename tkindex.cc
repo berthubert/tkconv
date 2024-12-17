@@ -48,6 +48,21 @@ static string textFromFile(const std::string& fname)
   return ret;
 }
 
+/* The story:
+   The ground truth are the Document and Verslag tables.
+   Then there is the storage of documents on disk
+   Then there is the docsearch table with the search index, which is fast for search and slow for scanning
+   Then there is the 'indexed' table which we try to keep in sync with docsearch
+
+   We start by checking if all known Documents have the right size on disk, otherwise we remove the document from the index, and retrieve a fresh version
+
+   We can regenerate the 'indexed' table from docsearch.
+
+   If a document disappears from Document of Verslag, we do nothing
+
+   Each Vergadering has multiple Verslag-en. We are only interested in the newest Verslag. The other copies need to be removed. 
+
+*/
 
 int main(int argc, char** argv)
 {
@@ -56,10 +71,10 @@ int main(int argc, char** argv)
   if(argc > 1)
     limit = argv[1];
 
-  fmt::print("Getting docs since {}\n", limit);
+  fmt::print("Getting document ids from database since {}\n", limit);
   auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category, contentLength from Document where datum > ?", {limit});
 
-  fmt::print("There are {} documents we'd like to index\n", wantDocs.size());
+  fmt::print("There are {} documents in the database that need to be indexed\n", wantDocs.size());
 
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
@@ -87,20 +102,43 @@ int main(int argc, char** argv)
 CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst, contentLength UNINDEXED, uuid UNINDEXED, datum UNINDEXED, category UNINDEXED,  tokenize="unicode61 tokenchars '_'")
 )");
 
-  // IF THIS GETS OUT OF SYNC:
+  // IF THIS GETS OUT OF SYNC, drop 'indexed', and it will be recreated automatically:
   sqlw.queryT("create table if not exists indexed as select datum,uuid,contentLength,category from docsearch");
   sqlw.queryT("create unique index if not exists uuididx on indexed(uuid)");
   
-  fmt::print("Retrieving already indexed document uuids..");
+  fmt::print("Retrieving already indexed document uuids from 'indexed' table..");
   cout.flush();
   auto already = sqlw.queryT("select uuid,contentLength from indexed");
   map<string, int64_t> skipids; // ordering actually gets us locality of reference below
+
   for(auto& a : already) {
     skipids[get<string>(a["uuid"])] = get<int64_t>(a["contentLength"]);
   }
   fmt::print(" got {}\n", skipids.size());
-  unordered_set<string> dropids, reindex;
   
+  // next up, check if there are indexed documents that are not in docs or verslagen
+  set<string> exists;
+  for(auto& e : wantDocs) {
+    exists.insert(eget(e, "id"));
+  }
+  for(auto& e : wantVerslagen) {
+    exists.insert(eget(e, "id"));
+  }
+
+  sqlw.queryT("ATTACH DATABASE ':memory:' AS aux1");
+  bool workToDo=false;
+  for(const auto& si : skipids) {
+    if(!exists.count(si.first)) {
+      cout<<si.first<<" is in indexed, but no longer in Document or Verslag table, will be removed\n";
+      sqlw.addValue({{"id", si.first}}, "aux1.todel");
+      workToDo = true;
+    }
+  }
+
+  
+
+  unordered_set<string> dropids, reindex;
+  fmt::print("Checking for {} already indexed documents if they have the right size on disk\n", skipids.size());
   for(const auto& si : skipids) {
     if(!isPresentNonEmpty(si.first)) {
       fmt::print("We miss document enclosure for indexed document with id {}\n", si.first);
@@ -115,19 +153,27 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   fmt::print("{} entries that are indexed have incorrectly sized enclosure, reindexing\n", reindex.size());
 
   for(const auto& di : dropids) {
-    fmt::print("Removing absent {} from index\n", di);
-    sqlw.queryT("delete from docsearch where uuid=?", {di});
-    sqlw.queryT("delete from indexed where uuid=?", {di});
+    fmt::print("Will remove absent {} from index\n", di);
+    sqlw.addValue({{"id", di}}, "aux1.todel");
+    workToDo = true;
   }
   int remcount=1;
   for(const auto& di : reindex) {
-    fmt::print("Removing wrongly sized {} from index ({}/{})\n", di, remcount, reindex.size());
+    fmt::print("Will remove wrongly sized {} from index ({}/{})\n", di, remcount, reindex.size());
     remcount++;
-    sqlw.queryT("delete from docsearch where uuid=?", {di});
-    sqlw.queryT("delete from indexed where uuid=?", {di});
+    sqlw.addValue({{"id", di}}, "aux1.todel");
+    workToDo = true;
     skipids.erase(di);
   }
 
+  if(workToDo) {
+    fmt::print("Now actually going to delete entries from the search index\n");
+    sqlw.queryT("delete from docsearch where uuid in (select * from aux1.todel)");
+    fmt::print("Now actually going to delete entries from the parallel index\n");
+    sqlw.queryT("delete from indexed where uuid in (select * from aux1.todel)");
+  }
+
+  
   fmt::print("{} documents are already indexed & will be skipped\n",
 	     skipids.size());
 
