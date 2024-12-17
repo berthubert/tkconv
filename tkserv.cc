@@ -1415,10 +1415,9 @@ int main(int argc, char** argv)
 
     // turn COVID-19 into "COVID-19" and A.W.R. Hubert into "A.W.R. Hubert"
     if(term.find_first_of(".-") != string::npos  && term.find('"')==string::npos) {
-      cout<<"fixing up"<<endl;
       term = "\"" + term + "\"";
     }
-    
+
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     
@@ -1465,9 +1464,11 @@ int main(int argc, char** argv)
 	auto verslag = idx.queryT("SELECT titel as onderwerp, Vergadering.id as vergaderingId, Verslag.updated as bijgewerkt, '' as titel, Vergadering.datum FROM meta.Verslag, meta.Vergadering WHERE Verslag.id = ? and Vergadering.id = Verslag.vergaderingId", {get<string>(m["uuid"])});
 	
 	if(verslag.empty()) {
-	  fmt::print("Weird - uuid {} is not a Document and not a Verslag?\n", get<string>(m["uuid"]));
+	  fmt::print("Weird - uuid {} is not a Document and not a Verslag? Probably erased\n", get<string>(m["uuid"]));
+	  m.clear();
 	  continue;
 	}
+
 	for(const auto& f : verslag[0])
 	  m[f.first]=f.second;
 
@@ -1475,6 +1476,8 @@ int main(int argc, char** argv)
 	m["nummer"] =get<string>(verslag[0]["vergaderingId"]).substr(0, 8);
       }
     }
+    // remove empty matches which could not be found
+    erase_if(matches, [](const auto& m) { return m.empty(); });
     auto usec = dt.lapUsec();
     fmt::print("Got {} matches in {} msec\n", matches.size(), usec/1000.0);
     nlohmann::json response=nlohmann::json::object();
