@@ -823,7 +823,8 @@ int main(int argc, char** argv)
 
   doTemplate("search.html", "search.html");
 
-  doTemplate("kamerleden.html", "kamerleden.html", R"(select fractiezetel.gewicht fzgewicht, persoon.titels, persoon.roepnaam, persoon.tussenvoegsel, persoon.achternaam, persoon.nummer, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' union all select fractiezetel.gewicht fzgewicht, "" titels, "" roepnaam, "" tussenvoegsel, "Vacature" achternaam, 0 nummer, afkorting from FractieZetelVacature,fractieZetel, fractie where totEnMet='' and fractiezetel.id = fractiezetelid and fractie.id = fractieid  order by afkorting, fzgewicht)");
+  
+  doTemplate("kamerleden.html", "kamerleden.html", R"(select fractiezetel.gewicht fzgewicht, persoon.titels, persoon.roepnaam, persoon.tussenvoegsel, persoon.achternaam, persoon.nummer, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' union all select fractiezetel.gewicht fzgewicht, '' titels, '' roepnaam, '' tussenvoegsel, 'Vacature' achternaam, nummer, afkorting from FractieZetelVacature,fractieZetel, fractie where totEnMet='' and fractiezetel.id = fractiezetelid and fractie.id = fractieid order by afkorting, fzgewicht)");
   
   doTemplate("geschenken.html", "geschenken.html", "select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer,substr(persoongeschenk.bijgewerkt,0,11)  pgbijgewerkt from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by persoongeschenk.bijgewerkt desc");
 
