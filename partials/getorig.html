@@ -38,7 +38,7 @@ Bijlagen:
 
 {% if exists("kamerstuk") %}
 <p>
-  Onderdeel van kamerstukdossier {{kamerstuk.nummer}} {{kamerstuk.toevoeging}}-{{kamerstuk.volgnummer}} <a href="ksd.html?ksd={{kamerstuk.nummer}}">{{kamerstuk.titel}}</a>.
+  Onderdeel van kamerstukdossier {{kamerstuk.nummer}} {{kamerstuk.toevoeging}}-{{kamerstuk.volgnummer}} <a href="ksd.html?ksd={{kamerstuk.nummer}}&toevoeging={{kamerstuk.toevoeging}}">{{kamerstuk.titel}}</a>.
 </p>
 {% endif %}
 
