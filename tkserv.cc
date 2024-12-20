@@ -1336,7 +1336,7 @@ int main(int argc, char** argv)
     e.set_html_autoescape(true);
     nlohmann::json data;
     data["recenteVerslagen"] = packResultsJson(tmp);
-    data["pagemeta"]["title"]="Verslagen – OpenTK";";
+    data["pagemeta"]["title"]="Verslagen – OpenTK";
     data["og"]["title"] = "Recente verslagen";
     data["og"]["description"] = "Recente verslagen uit de Tweede Kamer";
     data["og"]["imageurl"] = "";
