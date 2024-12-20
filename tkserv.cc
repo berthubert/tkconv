@@ -1543,7 +1543,14 @@ int main(int argc, char** argv)
     row = cr.lsqw.query("select count(1) c from sentNotification");
     addMetric(os, "numnotifications", "Number of sent notifications", "gauge", get<int64_t>(row[0]["c"]));
 
+    row = cr.tp.getLease()->queryT("select count(1) c from Document");
+    addMetric(os, "numdocs", "Number of Document", "gauge", get<int64_t>(row[0]["c"]));
+    row = cr.tp.getLease()->queryT("select count(1) c from Verslag");
+    addMetric(os, "numverslagen", "Number of Verslag", "gauge", get<int64_t>(row[0]["c"]));
+    row = cr.tp.getLease()->queryT("select count(1) c from Activiteit");
+    addMetric(os, "numactiviteiten", "Number of Activiteit", "gauge", get<int64_t>(row[0]["c"]));
 
+    
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
     double sec = usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0 + usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0;
