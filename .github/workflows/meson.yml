@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install various apt dependencies
-      run: apt-get install nlohmann-json3-dev libsqlite3-dev libpugixml-dev libssl-dev zlib1g-dev poppler-utils catdoc imagemagick pkg-config xmlstarlet
+      run: sudo apt-get install nlohmann-json3-dev libsqlite3-dev libpugixml-dev libssl-dev zlib1g-dev poppler-utils catdoc imagemagick pkg-config xmlstarlet
 
 
     - name: Install meson
