@@ -10,6 +10,7 @@
 #include "httplib.h"
 #include "sqlwriter.hh"
 #include "argparse/argparse.hpp"
+#include <sys/resource.h>
 #include "jsonhelper.hh"
 #include "support.hh"
 #include "pugixml.hpp"
@@ -365,6 +366,17 @@ string onderwerpToFilename(const std::string& onderwerp)
   }
   return ret;
 }
+
+struct Stats
+{
+  atomic<uint64_t> hits = 0;
+  atomic<uint64_t> etagHits = 0;
+  atomic<uint64_t> searchUsec = 0;
+  atomic<uint64_t> http2xx = 0;
+  atomic<uint64_t> http3xx = 0;
+  atomic<uint64_t> http4xx = 0;
+  atomic<uint64_t> http5xx = 0;
+} g_stats;
 
 int main(int argc, char** argv)
 {
@@ -1481,6 +1493,7 @@ int main(int argc, char** argv)
     erase_if(matches, [](const auto& m) { return m.empty(); });
     auto usec = dt.lapUsec();
     fmt::print("Got {} matches in {} msec\n", matches.size(), usec/1000.0);
+    g_stats.searchUsec += usec;
     nlohmann::json response=nlohmann::json::object();
     response["results"]= packResultsJson(matches);
 
@@ -1498,6 +1511,51 @@ int main(int argc, char** argv)
     cout<<"Logged in user '"<< email <<"'"<<endl;
     nlohmann::json j{{"ok", 1}};
     return j;
+  });
+
+  auto addMetric = [](ostringstream& ret, std::string_view key, std::string_view desc, std::string_view kind, const auto& value)
+  {
+    ret << "# HELP tkserv_" << key << " " <<desc <<endl;
+    ret << "# TYPE tkserv_"<< key << " " << kind <<endl;
+    ret<<"tkserv_"<<key<<" "<< std::fixed<< value <<endl;
+  };
+
+  
+  sws.wrapGet({}, "/metrics", [&](auto& cr) {
+    ostringstream os;
+    addMetric(os, "hits", "hits", "counter", g_stats.hits);
+    addMetric(os, "etaghits", "etag hits", "counter", g_stats.etagHits);
+    addMetric(os, "searchUsec", "search microseconds", "counter", g_stats.searchUsec);
+    addMetric(os, "http2xx", "2xx error codes", "counter", g_stats.http2xx);
+    addMetric(os, "http3xx", "3xx error codes", "counter", g_stats.http3xx);
+    addMetric(os, "http4xx", "4xx error codes", "counter", g_stats.http4xx);
+    addMetric(os, "http5xx", "5xx error codes", "counter", g_stats.http5xx);
+    addMetric(os, "maxdb", "maximum number of concurrent db queries", "gauge", cr.tp.d_maxout);
+
+    auto row = cr.lsqw.query("select count(1) c from users");
+    addMetric(os, "numusers", "Number of user accounts", "counter", get<int64_t>(row[0]["c"]));
+    row = cr.lsqw.query("select count(1) c from scanners");
+    addMetric(os, "numscanners", "Number of scanners", "counter", get<int64_t>(row[0]["c"]));
+    row = cr.lsqw.query("select count(1) c from userInvite");
+    addMetric(os, "numinvites", "Number of user invites", "counter", get<int64_t>(row[0]["c"]));
+    row = cr.lsqw.query("select count(1) c from sessions");
+    addMetric(os, "numsessions", "Number of user sessions", "counter", get<int64_t>(row[0]["c"]));
+    row = cr.lsqw.query("select count(1) c from sentNotification");
+    addMetric(os, "numnotifications", "Number of sent notifications", "counter", get<int64_t>(row[0]["c"]));
+
+
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    double sec = usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0 + usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0;
+    addMetric(os, "cpuselfmsec" , "Number of self CPU milliseconds", "counter", 1000.0 * sec);
+    getrusage(RUSAGE_CHILDREN, &usage);
+    sec= usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0 + usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0;
+    addMetric(os, "cpuchildrenmsec" , "Number of child CPU milliseconds", "counter", 1000.0 * sec);
+
+
+
+    
+    return make_pair<string,string>(os.str(), "text/plain");
   });
   
   sws.d_svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
@@ -1535,8 +1593,19 @@ int main(int argc, char** argv)
         res.set_content("", "");
         res.headers.erase("Content-Type");
         res.status = 304;
+	g_stats.etagHits++;
       }
     }
+    g_stats.hits++;
+    if(res.status >= 200 && res.status < 300)
+      g_stats.http2xx++;
+    else if(res.status >= 300 && res.status < 400)
+      g_stats.http3xx++;
+    else if(res.status >= 400 && res.status < 500)
+      g_stats.http4xx++;
+
+    if(res.status >= 500 && res.status < 600)
+      g_stats.http5xx++;
   });
 
   sws.d_svr.set_payload_max_length(1024 * 1024); // 1MB
