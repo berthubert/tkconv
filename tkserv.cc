@@ -1533,15 +1533,15 @@ int main(int argc, char** argv)
     addMetric(os, "maxdb", "maximum number of concurrent db queries", "gauge", cr.tp.d_maxout);
 
     auto row = cr.lsqw.query("select count(1) c from users");
-    addMetric(os, "numusers", "Number of user accounts", "counter", get<int64_t>(row[0]["c"]));
+    addMetric(os, "numusers", "Number of user accounts", "gauge", get<int64_t>(row[0]["c"]));
     row = cr.lsqw.query("select count(1) c from scanners");
-    addMetric(os, "numscanners", "Number of scanners", "counter", get<int64_t>(row[0]["c"]));
+    addMetric(os, "numscanners", "Number of scanners", "gauge", get<int64_t>(row[0]["c"]));
     row = cr.lsqw.query("select count(1) c from userInvite");
-    addMetric(os, "numinvites", "Number of user invites", "counter", get<int64_t>(row[0]["c"]));
+    addMetric(os, "numinvites", "Number of user invites", "gauge", get<int64_t>(row[0]["c"]));
     row = cr.lsqw.query("select count(1) c from sessions");
-    addMetric(os, "numsessions", "Number of user sessions", "counter", get<int64_t>(row[0]["c"]));
+    addMetric(os, "numsessions", "Number of user sessions", "gauge", get<int64_t>(row[0]["c"]));
     row = cr.lsqw.query("select count(1) c from sentNotification");
-    addMetric(os, "numnotifications", "Number of sent notifications", "counter", get<int64_t>(row[0]["c"]));
+    addMetric(os, "numnotifications", "Number of sent notifications", "gauge", get<int64_t>(row[0]["c"]));
 
 
     struct rusage usage;
