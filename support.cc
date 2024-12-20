@@ -266,7 +266,6 @@ string toQuotedPrintable(const std::string& in)
   return out;
 }
 
-// do not put UTF-8 in the subject yet (although it might work)
 void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody)
 {
   const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@=";
@@ -306,9 +305,19 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   sc.writen("From: "+from+"\r\n");
   sc.writen("To: "+to+"\r\n");
 
-  string esubject = subject;
-  replaceSubstring(esubject, "\n", " "); // thank you wander nauta again!
-  replaceSubstring(esubject, "\r", " ");
+  bool needb64 = false;
+  for(const auto& c : subject) {
+    if(c < 32 || (unsigned char)c > 127) {
+      needb64 = true;
+      break;
+    }
+  }
+  string esubject;
+  if(needb64)
+    esubject = "=?utf-8?B?"+base64::to_base64(subject)+"?=";
+  else
+    esubject = subject;
+
   
   sc.writen("Subject: "+esubject+"\r\n");
   
