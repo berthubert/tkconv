@@ -899,7 +899,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(true);
 
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Hoofdpagina – OpenTK";
     data["og"]["title"] = "Recente documenten";
     data["og"]["description"] = "Recente documenten uit de Tweede Kamer";
     data["og"]["imageurl"] = "";
@@ -933,7 +933,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(true);
 
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Open Vragen – OpenTK";
     data["og"]["title"] = "Open vragen";
     data["og"]["description"] = "Open vragen uit de Tweede Kamer";
     data["og"]["imageurl"] = "";
@@ -993,7 +993,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(true);
 
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Besluiten – OpenTK";
     data["og"]["title"] = "Recente en toekomstige besluiten";
     data["og"]["description"] = "Recente en toekomstige besluiten in de Tweede Kamer";
     data["og"]["imageurl"] = "";
@@ -1015,7 +1015,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(true);
 
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Activiteit – OpenTK";
     data["og"]["title"] = act[0]["onderwerp"];
     data["og"]["description"] = (string)act[0]["datum"] + ": "+ (string)act[0]["onderwerp"];
     data["og"]["imageurl"] = "";
@@ -1043,7 +1043,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(false); // NOTE WELL!
 
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Activiteiten – OpenTK";
     data["og"]["title"] = "Activiteiten";
     data["og"]["description"] = "Activiteiten Tweede Kamer";
     data["og"]["imageurl"] = "";
@@ -1068,7 +1068,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(false); // NOTE WELL!
 
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Ongeplande Activiteiten – OpenTK";
     data["og"]["title"] = "Nog ongeplande activiteiten";
     data["og"]["description"] = "Ongeplande activiteiten Tweede Kamer";
     data["og"]["imageurl"] = "";
@@ -1090,6 +1090,7 @@ int main(int argc, char** argv)
     e.set_html_autoescape(true);
     nlohmann::json data;
     data["pagemeta"]["title"]= eget(deets[0], "naam");
+    data["pagemeta"]["title"] += " – OpenTK";
     data["og"]["title"] = eget(deets[0], "naam");
     data["og"]["description"] = eget(deets[0], "naam");
     data["og"]["imageurl"] = "";
@@ -1267,6 +1268,7 @@ int main(int argc, char** argv)
     e.set_html_autoescape(false);
 
     data["pagemeta"]["title"]=get<string>(ret[0]["onderwerp"]);
+    data["pagemeta"]["title"] += " – OpenTK";
     data["og"]["title"] = get<string>(ret[0]["onderwerp"]);
     data["og"]["description"] = get<string>(ret[0]["titel"]) + " " +get<string>(ret[0]["onderwerp"]);
     data["og"]["imageurl"] = "";
@@ -1317,6 +1319,7 @@ int main(int argc, char** argv)
     e.set_html_autoescape(false); // XX 
 
     data["pagemeta"]["title"]=data["onderwerp"];
+    data["pagemeta"]["title"] += " – OpenTK";
     data["og"]["title"] = data["onderwerp"];
     data["og"]["description"] = (string)data["titel"];
     data["og"]["imageurl"] = "";
@@ -1333,7 +1336,7 @@ int main(int argc, char** argv)
     e.set_html_autoescape(true);
     nlohmann::json data;
     data["recenteVerslagen"] = packResultsJson(tmp);
-    data["pagemeta"]["title"]="";
+    data["pagemeta"]["title"]="Verslagen – OpenTK";";
     data["og"]["title"] = "Recente verslagen";
     data["og"]["description"] = "Recente verslagen uit de Tweede Kamer";
     data["og"]["imageurl"] = "";
@@ -1398,7 +1401,7 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(true); 
 
-    data["pagemeta"]["title"]="Stemmingen";
+    data["pagemeta"]["title"]="Stemmingen – OpenTK";
     data["og"]["title"] = "Stemmingen";
     data["og"]["description"] = "Stemmingen";
     data["og"]["imageurl"] = "";
