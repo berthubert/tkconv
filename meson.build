@@ -74,6 +74,6 @@ executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
 	argparse_dep, vcs_dep])
 
 
-#executable('testrunner', 'testrunner.cc', 'support.cc', 'serv.cc',
-#	dependencies: [sqlitedep, json_dep, fmt_dep, bcryptcpp_dep, argparse_dep, sqlitewriter_dep, cpphttplib, doctest_dep, simplesockets_dep])
+executable('testrunner', 'testrunner.cc', 'support.cc',  'siphash.cc',
+dependencies: [sqlitedep, json_dep, fmt_dep, sqlitedep, sqlitewriter_dep, doctest_dep, cpphttplib, simplesockets_dep])
 
