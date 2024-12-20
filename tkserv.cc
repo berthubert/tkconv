@@ -1268,7 +1268,6 @@ int main(int argc, char** argv)
     e.set_html_autoescape(false);
 
     data["pagemeta"]["title"]=get<string>(ret[0]["onderwerp"]);
-    data["pagemeta"]["title"] += " – OpenTK";
     data["og"]["title"] = get<string>(ret[0]["onderwerp"]);
     data["og"]["description"] = get<string>(ret[0]["titel"]) + " " +get<string>(ret[0]["onderwerp"]);
     data["og"]["imageurl"] = "";
