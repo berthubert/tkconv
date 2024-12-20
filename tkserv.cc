@@ -1090,7 +1090,6 @@ int main(int argc, char** argv)
     e.set_html_autoescape(true);
     nlohmann::json data;
     data["pagemeta"]["title"]= eget(deets[0], "naam");
-    data["pagemeta"]["title"] += " – OpenTK";
     data["og"]["title"] = eget(deets[0], "naam");
     data["og"]["description"] = eget(deets[0], "naam");
     data["og"]["imageurl"] = "";
@@ -1318,7 +1317,6 @@ int main(int argc, char** argv)
     e.set_html_autoescape(false); // XX 
 
     data["pagemeta"]["title"]=data["onderwerp"];
-    data["pagemeta"]["title"] += " – OpenTK";
     data["og"]["title"] = data["onderwerp"];
     data["og"]["description"] = (string)data["titel"];
     data["og"]["imageurl"] = "";
