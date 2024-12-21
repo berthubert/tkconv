@@ -1420,11 +1420,8 @@ int main(int argc, char** argv)
 
   sws.d_svr.Post("/search", [](const httplib::Request &req, httplib::Response &res) {
     string term = req.get_file_value("q").content;
-    string twomonths = req.get_file_value("twomonths").content;
+    bool twomonths = req.get_file_value("twomonths").content == "true";
     string soorten = req.get_file_value("soorten").content;
-    string limit = "";
-    if(twomonths=="true")
-      limit = "2024-08-11";
 
     // turn COVID-19 into "COVID-19" and A.W.R. Hubert into "A.W.R. Hubert"
     if(term.find_first_of(".-") != string::npos  && term.find('"')==string::npos) {
@@ -1435,7 +1432,7 @@ int main(int argc, char** argv)
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     
     static auto s_uc = make_shared<int>(0);
-    cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"', " <<
+    cout<<"Search: '"<<term<<"', limited "<<twomonths<<", soorten: '"<<soorten<<"', " <<
       s_uc.use_count()<<" ongoing"<<endl;
     DTime dt;
     dt.start();
@@ -1454,13 +1451,13 @@ int main(int argc, char** argv)
     }
     
     if(soorten=="moties") {
-      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort='Motie' order by score limit 280", {term, limit}, mseclimit);
+      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and (? or document.datum >= date('now', '-2 months')) and document.soort='Motie' order by score limit 280", {term, !twomonths}, mseclimit);
     }
     else if(soorten=="vragenantwoorden") {
-      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort in ('Schriftelijke vragen', 'Antwoord schriftelijke vragen', 'Antwoord schriftelijke vragen (nader)')  order by score limit 280", {term, limit}, mseclimit);
+      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and (? or document.datum >= date('now', '-2 months')) and document.soort in ('Schriftelijke vragen', 'Antwoord schriftelijke vragen', 'Antwoord schriftelijke vragen (nader)')  order by score limit 280", {term, !twomonths}, mseclimit);
     }
     else {
-      matches = idx.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch WHERE docsearch match ? and datum > ? order by score limit 280", {term, limit}, mseclimit);
+      matches = idx.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch WHERE docsearch match ? and (? or datum >= date('now', '-2 months')) order by score limit 280", {term, !twomonths}, mseclimit);
       
       for(auto& m : matches) {
 	auto doc =  idx.queryT("select onderwerp, bijgewerkt, titel, nummer, datum FROM meta.Document where id=?",
