@@ -378,8 +378,12 @@ struct Stats
   atomic<uint64_t> http5xx = 0;
 } g_stats;
 
+
+time_t g_starttime;
+
 int main(int argc, char** argv)
 {
+  g_starttime = time(0);
   argparse::ArgumentParser args("tkserv", "0.0");
 
   args.add_argument("--rnd-admin-password").help("Create admin user if necessary, and set a random password").default_value(string(""));
@@ -1550,6 +1554,7 @@ int main(int argc, char** argv)
     row = cr.tp.getLease()->queryT("select count(1) c from Activiteit");
     addMetric(os, "numactiviteiten", "Number of Activiteit", "gauge", get<int64_t>(row[0]["c"]));
 
+    addMetric(os, "uptime", "Seconds of uptime", "gauge",  time(0) - g_starttime);
     
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
@@ -1559,9 +1564,6 @@ int main(int argc, char** argv)
     sec= usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0 + usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0;
     addMetric(os, "cpuchildrenmsec" , "Number of child CPU milliseconds", "counter", 1000.0 * sec);
 
-
-
-    
     return make_pair<string,string>(os.str(), "text/plain");
   });
   
