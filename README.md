@@ -110,7 +110,13 @@ builden en de gecompileerde bestanden uit te voeren:
 docker build --tag tkconv .
 docker run -it -v $PWD:/app --rm tkconv:latest tkgetxml
 docker run -it -v $PWD:/app --rm tkconv:latest tkconv
+docker run -it -v $PWD:/app --rm tkconv:latest tkpull
+docker run -it -v $PWD:/app --rm tkconv:latest tkindex
 docker run -it -v $PWD:/app -p 8089:8089 --rm tkconv:latest tkserv
+```
+De file **docker-compose.yml** kan gebruikt worden na de docker build instructie. Dan zijn de overige docker run commando's niet meer nodig:
+```
+docker compose up
 ```
 
 ## zelf vanuit source compileren
