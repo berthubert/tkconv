@@ -1,0 +1,20 @@
+name: tkconv
+services:
+    tkconv:
+        stdin_open: true
+        tty: true
+        volumes:
+            - $PWD:/app
+        image: tkconv:latest
+        command: >
+            sh -c "while true ; do tkgetxml && tkconv && tkpull && tkindex && sleep 60 ; done"
+    tkserv:
+        stdin_open: true
+        tty: true
+        volumes:
+            - $PWD:/app
+        ports:
+            - 8089:8089
+        image: tkconv:latest
+        command: tkserv
+
