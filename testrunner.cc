@@ -24,6 +24,18 @@ TEST_CASE("qp test") {
   CHECK(toQuotedPrintable("Korte regel.\nIets minder korte regel.\nEn dan hier weer zo'n lange zin die een soft linebreak moet krijgen ergens een beetje aan het einde denk ik.\nEn hier weer een korte regel\n") == "Korte regel.\r\nIets minder korte regel.\r\nEn dan hier weer zo'n lange zin die een soft linebreak moet krijgen ergens =\r\neen beetje aan het einde denk ik.\r\nEn hier weer een korte regel\r\n");
 }
 
+TEST_CASE("FTS5")
+{
+  CHECK(convertToSQLiteFTS5("bert hubert") == "bert hubert");
+  CHECK(convertToSQLiteFTS5("D66") == "D66");
+  CHECK(convertToSQLiteFTS5("Fox-IT") == "\"Fox-IT\"");
+  CHECK(convertToSQLiteFTS5("Fox-IT AND bert hubert") == "\"Fox-IT\" AND bert hubert");
+  CHECK(convertToSQLiteFTS5("command.com AND wp.exe NOT windows95") == "\"command.com\" AND \"wp.exe\" NOT windows95");
+  CHECK(convertToSQLiteFTS5("NEAR(bert hubert)") == "NEAR ( bert hubert )");
+  CHECK(convertToSQLiteFTS5("'s-Gravenhage") == "\"'s-Gravenhage\"");
+  CHECK(convertToSQLiteFTS5("D'66") == "D'66"); // I know, I know
+}
+
 #if 0
 TEST_CASE("Send email")
 {
