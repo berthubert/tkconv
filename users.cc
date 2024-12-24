@@ -136,6 +136,7 @@ void addTkUserManagement(SimpleWebSystem& sws)
 
   sws.wrapPost({Capability::IsUser}, "/add-search-monitor", [](auto& cr) {
     string query = cr.req.get_file_value("query").content;
+    query = convertToSQLiteFTS5(query);
     string categorie = cr.req.get_file_value("categorie").content;
     string id = getLargeId();
     cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "zoek"}, {"categorie", ""}, {"query", query}, {"cutoff", getTodayDBFormat()}}, "scanners");

@@ -8,7 +8,7 @@
 #include "siphash.h"
 #include <sclasses.hh>
 #include "base64.hpp"
-
+#include "peglib.h"
 using namespace std;
 
 static bool fileStartsWith(const std::string& fname, const std::string& start)
@@ -402,4 +402,61 @@ std::string htmlEscape(const std::string& data)
 std::string getTodayDBFormat()
 {
   return fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)));
+}
+
+/*
+  SQLite FTS5 has some oddities where you can't search for Fox-IT as a bare word,
+  because of the dash you must do "Fox-IT".
+*/
+string convertToSQLiteFTS5(const std::string& in)
+{
+  peg::parser p;
+  p.set_logger([](size_t line, size_t col, const string& msg, const string &rule) {
+    fmt::print("line {}, col {}: {}\n", line, col,msg, rule);
+  }); // gets us some helpful errors if the grammar is wrong
+
+  // sequence of words AND "words" - add quotes to everything not quoted with a . or - in there
+  auto ret = p.load_grammar(R"a(
+Root <- (Paren / BareWord / QuotedWord)+
+Paren <- ('(' / ')')
+BareWord      <- < [a-zA-Z0-9._'-]+ > 
+QuotedWord <-  < '"'  [^"]*  '"' > 
+%whitespace <- [\t ]*
+)a");
+  if(!ret)
+    throw runtime_error("cpp-peglib grammar did not compile");
+
+  p["BareWord"] = [](const peg::SemanticValues &vs) {
+    if(auto pos = vs.token_to_string().find_first_of(".-"); pos != string::npos) {
+      return "\"" + vs.token_to_string() +"\"";
+    }
+    else
+      return vs.token_to_string();
+  };
+
+  p["QuotedWord"] = [](const peg::SemanticValues &vs) {
+    return vs.token_to_string();
+  };
+
+  p["Paren"] = [](const peg::SemanticValues &vs) {
+    return vs.token_to_string();
+  };
+
+  
+  p["Root"] = [](const peg::SemanticValues &vs) {
+    return vs.transform<string>();
+  };
+  vector<string> result;
+  int rc = p.parse(in, result);
+
+  if(!rc)
+    return in; // we tried
+  
+  string retval;
+  for(const auto& r : result) {
+    if(!retval.empty())
+      retval.append(1, ' ');
+    retval += r;
+  }
+  return retval;
 }

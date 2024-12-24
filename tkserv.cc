@@ -1430,10 +1430,7 @@ int main(int argc, char** argv)
     if(twomonths=="true")
       limit = "2024-08-11";
 
-    // turn COVID-19 into "COVID-19" and A.W.R. Hubert into "A.W.R. Hubert"
-    if(term.find_first_of(".-") != string::npos  && term.find('"')==string::npos) {
-      term = "\"" + term + "\"";
-    }
+    term = convertToSQLiteFTS5(term);
 
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");

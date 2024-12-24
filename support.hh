@@ -66,3 +66,4 @@ std::string eget(const T& cont, const std::string& fname)
   return std::get<std::string>(iter->second);  
 }
 
+std::string convertToSQLiteFTS5(const std::string& in);
