@@ -232,7 +232,7 @@ void SimpleWebSystem::standardFunctions()
     }
     return j;
   });
-
+  /*
   wrapPost({Capability::IsUser}, "/change-my-password/?", [](auto& cr) {
     auto origpwfield = cr.req.get_file_value("password0");
     auto pwfield = cr.req.get_file_value("password1");
@@ -247,7 +247,7 @@ void SimpleWebSystem::standardFunctions()
 
     return nlohmann::json{{"ok", 1}, {"message", "Changed password"}};
   });
-  
+  */
   wrapPost({}, "/join-session/(.*)", [](auto& cr) {
     string sessionid = cr.req.matches[1];
     nlohmann::json j{{"ok", 0}};
@@ -265,11 +265,13 @@ void SimpleWebSystem::standardFunctions()
       cr.log({{"action", "join-session"}, {"sessionid", sessionid}});
       j["ok"]=1;
     }
-    else
+    else {
+      cr.stats.failedSessionJoin++;
       cout<<"Could not find authenticated session "<<sessionid<<endl;
+    }
     return j;
   });
-
+  /*
   wrapPost({Capability::IsUser}, "/change-my-email/?", [](auto& cr) {
     auto email = cr.req.get_file_value("email").content;
 
@@ -282,7 +284,7 @@ void SimpleWebSystem::standardFunctions()
     cr.log({{"action", "change-my-email"}, {"to", email}});
     return nlohmann::json{{"ok", 1}, {"message", "Changed email"}};
   });
-  
+  */
 
   wrapGet({Capability::IsUser}, "/my-sessions", [](auto& cr) {
     return cr.lsqw.queryJRet("select * from sessions where user = ?", {cr.user});
@@ -383,13 +385,14 @@ void SimpleWebSystem::standardFunctions()
     return nlohmann::json{{"ok", 1}};
   });
 
+  /*
   // hard to unit test this
   wrapPost({Capability::IsUser, Capability::EmailAuthenticated}, "/wipe-my-password/?", [](auto& cr) {
     cr.users.changePassword(cr.user, "");
     cr.log({{"action", "wipe-my-password"}});
     return nlohmann::json{{"ok", 1}};
   });
-  
+  */
   wrapPost({Capability::Admin}, "/stop" , [this](auto& cr) {
     cr.log({{"action", "stop"}});
     d_svr.stop();

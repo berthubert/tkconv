@@ -81,6 +81,10 @@ private:
   LockedSqw& d_lsqw;
 };
 
+struct SWSStats
+{
+  std::atomic<int64_t> failedSessionJoin = 0;
+};
 
 struct SimpleWebSystem
 {
@@ -89,6 +93,7 @@ struct SimpleWebSystem
   LockedSqw& d_lsqw;
   Users d_users;
   Sessions d_sessions;
+  SWSStats d_stats;
   httplib::Server d_svr;
   std::unordered_set<std::string> d_tproxies;
   std::string d_realipheadername;
@@ -102,6 +107,7 @@ struct SimpleWebSystem
     httplib::Response &res;
     Users& users;
     Sessions& sessions;
+    SWSStats& stats;
     const SimpleWebSystem& sws;
     std::string user;
     std::string getIP()
@@ -142,7 +148,7 @@ struct SimpleWebSystem
         if(!d_users.userHasCap(user, c, &req))
           throw std::runtime_error(fmt::format("Lacked a capability ({})", (int)c));
       }
-      ComboReq cr{d_tp, d_lsqw, req, res, d_users, d_sessions, *this, user};
+      ComboReq cr{d_tp, d_lsqw, req, res, d_users, d_sessions, d_stats, *this, user};
       auto output = f(cr);
       if constexpr (std::is_same_v<decltype(output), std::pair<std::string, std::string>>) {
         res.set_content(output.first, output.second);

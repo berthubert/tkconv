@@ -1561,6 +1561,8 @@ int main(int argc, char** argv)
     sec= usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0 + usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0;
     addMetric(os, "cpuchildrenmsec" , "Number of child CPU milliseconds", "counter", 1000.0 * sec);
 
+    addMetric(os, "failed_session_join", "Failed attempts to join an existing session", "counter", cr.stats.failedSessionJoin);
+    
     return make_pair<string,string>(os.str(), "text/plain");
   });
   
