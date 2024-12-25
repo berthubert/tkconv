@@ -264,6 +264,7 @@ void SimpleWebSystem::standardFunctions()
       cr.lsqw.query("update users set lastLoginTstamp=? where user=?", {time(0), user});
       cr.log({{"action", "join-session"}, {"sessionid", sessionid}});
       j["ok"]=1;
+      cr.stats.successfulSessionJoin++;
     }
     else {
       cr.stats.failedSessionJoin++;

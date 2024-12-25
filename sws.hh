@@ -84,6 +84,8 @@ private:
 struct SWSStats
 {
   std::atomic<int64_t> failedSessionJoin = 0;
+  std::atomic<int64_t> successfulSessionJoin = 0;
+  std::atomic<int64_t> sessionJoinInvite = 0;
 };
 
 struct SimpleWebSystem

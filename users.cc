@@ -48,6 +48,7 @@ void addTkUserManagement(SimpleWebSystem& sws)
 		    fmt::format("Log in door op deze link <a href='{}'>{}</a> te klikken. Let op, deze link werkt maar *1* keer!",
 				dest, dest));
 	  cout<<"Sent email pointing user at "<<dest<<endl;
+	  cr.stats.sessionJoinInvite++;
 	  j["ok"] = 1;
 	  return j;
 	}

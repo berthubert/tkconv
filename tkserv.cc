@@ -1562,7 +1562,8 @@ int main(int argc, char** argv)
     addMetric(os, "cpuchildrenmsec" , "Number of child CPU milliseconds", "counter", 1000.0 * sec);
 
     addMetric(os, "failed_session_join", "Failed attempts to join an existing session", "counter", cr.stats.failedSessionJoin);
-    
+    addMetric(os, "successful_session_join", "Successful attempts to join an existing session", "counter", cr.stats.successfulSessionJoin);
+    addMetric(os, "session_join_invite", "Emailed invite to join an existing session", "counter", cr.stats.sessionJoinInvite);
     return make_pair<string,string>(os.str(), "text/plain");
   });
   
