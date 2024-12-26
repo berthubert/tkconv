@@ -296,11 +296,11 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     return make_pair<string,string>(str.str(), "application/xml");
   });
 
-  sws.wrapGet({}, "/:userid/index.xml", [](auto& cr) {
-    string userid = cr.req.path_params.at("userid");
-    cout<<"Called for userid "<<userid<<endl;
+  sws.wrapGet({}, "/:timsi/index.xml", [](auto& cr) {
+    string timsi = cr.req.path_params.at("timsi");
+    cout<<"Called for timsi "<< timsi <<endl;
 
-    auto docids = cr.lsqw.query("select identifier,timestamp from sentNotification where userid = ? order by timestamp desc", {userid});
+    auto docids = cr.lsqw.query("select identifier,timestamp from sentNotification,users where sentNotification.userid = users.user and users.timsi=? order by timestamp desc", {timsi});
 
     cout<<"Got "<<docids.size()<<" docids\n";
     

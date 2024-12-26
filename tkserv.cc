@@ -632,6 +632,24 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/persoon.html", j), "text/html");
     return;
   });
+
+  sws.wrapGet({}, "/mijn.html", [&tp](auto& cr) {
+    nlohmann::json data;
+    data["pagemeta"]["title"]="Mijn";
+    data["og"]["title"] = "Mijn";
+    data["og"]["description"] = "Mijn";
+    data["og"]["imageurl"] = "";
+
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    // need to get timsi somehow
+    auto timsi = cr.lsqw.query("select timsi from users where user=?", {cr.user});
+    if(timsi.size()==1) {
+      data["timsi"] = eget(timsi[0], "timsi");
+    }
+      
+    return make_pair<string,string>(e.render_file("./partials/mijn.html", data), "text/html");
+  });
   
   sws.d_svr.Get("/zaak.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.get_param_value("nummer");
@@ -838,7 +856,7 @@ int main(int argc, char** argv)
     });
   };
 
-  doTemplate("mijn.html", "mijn.html");
+
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html"); // unlisted
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");

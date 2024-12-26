@@ -8,6 +8,11 @@ state: -1
 
 {% endblock %}
 
+{% block extrameta %}
+<link rel="alternate" type="application/rss+xml" href="https://berthub.eu/tkconv/{{timsi}}/index.xml" title="OpenTK Jouw monitors RSS" />
+{% endblock %}
+
+
 {% block javascript %}
 <script defer src="user.js"></script>
 {{ super() }}
