@@ -1563,7 +1563,7 @@ int main(int argc, char** argv)
 
     addMetric(os, "failed_session_join", "Failed attempts to join an existing session", "counter", cr.stats.failedSessionJoin);
     addMetric(os, "successful_session_join", "Successful attempts to join an existing session", "counter", cr.stats.successfulSessionJoin);
-    addMetric(os, "session_join_invite", "Emailed invite to join an existing session", "counter", cr.stats.sessionJoinInvite);
+    addMetric(os, "session_join_invite", "Emailed invites to join an existing session", "counter", cr.stats.sessionJoinInvite);
     return make_pair<string,string>(os.str(), "text/plain");
   });
   
