@@ -254,7 +254,7 @@ struct GeschenkScanner : Scanner
 };
 #endif
 
-
+// this one requires a SQLiteWriter with both tkindex and tk databases connected!
 struct ZoekScanner : Scanner
 {
   std::string getType() override
@@ -270,28 +270,14 @@ struct ZoekScanner : Scanner
     s.d_categorie = eget(row, "categorie");
     return std::make_unique<ZoekScanner>(s);
   }
-  
+  // needs sqlw with tk.sqlite3 (as meta.*) AND tkindex
   std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
   {
-    struct Local
-    {
-      Local() : idx("tkindex.sqlite3", SQLWFlag::ReadOnly)
-      {
-	idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
-      }
-      SQLiteWriter idx;
-      
-    };
-    static Local l;
+    auto matches = sqlw.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category=?)", {d_query, d_cutoff, d_categorie.empty(), d_categorie});
 
-    auto matches = l.idx.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category=?)", {d_query, d_cutoff, d_categorie.empty(), d_categorie});
-
-    //    cout<<"d_categorie: '"<<d_categorie<<"'\n";
-    //    std::cout<<"Query: "<<d_query<<"\n";;
-    //    std::cout<<"Got "<<matches.size()<<" matches\n";
-    std::vector<ScannerHit> ret;
+     std::vector<ScannerHit> ret;
     for(auto& m : matches) {
-      auto doc =  l.idx.queryT("select onderwerp, bijgewerkt, titel, nummer, datum FROM meta.Document where id=?",   {eget(m, "uuid")});
+      auto doc =  sqlw.queryT("select onderwerp, bijgewerkt, titel, nummer, datum FROM meta.Document where id=?",   {eget(m, "uuid")});
       if(doc.empty())
 	continue;
       
@@ -309,7 +295,8 @@ struct ZoekScanner : Scanner
 	continue;
       if(eget(m,"category") != "Activiteit")
 	continue;
-      auto act =  l.idx.queryT("select nummer, datum FROM meta.Activiteit where id=?",   {eget(m, "uuid")});
+      // this is not used yet, but we COULD find activities
+      auto act =  sqlw.queryT("select nummer, datum FROM meta.Activiteit where id=?",   {eget(m, "uuid")});
       if(act.empty())
 	continue;
       ret.emplace_back(eget(act[0], "nummer"),

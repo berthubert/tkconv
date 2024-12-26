@@ -1,12 +1,14 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
 #include <fmt/ranges.h>
+#include <regex>
 #include <mutex>
 #include <iostream>
 #include "sqlwriter.hh"
 #include <atomic>
 #include "support.hh"
 #include <unordered_set>
+#include "argparse/argparse.hpp"
 
 using namespace std;
 
@@ -66,10 +68,42 @@ static string textFromFile(const std::string& fname)
 
 int main(int argc, char** argv)
 {
-  SQLiteWriter todo("tk.sqlite3");
-  string limit="2008-01-01";
-  if(argc > 1)
-    limit = argv[1];
+  argparse::ArgumentParser args("tkindex", "0.0");
+
+  args.add_argument("--begin")
+    .help("Begin date of indexing, 2024-12-05 format").default_value("2008-01-01");
+  args.add_argument("--tkindex")
+    .help("filename that holds our index").default_value("tkindex.sqlite3");
+  args.add_argument("--cleanup").default_value(false)
+    .implicit_value(true).help("Cleanup older documents");
+  
+  args.add_argument("--days")
+    .default_value(-1)
+    .help("Number of days of history to index")
+    .scan<'i', int>();
+  
+  try {
+    args.parse_args(argc, argv);
+  }
+  catch (const std::runtime_error& err) {
+    std::cout << err.what() << std::endl << args;
+    std::exit(1);
+  }
+  string limit = args.get<string>("begin");
+  
+  if (args.get<int>("--days") > 0) {
+    int days = args.get<int>("--days");
+    cout << "Number of days set: "<< days << endl;
+    limit = getTimeDBFormat(time(0) - days * 86400);
+  }
+  cout<<"Limit for documents: "<<limit<<endl;
+  SQLiteWriter todo("tk.sqlite3", SQLWFlag::ReadOnly);
+
+  std::regex dregex(R"(\d{4}-\d{2}-\d{2})");
+  if(!regex_match(limit, dregex)) {
+    fmt::print("The configured begin limit does not look like a date: '{}' (should be 2024-12-25)\n", limit);
+    return EXIT_FAILURE;
+  }
 
   fmt::print("Getting document ids from database since {}\n", limit);
   auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category, contentLength from Document where datum > ?", {limit});
@@ -92,10 +126,8 @@ int main(int argc, char** argv)
   }
   fmt::print("Would like to index {} most recent verslagen\n", wantVerslagen.size());
 
-  string idxfname = "tkindex.sqlite3";
-  if(argc > 2)
-    idxfname = argv[2];
-  
+  string idxfname = args.get<string>("--tkindex");
+  fmt::print("tkindex filename: {}\n", idxfname);
   SQLiteWriter sqlw(idxfname, {{"indexed", {{"uuid", "PRIMARY KEY"}}}});
 
   sqlw.queryT(R"(
@@ -105,6 +137,14 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   // IF THIS GETS OUT OF SYNC, drop 'indexed', and it will be recreated automatically:
   sqlw.queryT("create table if not exists indexed as select datum,uuid,contentLength,category from docsearch");
   sqlw.queryT("create unique index if not exists uuididx on indexed(uuid)");
+
+
+  if (args["--cleanup"] == true) {
+    fmt::print("Cleaning up documents that are older than {}\n", limit);
+    sqlw.queryT("delete from indexed where datum < ?", {limit});
+    sqlw.queryT("delete from docsearch where datum < ?", {limit});
+  }
+
   
   fmt::print("Retrieving already indexed document uuids from 'indexed' table..");
   cout.flush();

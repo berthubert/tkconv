@@ -74,39 +74,67 @@ string getEmailForUserId(SQLiteWriter& sqlw, const std::string& userid)
 
 int main(int argc, char** argv)
 {
-  SQLiteWriter sconfig("user.sqlite3");  
+  SQLiteWriter userdb("user.sqlite3");  
 
-  auto toscan=sconfig.queryT("select rowid,* from scanners");
+  auto toscan=userdb.queryT("select rowid,* from scanners");
   vector<unique_ptr<Scanner>> scanners;
   for(auto& ts: toscan) {
     if(auto iter = g_scanmakers.find(eget(ts,"soort")); iter != g_scanmakers.end()) {
-      scanners.push_back(iter->second(sconfig, get<string>(ts["id"])));
+      scanners.push_back(iter->second(userdb, get<string>(ts["id"])));
     }
   }
       
   ThingPool<SQLiteWriter> tp("tk.sqlite3");
   //   user       doc         scanner
   map<string, map<string, set<Scanner*>>> all;
-  for(auto& scanner : scanners) {
-    fmt::print("{}\n", scanner->describe(tp.getLease().get()));
-    try {
-      auto ds = scanner->get(tp.getLease().get());
-      for(const auto& d: ds) {
-	if(emitIfNeeded(sconfig, d, *scanner.get())) {
-	  fmt::print("\tNummer {}\n", d.identifier);
-	  all[scanner->d_userid][d.identifier].insert(scanner.get());
-	  logEmission(sconfig, d, *scanner.get());
+
+  atomic<size_t> ctr = 0;
+  std::mutex mlock; // for all & userdb
+
+  auto worker = [&ctr, &all, &scanners, &userdb, &mlock]() {
+    unique_ptr<SQLiteWriter> own;
+    {
+      std::lock_guard<std::mutex> l(mlock); // sqlite gets unhappy if you all try to open the same db at the same time
+      own = make_unique<SQLiteWriter>("tkindex-small.sqlite3", SQLWFlag::ReadOnly);
+      own->query("ATTACH DATABASE 'tk.sqlite3' as meta");
+    }
+    
+    for(size_t n = ctr++; n < scanners.size(); n = ctr++) {
+      auto& scanner = scanners[n];
+    
+      fmt::print("{}\n", scanner->describe(*own));
+      try {
+	auto ds = scanner->get(*own); // this does the actual work
+
+	for(const auto& d: ds) {
+	  std::lock_guard<std::mutex> l(mlock); 	  // for userdb and all
+  
+	  if(emitIfNeeded(userdb, d, *scanner.get())) {
+	    fmt::print("\tNummer {}\n", d.identifier);
+	    
+	    all[scanner->d_userid][d.identifier].insert(scanner.get());
+	    logEmission(userdb, d, *scanner.get());
+	  }
+	  else
+	    fmt::print("\t(skip Nummer {})\n", d.identifier);
 	}
-	else
-	  fmt::print("\t(skip Nummer {})\n", d.identifier);
-	
+      }
+      catch(std::exception& e) {
+	fmt::print("Scanner {} failed: {}\n", scanner->describe(*own),
+		   e.what());
       }
     }
-    catch(std::exception& e) {
-      fmt::print("Scanner {} failed: {}\n", scanner->describe(tp.getLease().get()),
-		 e.what());
-    }
+  };
+
+  vector<thread> workers;
+  for(int n=0; n < 4; ++n) {  // number of threads
+    workers.emplace_back(worker);
   }
+  // go BRRRRR!
+  for(auto& w : workers)
+    w.join();
+  // wait for everyone to be done - all is now filled
+  
   for(auto& [user, content] : all) {
     map<set<Scanner*>, set<string>> grpd;
     set<Scanner*> allscanners;
@@ -154,44 +182,11 @@ int main(int argc, char** argv)
     inja::Environment e2;
     e2.set_html_autoescape(true);
     string html = e2.render_file("./partials/email.html", data);
-    
     sendEmail("10.0.0.2",
 			"opentk@hubertnet.nl",
-	      getEmailForUserId(sconfig, user),
+	      getEmailForUserId(userdb, user),
 	      subject , msg, html);
   }
   for(auto& sc : scanners)
-    updateScannerDate(sconfig, *sc);
-
-
-  /*
-  atomic<size_t> ctr = 0;
-  auto worker = [&]() {
-    for(size_t n = ctr++; n < sconfigs.size(); n = ctr++) {
-      auto& sc = sconfigs[n];
-      auto sqlw = tp.getLease();
-      auto hits = g_scanners[sc.kind](sqlw.get(), sc.param1, sc.cutoff, sc.param2);
-      fmt::print("Scanner {} param {} cutoff {} user {}\n",
-		 sc.kind, sc.param1, sc.cutoff, sc.userid);
-      for(const auto& h : hits) {
-	if(emitIfNeeded(sqlw.get(), h, sc)) {
-	  sendAsciiEmailAsync("10.0.0.2", "bert@hubertnet.nl", "bert@hubertnet.nl",
-			      "opentk alert", fmt::format("Nieuw document {}\n", h.identifier));
-	  fmt::print("\tNummer {}\n", h.identifier);
-	}
-	else
-	  fmt::print("\t(skip Nummer {})\n", h.identifier);
-      }
-    }
-  };
-  
-  
-  vector<thread> workers;
-  for(int n=0; n < 16; ++n)  // number of threads
-    workers.emplace_back(worker);
-  
-  for(auto& w : workers)
-    w.join();
-  cout << (unsigned int) tp.d_maxout <<endl;
-*/
+    updateScannerDate(userdb, *sc);
 }
