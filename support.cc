@@ -399,9 +399,15 @@ std::string htmlEscape(const std::string& data)
   return buffer;
 }
 
+std::string getTimeDBFormat(time_t t)
+{
+  return fmt::format("{:%Y-%m-%d}", fmt::localtime(t));
+}
+
+
 std::string getTodayDBFormat()
 {
-  return fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)));
+  return getTimeDBFormat(time(0));
 }
 
 /*

@@ -53,6 +53,7 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
 void replaceSubstring(std::string &originalString, const std::string &searchString, const std::string &replaceString);
 std::string htmlEscape(const std::string& data);
 std::string getTodayDBFormat();
+std::string getTimeDBFormat(time_t t);
 std::string toQuotedPrintable(const std::string& in);
 
 template<typename T>
