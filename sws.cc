@@ -113,7 +113,9 @@ void Users::createUser(const std::string& user, const std::string& password, con
 {
   // if you specify an empty password, you don't get a password
   string pwhash = password.empty() ? "" : bcrypt::generateHash(password);
-  d_lsqw.addValue({{"user", user}, {"pwhash", pwhash}, {"admin", (int)admin}, {"disabled", 0}, {"caps", ""}, {"lastLoginTstamp", 0}, {"email", email}}, "users");
+  d_lsqw.addValue({{"user", user}, {"pwhash", pwhash}, {"admin", (int)admin},
+		   {"timsi", getLargeId()},
+		   {"disabled", 0}, {"caps", ""}, {"lastLoginTstamp", 0}, {"email", email}}, "users");
 }
 
 void Users::delUser(const std::string& user)

@@ -407,6 +407,12 @@ int main(int argc, char** argv)
 			{"scanners", {{"userid", "NOT NULL REFERENCES users(user) ON DELETE CASCADE"}}}
 		      }
 		      );
+
+  try {
+    userdb.query("create index if not exists timsiidx on users(timsi)");
+  }
+  catch(...){}
+    
   
   std::mutex userdblock;
   LockedSqw ulsqw{userdb, userdblock};
