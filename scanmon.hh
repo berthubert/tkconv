@@ -226,6 +226,33 @@ struct KsdScanner : Scanner
   std::string d_nummer, d_toevoeging;
 };
 
+#if 0
+struct GeschenkScanner : Scanner
+{
+  std::string getType() override
+  {
+    return "Geschenk";
+  }
+
+  static std::unique_ptr<Scanner> make(SQLiteWriter& sqlw, const std::string& id) 
+  {  
+    GeschenkScanner s;
+    auto row = s.getRow(sqlw, id);  
+    return std::make_unique<GeschenkScanner>(s);
+  }
+  
+  std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
+  {
+    auto hits = sqlw.queryT("select * from Geschenk where bijgewerkt >= ?", {d_nummer, d_toevoeging, d_cutoff});
+    return sqlToScannerHits(hits);
+  }
+  
+  std::string describe(SQLiteWriter& sqlw) override
+  {
+    return "Geschenken";
+  }
+};
+#endif
 
 
 struct ZoekScanner : Scanner
