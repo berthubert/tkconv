@@ -296,6 +296,66 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     return make_pair<string,string>(str.str(), "application/xml");
   });
 
+  // https://berthub.eu/tkconv/search.html?q=bert+hubert&twomonths=false&soorten=alles
+  sws.wrapGet({}, "/search/index.xml", [](auto& cr) {
+    string q = convertToSQLiteFTS5(cr.req.get_param_value("q"));
+    string categorie;
+
+    SQLiteWriter own("tkindex-small.sqlite3", SQLWFlag::ReadOnly);
+    own.query("ATTACH database 'tk.sqlite3' as meta");
+    
+    auto matches = own.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category FROM docsearch WHERE docsearch match ? and (? or category=?)", {q, categorie.empty(), categorie});
+    cout<<"Have "<<matches.size()<<" matches\n";
+    pugi::xml_document doc;
+    pugi::xml_node channel = prepRSS(doc, "Zoek RSS", "Documenten gematched door zoekstring "+q);
+    
+    bool first = true;
+    
+    
+    for(auto& m : matches) {
+      auto docs = own.queryT("select Document.onderwerp, Document.titel titel, Document.nummer nummer, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie'  where Document.id=?", {eget(m, "uuid")});
+
+      if(docs.empty()) {
+	cout<<"No hits for "<<eget(m, "uuid")<<endl;
+	continue;
+      }
+      auto& r = docs[0];
+      pugi::xml_node item = channel.append_child("item");
+      string onderwerp = eget(r, "onderwerp");
+      item.append_child("title").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
+      onderwerp = eget(r, "naam")+" | " + eget(r, "titel") + " " + onderwerp;
+      item.append_child("description").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
+
+      
+      item.append_child("link").append_child(pugi::node_pcdata).set_value(
+									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
+      item.append_child("guid").append_child(pugi::node_pcdata).set_value(eget(r, "nummer").c_str());
+
+      // 2024-12-06T06:01:10.2530000
+      string pubDate = eget(r, "bijgewerkt");
+      time_t then = getTstamp(pubDate);
+     
+      //      <pubDate>Fri, 13 Dec 2024 14:13:41 +0000</pubDate>
+      string date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(then));
+      item.append_child("pubDate").append_child(pugi::node_pcdata).set_value(date.c_str());
+
+      if(first) {
+	channel.prepend_child("lastBuildDate").append_child(pugi::node_pcdata).set_value(date.c_str());
+	first=false;
+      }
+      
+    }
+
+    if(first) {
+      string date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(time(0)));
+      channel.append_child("pubDate").append_child(pugi::node_pcdata).set_value(date.c_str());
+    }
+    
+    ostringstream str;
+    doc.save(str);
+    return make_pair<string,string>(str.str(), "application/xml");
+  });
+  
   sws.wrapGet({}, "/:timsi/index.xml", [](auto& cr) {
     string timsi = cr.req.path_params.at("timsi");
     cout<<"Called for timsi "<< timsi <<endl;

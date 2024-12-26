@@ -9,6 +9,7 @@ message: '',
 alternatief: '',
 busy: false,
 haveMonitor: false,
+rssurl: '',
 monitorId: '',
 kind: 'zoek'
 }" x-init="init($data);"
@@ -27,6 +28,9 @@ kind: 'zoek'
     <input x-bind:disabled="busy" name="q" size="80" placeholder="zoektekst, documentnummer, zaaknummer, activiteitnummer..." type="text" x-model="searchQuery" autofocus>
     <label><input x-bind:disabled="busy" name="twomonths" id="twomonths" type="checkbox" value="on" x-model="twomonths" @change="getSearchResults($data);">2&nbsp;maanden</label>
     <span x-html="makeBell($data, haveMonitor);"></span>
+    <template x-if="rssurl!=''">
+      <a x-bind:href="rssurl"><img src="Generic_Feed-icon.svg"></a>
+    </template>
   </fieldset>
   <small>
 <fieldset x-bind:disabled="busy">

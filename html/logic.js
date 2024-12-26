@@ -248,11 +248,10 @@ async function getSearchResults(f)
 	return;
 
     f.searchQuery = f.searchQuery.replace(/[\u201C\u201D]/g, '"'); 
-    //    “smart quotes”
-    //    "smart quotes" 
+    //    “smart quotes” ->  "smart quotes" 
     f.busy = true;
+    f.rssurl = "";
     f.haveMonitor = false;
-    
 
     const url = new URL(window.location.href);
     url.searchParams.set("q", f.searchQuery);
@@ -289,7 +288,10 @@ async function getSearchResults(f)
     if (response.ok === true) {
         const data = await response.json();
         f.foundDocs = data["results"];
-	
+	const rssurl = new URL("https://berthub.eu/tkconv/search/index.xml");
+	rssurl.searchParams.set("q", f.searchQuery);
+	f.rssurl = rssurl.href
+
 	f.message = `${data["milliseconds"]} milliseconden`;
 	f.busy=false;
     }
