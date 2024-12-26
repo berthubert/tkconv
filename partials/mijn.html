@@ -9,7 +9,9 @@ state: -1
 {% endblock %}
 
 {% block extrameta %}
+{% if exists("timsi") %}
 <link rel="alternate" type="application/rss+xml" href="https://berthub.eu/tkconv/{{timsi}}/index.xml" title="OpenTK Jouw monitors RSS" />
+{% endif %}
 {% endblock %}
 
 
@@ -20,7 +22,11 @@ state: -1
 {% endblock %}
 
 {% block customheader %}
-<h1>Mijn OpenTK <a href="https://berthub.eu/tkconv/{{timsi}}/index.xml"><img src="Generic_Feed-icon.svg"></a></h1>
+<h1>Mijn OpenTK 
+{% if exists("timsi") %}
+<a href="https://berthub.eu/tkconv/{{timsi}}/index.xml"><img src="Generic_Feed-icon.svg"></a>
+{% endif %}
+</h1>
 {% endblock %}
 
 {% block main %}
@@ -56,9 +62,6 @@ state: -1
     </p>
     <p>
       Wacht op die email en klik op de link om verder te gaan! Check mogelijk ook je spamfolder. Als er niets aankomt, mail bert@hubertnet.nl dan regel ik het met de hand.
-    </p>
-    <p>
-      <b>Als je je mail op een eigen domein bij Soverin hebt staan, weet dat ze OpenTK zo hard blokkeren dat de mail niet eens in je spamfolder komt!</b>
     </p>
   </div>
 </template>
