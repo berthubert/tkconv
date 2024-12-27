@@ -52,6 +52,7 @@ time_t getTstampUTC(const std::string& str);
 void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody="");
 void replaceSubstring(std::string &originalString, const std::string &searchString, const std::string &replaceString);
 std::string htmlEscape(const std::string& data);
+std::string urlEscape(const std::string& data);
 std::string getTodayDBFormat();
 std::string getTimeDBFormat(time_t t);
 std::string toQuotedPrintable(const std::string& in);

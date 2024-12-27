@@ -36,6 +36,13 @@ TEST_CASE("FTS5")
   CHECK(convertToSQLiteFTS5("D'66") == "D'66"); // I know, I know
 }
 
+TEST_CASE("Escape")
+{
+  CHECK(htmlEscape("bert & ernie") == "bert &amp; ernie");
+  CHECK(urlEscape("salt & pepper") == "salt%20%26%20pepper");
+  CHECK(urlEscape("kaasbroodje") == "kaasbroodje");
+}
+
 #if 0
 TEST_CASE("Send email")
 {

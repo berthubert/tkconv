@@ -399,6 +399,20 @@ std::string htmlEscape(const std::string& data)
   return buffer;
 }
 
+std::string urlEscape(const std::string& data)
+{
+  std::string buffer;
+  buffer.reserve(1.1*data.size());
+  for(const auto& c : data) {
+    if(!isalnum(c) && (c!= '-' && c != '.' && c !='_' && c != '~'))
+      buffer += fmt::sprintf("%%%02x", (unsigned int) c);
+    else
+      buffer.append(1, c); 
+  }
+  return buffer;
+}
+
+
 std::string getTimeDBFormat(time_t t)
 {
   return fmt::format("{:%Y-%m-%d}", fmt::localtime(t));
