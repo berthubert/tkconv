@@ -277,7 +277,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
 									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
-      item.append_child("guid").append_child(pugi::node_pcdata).set_value(eget(r, "nummer").c_str());
+      item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
 
 
 
@@ -307,7 +307,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     auto matches = own.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category FROM docsearch WHERE docsearch match ? and (? or category=?)", {q, categorie.empty(), categorie});
     cout<<"Have "<<matches.size()<<" matches\n";
     pugi::xml_document doc;
-    pugi::xml_node channel = prepRSS(doc, "Zoek RSS", "Documenten gematched door zoekstring "+q);
+    pugi::xml_node channel = prepRSS(doc, "Zoek RSS naar " +q, "Documenten gematched door zoekstring "+q);
     
     bool first = true;
     
@@ -329,7 +329,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
 									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
-      item.append_child("guid").append_child(pugi::node_pcdata).set_value(eget(r, "nummer").c_str());
+	item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
 
       // 2024-12-06T06:01:10.2530000
       string pubDate = eget(r, "bijgewerkt");
@@ -388,7 +388,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
 									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
-      item.append_child("guid").append_child(pugi::node_pcdata).set_value(eget(r, "nummer").c_str());
+      item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
 
       // 2024-12-06T06:01:10.2530000
       string pubDate = eget(r, "bijgewerkt");
@@ -444,7 +444,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       item.append_child("description").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
 									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
-      item.append_child("guid").append_child(pugi::node_pcdata).set_value(eget(r, "nummer").c_str());
+      item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
       // 2024-12-06T06:01:10.2530000
       string pubDate = eget(r, "bijgewerkt");
       time_t then = getTstamp(pubDate);
