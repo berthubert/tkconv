@@ -33,7 +33,7 @@ state: -1
 <template x-if="state==0">
   <div>
     <p>
-      Welkom! Als je monitors op onderwerpen/mensen/zaken/commissies/zoekvragen wilt plaatsen, vul dan hieronder je email adres in om deze te koppelen aan OpenTK. Als je dat al eerder had gedaan, vul dan ook je email adres in, dan krijg je een login-link opgestuurd: 
+      Welkom! Als je monitors op onderwerpen/mensen/zaken/commissies/zoekvragen wilt plaatsen, vul dan hieronder je email adres in om het te koppelen aan OpenTK. Als je dat al eerder had gedaan, vul dan ook je email adres in, dan krijg je een login-link opgestuurd: 
     </p>
     <form @submit.prevent="doRequestInvite($data);">
       <fieldset role="group">
@@ -58,10 +58,10 @@ state: -1
 <template x-if="state==1">
   <div>
     <p>
-      Er is een email verstuurd naar <b><span x-text="email"></span></b> met daarin een link om je email adres te koppelen, of om opnieuw in te loggen.
+      Er is een email verstuurd naar <b><span x-text="email"></span></b> met daarin een link om je email adres te koppelen aan OpenTK, of om opnieuw in te loggen.
     </p>
     <p>
-      Wacht op die email en klik op de link om verder te gaan! Check mogelijk ook je spamfolder. Als er niets aankomt, mail bert@hubertnet.nl dan regel ik het met de hand.
+      Wacht op die email en klik op de link om verder te gaan! <b>Check mogelijk ook je spamfolder</b>. Als er niets aankomt, mail bert@hubertnet.nl dan regel ik het met de hand.
     </p>
   </div>
 </template>
@@ -69,10 +69,10 @@ state: -1
 <template x-if="state==2">
   <div>
     <p>
-      Welkom terug! Klik onderstaand op "<b>koppelen</b>" om de koppeling af te maken:
+      Welkom terug (van je email)! Klik nu onderstaand op de knop "<b>Koppelen</b>" om de koppeling af te maken:
     </p>
     
-    <input type="button" value="koppelen" @click="doConfirmInvite($data)"></input> 
+    <input type="button" value="Koppelen" @click="doConfirmInvite($data)"></input> 
   </div>
 </template>
 

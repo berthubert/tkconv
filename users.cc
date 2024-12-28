@@ -43,7 +43,7 @@ void addTkUserManagement(SimpleWebSystem& sws)
 	if(!rows.empty()) {
 	  string session = cr.sessions.createSessionForUser(get<string>(rows[0]["user"]), "Passwordless login session", cr.getIP(), true, time(0)+86400); // authenticated session
 	  string dest=baseUrl + "/mijn.html?session="+session;
-	  sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "OpenTK log-in link",
+	  sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "[OpenTK] log-in link",
 		    "Log in door op deze link te klikken: "+dest+"\nDeze link werkt maar *1* keer!",
 		    fmt::format("Log in door op deze link <a href='{}'>{}</a> te klikken. Let op, deze link werkt maar *1* keer!",
 				dest, dest));
@@ -61,9 +61,9 @@ void addTkUserManagement(SimpleWebSystem& sws)
       cr.lsqw.addValue({{"id", id}, {"timestamp", tstamp}, {"email", email}}, "userInvite");
       cr.lsqw.query("delete from userInvite where email=? and timestamp < ?", {email, tstamp});
 
-      sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "Koppel je account",
-		fmt::format("Welkom bij tkconv!\nKlik op {}/mijn.html?id={} om je account te koppelen.", baseUrl, id),
-		fmt::format("Welkom bij tkconv, klik op <a href='{}/mijn.html?id={}'>{}/mijn.html?id={}</a> om je account te koppelen!",
+      sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "[OpenTK] Koppel je email-adres",
+		fmt::format("Welkom!\nKlik nu op {}/mijn.html?id={} om je email-adres te koppelen aan OpenTK.", baseUrl, id),
+		fmt::format("Welkom!\nKlik nu op <a href='{}/mijn.html?id={}'>{}/mijn.html?id={}</a> om je email-adres te koppelen aan OpenTK.",
 			    baseUrl, id,
 			    baseUrl, id));
 		

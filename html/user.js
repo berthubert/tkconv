@@ -18,9 +18,12 @@ async function doMijnInit(f)
 	    console.log(data);
 	    f.state = 4;
 	    f.email = data.email;
+	    // remove the 'session=' from the URL
+	    const url = new URL("mijn.html", window.location.href);
+	    history.pushState({}, "", url);
 	}
 	else {
-	    console.log("error");
+	    console.log("error joining session");
 	}
     }
     else {
@@ -81,6 +84,9 @@ async function doConfirmInvite(f)
 	console.log(data);
 	f.state = 3;
 	f.email = data.email;
+	// remove the 'id=' from the URL
+	const url = new URL("mijn.html", window.location.href);
+	history.pushState({}, "", url);
     }
     else {
 	console.log("error");

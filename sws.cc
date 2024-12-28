@@ -254,7 +254,7 @@ void SimpleWebSystem::standardFunctions()
     string sessionid = cr.req.matches[1];
     nlohmann::json j{{"ok", 0}};
 
-    auto c = cr.lsqw.query("select user, id from sessions where id=? and authenticated=1 and expireTstamp > ?", {sessionid, time(0)});
+    auto c = cr.lsqw.query("select sessions.user, sessions.id, email from sessions,users where users.user = sessions.user and sessions.id=? and authenticated=1 and expireTstamp > ?", {sessionid, time(0)});
     if(c.size()==1) {
       string user= get<string>(c[0]["user"]);
       // delete this temporary session
@@ -266,6 +266,7 @@ void SimpleWebSystem::standardFunctions()
       cr.lsqw.query("update users set lastLoginTstamp=? where user=?", {time(0), user});
       cr.log({{"action", "join-session"}, {"sessionid", sessionid}});
       j["ok"]=1;
+      j["email"] = eget(c[0], "email");
       cr.stats.successfulSessionJoin++;
     }
     else {
