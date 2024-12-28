@@ -436,10 +436,12 @@ string convertToSQLiteFTS5(const std::string& in)
   }); // gets us some helpful errors if the grammar is wrong
 
   // sequence of words AND "words" - add quotes to everything not quoted with a . or - in there
+
+  // the BareWord is like that because of UTF-8
   auto ret = p.load_grammar(R"a(
 Root <- (Paren / BareWord / QuotedWord)+
 Paren <- ('(' / ')')
-BareWord      <- < [a-zA-Z0-9._'-]+ > 
+BareWord      <- < [^" ()]+ > 
 QuotedWord <-  < '"'  [^"]*  '"' > 
 %whitespace <- [\t ]*
 )a");
