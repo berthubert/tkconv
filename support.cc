@@ -449,7 +449,7 @@ QuotedWord <-  < '"'  [^"]*  '"' >
     throw runtime_error("cpp-peglib grammar did not compile");
 
   p["BareWord"] = [](const peg::SemanticValues &vs) {
-    if(auto pos = vs.token_to_string().find_first_of(".-"); pos != string::npos) {
+    if(auto pos = vs.token_to_string().find_first_of(",.-"); pos != string::npos) {
       return "\"" + vs.token_to_string() +"\"";
     }
     else
