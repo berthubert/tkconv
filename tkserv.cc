@@ -967,18 +967,41 @@ int main(int argc, char** argv)
   sws.d_svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     nlohmann::json data;
     auto lease = tp.getLease();
-    auto ovragen =  packResultsJson(lease->queryT("select *, max(persoon.nummer) filter (where relatie ='Indiener') as persoonnummer, max(zaakactor.functie) filter (where relatie='Gericht aan') as aan, max(naam) filter (where relatie='Indiener') as indiener from openvragen,zaakactor,persoon where zaakactor.zaakid = openvragen.id and persoon.id = zaakactor.persoonId group by openvragen.id order by gestartOp desc"));
+
+    auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
 
     for(auto& ov : ovragen) {
       ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
-      // ov.aan needs some work
-      string aan = ov["aan"];
-      replaceSubstring(aan, "minister van", "");
-      replaceSubstring(aan, "minister voor", "");
-      replaceSubstring(aan, "staatssecretaris van", "");
+      /*
+        namen = ["E. Heinen","T. van Oostenbruggen","P.H. Omtzigt","J.N. van Vroonhoven"]
+     relaties = ["Gericht aan","Gericht aan","Indiener","Medeindiener"]
+     functies = ["minister van Financiën","staatssecretaris van Financiën","Tweede Kamerlid","Tweede Kamerlid"]
+ indiennummer = 2401
+      */
+
+      nlohmann::json functies = nlohmann::json::parse((string)ov["functies"]);
+      set<string> dest;
+      for(auto& f : functies) {
+	string aan = f;
+	// this also catches minister-president
+	if(aan.find("inister") == string::npos && aan.find("taatssecretaris")==string::npos) {
+	  continue;
+	}
+	replaceSubstring(aan, "minister van ", "");
+	replaceSubstring(aan, "minister voor" , "");
+	replaceSubstring(aan, "staatssecretaris van ", "");
+	dest.insert(aan);
+      }
+      string aan;
+      for(const auto& d : dest) {
+	if(!aan.empty())
+	  aan+=", ";
+	aan += d;
+      }
+	
       ov["aan"] = aan;
-      if(ov.count("persoonsnummer"))
-	ov["fractie"] = getPartyFromNumber(lease.get(), ov["persoonnummer"]);
+      if(ov.count("indiennummer"))
+	ov["fractie"] = getPartyFromNumber(lease.get(), ov["indiennummer"]);
     }
     data["openVragen"] = ovragen;
     
