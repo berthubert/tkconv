@@ -988,7 +988,7 @@ int main(int argc, char** argv)
 	  continue;
 	}
 	replaceSubstring(aan, "minister van ", "");
-	replaceSubstring(aan, "minister voor" , "");
+	replaceSubstring(aan, "minister voor " , "");
 	replaceSubstring(aan, "staatssecretaris van ", "");
 	dest.insert(aan);
       }
@@ -1537,7 +1537,7 @@ int main(int argc, char** argv)
 	auto verslag = idx.queryT("SELECT titel as onderwerp, Vergadering.id as vergaderingId, Verslag.updated as bijgewerkt, '' as titel, Vergadering.datum FROM meta.Verslag, meta.Vergadering WHERE Verslag.id = ? and Vergadering.id = Verslag.vergaderingId", {get<string>(m["uuid"])});
 	
 	if(verslag.empty()) {
-	  fmt::print("Weird - uuid {} is not a Document and not a Verslag? Probably erased\n", get<string>(m["uuid"]));
+	  fmt::print("Weird - uuid {} is not a Document and not a Verslag? Probably erased. Category {}\n", get<string>(m["uuid"]), eget(m, "category"));
 	  m.clear();
 	  continue;
 	}
