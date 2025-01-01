@@ -138,6 +138,15 @@ Ook is de nieuwste versie van pandoc nodig in productie, nieuwer dan in
 Debian Bookworm. [3.5 werkt
 goed](https://github.com/jgm/pandoc/releases/tag/3.5).
 
+### Op een Mac
+
+```bash
+brew install nlohmann-json sqlite pugixml poppler imagemagick pkgconf \
+xmlstarlet meson pandoc
+```
+
+Zie `mac-support/` voor installatie van `catdoc`.
+
 ## Lokaal draaien
 
 Alles wil draaien vanuit de root directory van het project.
