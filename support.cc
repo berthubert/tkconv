@@ -112,7 +112,7 @@ bool cacheIsNewer(const std::string& id, const std::string& cacheprefix, const s
   if(ret < 0 || sborig.st_size == 0) // if orig is gone, cache is newer!
     return true;
 
-  return sborig.st_mtim.tv_sec < sbcache.st_mtim.tv_sec;
+  return sborig.st_mtime < sbcache.st_mtime;
 }
 
 
