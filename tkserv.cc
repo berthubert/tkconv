@@ -1562,17 +1562,6 @@ int main(int argc, char** argv)
   });
 
 
-  sws.wrapPost({}, "/login-or-create", [](auto &cr) {
-    string email = cr.req.get_file_value("email").content;
-    string ip=cr.getIP(), agent= cr.req.get_header_value("User-Agent");
-    string sessionid = cr.sessions.createSessionForUser(email, agent, ip);
-    cr.res.set_header("Set-Cookie",
-                     "opentk_session="+sessionid+"; SameSite=Strict; Path=/; HttpOnly; " + cr.sws.d_extraCookieSpec +" Max-Age="+to_string(5*365*86400));
-    cout<<"Logged in user '"<< email <<"'"<<endl;
-    nlohmann::json j{{"ok", 1}};
-    return j;
-  });
-
   auto addMetric = [](ostringstream& ret, std::string_view key, std::string_view desc, std::string_view kind, const auto& value)
   {
     ret << "# HELP tkserv_" << key << " " <<desc <<endl;
