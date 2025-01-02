@@ -1617,13 +1617,13 @@ int main(int argc, char** argv)
   
   sws.d_svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
     auto fmt = "<h1>Error 500</h1><p>%s</p>";
-    char buf[BUFSIZ];
+    string buf;
     try {
       std::rethrow_exception(ep);
     } catch (std::exception &e) {
-      snprintf(buf, sizeof(buf), fmt, htmlEscape(e.what()).c_str());
+      buf = fmt::sprintf(fmt, htmlEscape(e.what()).c_str());
     } catch (...) { // See the following NOTE
-      snprintf(buf, sizeof(buf), fmt, "Unknown Exception");
+      buf = fmt::sprintf(fmt, "Unknown exception");
     }
     cout<<"Error: '"<<buf<<"'"<<endl;
     res.set_content(buf, "text/html");
