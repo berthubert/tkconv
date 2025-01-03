@@ -1629,14 +1629,22 @@ int main(int argc, char** argv)
     res.set_content(buf, "text/html");
     res.status = 500; 
   });
+
+  TimeKeeper<httplib::Request> tk;
   
-  sws.d_svr.set_pre_routing_handler([&tp](const auto& req, auto& res) {
-    fmt::print("Req: {} {} {} max-db {}\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
-	       (unsigned int)tp.d_maxout);
+  sws.d_svr.set_pre_routing_handler([&tp, &tk](const auto& req, auto& res) {
+    /*
+    fmt::print("Req: {} {} {} max-db {} {}\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
+	       (unsigned int)tp.d_maxout, (void*)&req);
+    */
+    tk.report(&req);
     return httplib::Server::HandlerResponse::Unhandled;
   });
   
-  sws.d_svr.set_post_routing_handler([](const auto& req, auto& res) {
+  sws.d_svr.set_post_routing_handler([&tp, &tk](const auto& req, auto& res) {
+    fmt::print("Req: {} {} {} max-db {} {} msec\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
+	       (unsigned int)tp.d_maxout, tk.getMsec(&req));
+
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
 
