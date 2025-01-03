@@ -9,3 +9,11 @@ tr,td {
           background-color: var(--pico-mark-background-color);
 }
 span.jarig::before { content: '🎈'; }
+
+.stemming.meervoor .besluittekst {
+    background-color: var(--pico-form-element-valid-border-color);
+}
+
+.stemming.meertegen .besluittekst {
+    background-color: var(--pico-form-element-invalid-border-color);
+}
