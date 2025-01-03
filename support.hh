@@ -24,6 +24,41 @@ struct DTime
   std::chrono::time_point<std::chrono::steady_clock> d_start;
 };
 
+template<typename T>
+struct TimeKeeper
+{
+  void report(const T* t)
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    auto now = std::chrono::steady_clock::now();
+    cleanupWhileLocked(now);
+    d_store[t] = now;
+  }
+
+  double getMsec(const T* t)
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    if(auto iter = d_store.find(t) ; iter != d_store.end()) {
+      auto ret = iter->second;
+      d_store.erase(iter);
+      return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()- ret).count() / 1000.0;
+      
+    }
+    return -1;
+  }
+
+  void cleanupWhileLocked(std::chrono::time_point<std::chrono::steady_clock>& now)
+  {
+    std::erase_if(d_store, [&now](const auto& val) {
+      auto usec = std::chrono::duration_cast<std::chrono::microseconds>(now-val.second).count();
+      return usec > 10000000;
+    });
+  }
+  std::unordered_map<const T*, std::chrono::time_point<std::chrono::steady_clock>> d_store;
+  std::mutex d_lock;
+};
+
+
 // we add the / to prefix for you
 std::string makePathForId(const std::string& id, const std::string& prefix="docs", const std::string& suffix="", bool makepath=false);
 
