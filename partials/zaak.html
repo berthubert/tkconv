@@ -52,7 +52,7 @@ kind: 'zaak'
   {% for a in docs %}
     <li>
       {{a.datum}}:
-      <a href="get/{{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}})
+      <a href="document.html?nummer={{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}})
     </li>
     {% endfor %}
 </ul>

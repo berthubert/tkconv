@@ -48,7 +48,7 @@ haveMonitor: false
 <h4>Bijlagen</h4>
 <ul>
   <template x-for="d in activiteit['docs']">
-    <li><a x-bind:href=`get/${d.nummer}`><span x-text="`${d.onderwerp}`"></span></a>
+    <li><a x-bind:href=`document.html?nummer=${d.nummer}`><span x-text="`${d.onderwerp}`"></span></a>
       <span x-text="'('+d.nummer+')'"></span>
     </li>
   </template>
@@ -63,7 +63,7 @@ haveMonitor: false
       <ul>
 	<template x-for="d in ac.zdocs">
 	  <li>
-	    <a x-bind:href="`get/${d.nummer}`"><span x-text="`${d.onderwerp}`"></span></a>
+	    <a x-bind:href="`document.html?nummer=${d.nummer}`"><span x-text="`${d.onderwerp}`"></span></a>
 	    <span x-text="'('+d.nummer+')'"></span>
 	  </li>
 	</template>

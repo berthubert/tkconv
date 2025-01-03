@@ -76,9 +76,13 @@ kind: 'zoek'
       <tr>
         <td x-text="d.datum.substring(0,10)"></td>
 	<td x-text="d.bijgewerkt.substring(0,16).replace('T', '&nbsp;')"></td>
-	<template x-if="d.category!='Vergadering'">
-	  <td><a x-text="d.nummer" x-bind:href="'get/'+d.nummer"></a></td>
+	<template x-if="d.category=='Document'">
+	  <td><a x-text="d.nummer" x-bind:href="'document.html?nummer='+d.nummer"></a></td>
 	</template>
+	<template x-if="d.category=='Activiteit'">
+	  <td><a x-text="d.nummer" x-bind:href="'activiteit.html?nummer='+d.nummer"></a></td>
+	</template>
+
 	<template x-if="d.category=='Vergadering'">
 	  <td><a x-text="d.nummer" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>
 	</template>

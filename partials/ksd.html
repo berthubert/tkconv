@@ -37,8 +37,8 @@ kind: 'ksd'
     <tr>
       <td> {{d.datum }}</td>
       <td> {{d.volgnummer }}</td>
-      <td><a href="get/{{d.docnummer}}">{{d.docnummer}}</a></td>
-      <td><a href="get/{{d.docnummer}}">{{d.onderwerp}}</a></td>
+      <td><a href="document.html?nummer={{d.docnummer}}">{{d.docnummer}}</a></td>
+      <td><a href="document.html?nummer={{d.docnummer}}">{{d.onderwerp}}</a></td>
     </tr>
     {% endfor %}
   </tbody>

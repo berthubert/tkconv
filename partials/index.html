@@ -49,7 +49,7 @@ Meest recente documenten (live updates)
 	<td>{{ d.bijgewerkt }}</td>
 	<td>{{ d.afkorting }}</td>
 	{% if d.soort != "Verslag" %}
-	<td> {{ d.onderwerp }}  (<a href="get/{{d.nummer}}">{{d.nummer}}</a>)</td>
+	<td> {{ d.onderwerp }}  (<a href="document.html?nummer={{d.nummer}}">{{d.nummer}}</a>)</td>
 	{% else %}
 	<td> {{ d.onderwerp }}  (<a href="verslag.html?vergaderingid={{d.vergaderingId}}">{{d.nummer}}</a>)</td>
 	{% endif %}
@@ -71,8 +71,9 @@ Meest recente documenten (live updates)
       const checked = event.target.checked;
       const url = new URL(window.location)
       console.log(url);
-      if(checked)
+      if(checked) {
 	  window.location.assign(url.origin+ url.pathname+"?onlyRegeringsstukken");
+      }
       else
 	  window.location.assign(url.origin + url.pathname);
   });

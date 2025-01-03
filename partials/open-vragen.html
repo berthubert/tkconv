@@ -23,7 +23,7 @@
 	  {% for d in openVragen %}
           <tr>
             <td>{{d.gestartOp}}</td>
-	    <td> <a href="get/{{d.docunummer}}"> {{d.onderwerp}} </a></td>
+	    <td> <a href="document.html?nummer={{d.docunummer}}"> {{d.onderwerp}} </a></td>
 	      <td> <a href="persoon.html?nummer={{d.indiennummer}}">{{d.indiener}} ({{d.fractie}})</a> </td>
 	    <td> {{d.aan}} </td>
 	    <td> {% if d.numuitstel > 0 %} Ja {% endif %} </td>
