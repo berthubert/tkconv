@@ -376,6 +376,7 @@ struct Stats
   atomic<uint64_t> http3xx = 0;
   atomic<uint64_t> http4xx = 0;
   atomic<uint64_t> http5xx = 0;
+  atomic<uint64_t> usec = 0;
 } g_stats;
 
 
@@ -1605,6 +1606,7 @@ int main(int argc, char** argv)
   sws.wrapGet({}, "/metrics", [&](auto& cr) {
     ostringstream os;
     addMetric(os, "hits", "hits", "counter", g_stats.hits);
+    addMetric(os, "latency_usec", "total latency in microseconds", "counter", g_stats.usec);
     addMetric(os, "etaghits", "etag hits", "counter", g_stats.etagHits);
     addMetric(os, "searchUsec", "search microseconds", "counter", g_stats.searchUsec);
     addMetric(os, "http2xx", "2xx error codes", "counter", g_stats.http2xx);
@@ -1680,8 +1682,11 @@ int main(int argc, char** argv)
   });
   
   sws.d_svr.set_post_routing_handler([&tp, &tk](const auto& req, auto& res) {
+    auto usec = tk.getMsec(&req);
+    g_stats.usec += 1000.0*usec;
+    
     fmt::print("Req: {} {} {} max-db {} {} msec\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
-	       (unsigned int)tp.d_maxout, tk.getMsec(&req));
+	       (unsigned int)tp.d_maxout, usec);
 
     res.set_header("Content-Security-Policy", "frame-ancestors 'self';");
 
