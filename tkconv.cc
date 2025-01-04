@@ -88,6 +88,12 @@ int main(int argc, char** argv)
 	}
       }
       string bijgewerkt=node.child("content").begin()->attribute("tk:bijgewerkt").value();
+      if(bijgewerkt.empty()) {
+	bijgewerkt = node.child("content").begin()->attribute("ns1:bijgewerkt").value();
+	if(auto pos = bijgewerkt.find('+'); pos != string::npos) // ns1 domain adds +0100
+	  bijgewerkt = bijgewerkt.substr(0, pos);
+      }
+
       string lcat = category;
       lcat[0] = tolower(lcat[0]);
       if(auto child = node.child("content").child(lcat.c_str()); child.attribute("tk:verwijderd").value() == string("true") ||
