@@ -891,15 +891,15 @@ int main(int argc, char** argv)
   
   sws.d_svr.Get("/", [&tp](const httplib::Request &req, httplib::Response &res) {
     auto sqlw = tp.getLease();
-    
+
     bool onlyRegeringsstukken = req.has_param("onlyRegeringsstukken") && req.get_param_value("onlyRegeringsstukken") != "0";
 
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
     nlohmann::json data;
-    auto recentDocs = packResultsJson(sqlw->queryT("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where bronDocument='' and Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) order by datum desc, bijgewerkt desc",
+    auto recentDocs = packResultsJson(sqlw->queryT("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where  Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) and +bronDocument='' order by datum desc, bijgewerkt desc",
 						  {dlim, !onlyRegeringsstukken}));
 
-    
+
     nlohmann::json out = nlohmann::json::array();
     unordered_set<string> seen;
     for(auto& rd : recentDocs) {

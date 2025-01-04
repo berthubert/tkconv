@@ -27,6 +27,6 @@ CREATE INDEX docversextid on DocumentVersie(externeidentifier);
 CREATE INDEX activiteitpersoonidx on activiteitactor(persoonid);
 CREATE INDEX persoonnummeridx on persoon(nummer);
 CREATE INDEX ksdindex on document(kamerstukdossierid);
-
+create index brondocidx on document(bronDocument);
 analyze;
 
