@@ -517,6 +517,37 @@ int main(int argc, char** argv)
     res.set_content(resp, "text/plain");
   });
 
+  sws.d_svr.Get("/sitemap-(20\\d\\d)-H([12]).txt", [&tp](const auto& req, auto& res) {
+    auto sqlw=tp.getLease();
+    string year = req.matches[1];
+    string h = req.matches[2];
+
+    string fromDate, toDate;
+    if(h=="1") {
+      fromDate = year+"-01-01";
+      toDate = year+"-07-01";
+    }
+    if(h=="2") {
+      fromDate = year+"-07-02";
+      toDate = year+"-12-31";
+    }
+    cout<<"fromDate: "<<fromDate<<", toDate: "<<toDate<<endl;
+    
+    auto nums=sqlw->queryT("select nummer from Document where datum >= ? and datum <= ?", {fromDate, toDate});
+    string resp;
+    for(auto& n : nums) {
+      resp += fmt::format("https://berthub.eu/tkconv/document.html?nummer={}\n", get<string>(n["nummer"]));
+    }
+    nums=sqlw->queryT("select vergadering.id from vergadering,verslag where vergaderingid=vergadering.id and status != 'Casco' and datum >= ? and datum <= ? group by vergadering.id", {fromDate, toDate});
+    for(auto& n : nums) {
+      resp += fmt::format("https://berthub.eu/tkconv/verslag.html?vergaderingid={}\n", get<string>(n["id"]));
+    }
+    
+    res.set_content(resp, "text/plain");
+  });
+
+
+  
   // officiele publicatie redirect
   sws.d_svr.Get("/op/:extid", [&tp](const httplib::Request &req, httplib::Response &res) {
     string extid=req.path_params.at("extid"); 
