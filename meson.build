@@ -19,8 +19,8 @@ vcs_ct=vcs_tag(command: ['git', 'describe', '--tags', '--always', '--dirty', '--
 
 vcs_dep= declare_dependency (sources: vcs_ct)
 
-executable('tkconv', 'tkconv.cc', 
-	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
+executable('tkconv', 'tkconv.cc', 'support.cc', 'siphash.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, simplesockets_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
 executable('tkparse', 'tkparse.cc', 'support.cc', 'siphash.cc', 
