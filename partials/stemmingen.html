@@ -19,13 +19,13 @@
   {% for d in stemmingen %}
     <tbody>
       <tr class="stemming{% if default(d.voorstemmen, 0) > default(d.tegenstemmen, 0) %} meervoor{% endif %}{% if default(d.tegenstemmen, 0) > default(d.voorstemmen, 0) %} meertegen{% endif %}">
-	<td class="datum"> {{d.datum}} </td>
-	<td class="zaak"><a href="zaak.html?nummer={{d.znummer}}">{{d.zonderwerp}}</a></td>
-	<td class="indiener">{{d.indiener}} </td>
+	<td> {{d.datum}} </td>
+	<td><a href="zaak.html?nummer={{d.znummer}}">{{d.zonderwerp}}</a></td>
+	<td>{{d.indiener}} </td>
 	<td class="besluittekst">{{d.besluittekst}}</td>
 	
-	<td class="voorstemmen">{{default(d.voorstemmen, "")}}</td>
-	<td class="tegenstemmen">{{default(d.tegenstemmen, "")}}</td>
+	<td>{{default(d.voorstemmen, "")}}</td>
+	<td>{{default(d.tegenstemmen, "")}}</td>
       </tr>
       <tr>
 	<td></td>
