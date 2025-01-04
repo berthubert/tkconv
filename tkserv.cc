@@ -1647,6 +1647,8 @@ int main(int argc, char** argv)
 
     res.set_header("Content-Security-Policy", "frame-ancestors 'none';");
 
+    res.set_header("Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials=(self), screen-wake-lock=(), serial=(), speaker=(), usb=(), web-share=(), xr-spatial-tracking=()");
+
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
 
