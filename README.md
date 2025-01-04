@@ -42,9 +42,10 @@ niet bij waar het document bijhoort, welke vergadering, welke activiteit.
 
 # Met dank aan
 
-Veel dank aan Jan Allersma, Peter Peerdeman en Bart Schuller voor hun open
-source bijdragen!  Verder bouwt dit project op de noeste arbeid van de staf
-van de Tweede Kamer, zonder hun werk was er niks weer te geven.
+Veel dank aan Jan Allersma, Wander Nauta, Bart Smit, Peter Peerdeman en Bart
+Schuller voor hun open source bijdragen & tests!  Verder bouwt dit project op de
+noeste arbeid van de staf van de Tweede Kamer, zonder hun werk was er niks
+weer te geven.
 
 De software leunt verder zwaar op [SQLite](https://sqlite.org), [Pico CSS](https://picocss.com/),
 [Pugixml](https://pugixml.org/), [nlohmann-json](https://json.nlohmann.me/),
