@@ -1644,6 +1644,12 @@ int main(int argc, char** argv)
     addMetric(os, "failed_session_join", "Failed attempts to join an existing session", "counter", cr.stats.failedSessionJoin);
     addMetric(os, "successful_session_join", "Successful attempts to join an existing session", "counter", cr.stats.successfulSessionJoin);
     addMetric(os, "session_join_invite", "Emailed invites to join an existing session", "counter", cr.stats.sessionJoinInvite);
+
+    addMetric(os, "sqlite_execs", "Number of executed prepared SQLite queries", "counter", (uint64_t)MiniSQLite::s_execs);
+    addMetric(os, "sqlite_fullscans", "Number of SQLite fullscan steps", "counter", (uint64_t)MiniSQLite::s_fullscans);
+    addMetric(os, "sqlite_sorts", "Number of SQLite sort operations", "counter", (uint64_t)MiniSQLite::s_sorts);
+    addMetric(os, "sqlite_autoindexes", "Number of SQLite autoindex operations", "counter", (uint64_t)MiniSQLite::s_autoindexes);
+    
     return make_pair<string,string>(os.str(), "text/plain");
   });
   
