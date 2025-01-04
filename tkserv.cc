@@ -377,6 +377,7 @@ struct Stats
   atomic<uint64_t> http4xx = 0;
   atomic<uint64_t> http5xx = 0;
   atomic<uint64_t> usec = 0;
+  array<atomic<uint64_t>, 12> lats;
 } g_stats;
 
 
@@ -1651,7 +1652,13 @@ int main(int argc, char** argv)
     addMetric(os, "sqlite_fullscans", "Number of SQLite fullscan steps", "counter", (uint64_t)MiniSQLite::s_fullscans);
     addMetric(os, "sqlite_sorts", "Number of SQLite sort operations", "counter", (uint64_t)MiniSQLite::s_sorts);
     addMetric(os, "sqlite_autoindexes", "Number of SQLite autoindex operations", "counter", (uint64_t)MiniSQLite::s_autoindexes);
-    
+
+    int ulim=1;
+    for(unsigned int n=0; n < g_stats.lats.size() -1; ++n) {
+      addMetric(os, "lat_lt_"+to_string(ulim), "Queries with latency less than "+to_string(ulim)+" msec", "counter", (uint64_t)g_stats.lats[n]);
+      ulim *= 2;
+    }
+    addMetric(os, "lat_gt_"+to_string(ulim/2), "Queries with latency more than "+to_string(ulim/2)+" msec", "counter", (uint64_t)g_stats.lats[g_stats.lats.size()-1]);
     return make_pair<string,string>(os.str(), "text/plain");
   });
   
@@ -1682,11 +1689,37 @@ int main(int argc, char** argv)
   });
   
   sws.d_svr.set_post_routing_handler([&tp, &tk](const auto& req, auto& res) {
-    auto usec = tk.getMsec(&req);
-    g_stats.usec += 1000.0*usec;
+    auto msec = tk.getMsec(&req);
+    g_stats.usec += 1000.0*msec;
+    unsigned int off=0;
+    if(msec < 1)
+      off=0;
+    else if(msec < 2)
+      off=1;
+    else if(msec < 4)
+      off=2;
+    else if(msec < 8)
+      off=3;
+    else if(msec < 16)
+      off=4;
+    else if(msec < 32)
+      off=5;
+    else if(msec < 64)
+      off=6;
+    else if(msec < 128)
+      off=7;
+    else if(msec < 256)
+      off=8;
+    else if(msec < 512)
+      off=9;
+    else if(msec < 1024)
+      off=10;
+    else
+      off=11;
+    g_stats.lats[off]++;
     
-    fmt::print("Req: {} {} {} max-db {} {} msec\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
-	       (unsigned int)tp.d_maxout, usec);
+    fmt::print("Req: {} {} {} max-db {} {} msec {}\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
+	       (unsigned int)tp.d_maxout, msec, off);
 
     res.set_header("Content-Security-Policy", "frame-ancestors 'self';");
 
