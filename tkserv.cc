@@ -939,15 +939,16 @@ int main(int argc, char** argv)
       rv["nummer"] = ((string)rv["vergaderingId"]).substr(0, 8);
       out.push_back(rv);
     }
+
     sort(out.begin(), out.end(), [](auto& a, auto& b) {
       return std::make_tuple((string)a["datum"], (string) a["bijgewerkt"]) >
 	std::make_tuple((string)b["datum"], (string) b["bijgewerkt"]);
     });
     data["recentDocs"] = out;
-    
+
     string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
     data["jarigVandaag"] = packResultsJson(sqlw->queryT("select geboortedatum,roepnaam,initialen,tussenvoegsel,achternaam,afkorting,persoon.nummer from Persoon,fractiezetelpersoon,fractiezetel,fractie where geboortedatum like ? and persoon.functie ='Tweede Kamerlid' and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.totEnMet='' order by achternaam, roepnaam", {f}));
-    
+
     inja::Environment e;
     e.set_html_autoescape(true);
 
@@ -1220,7 +1221,7 @@ int main(int argc, char** argv)
       res.set_header("Location", "verslag.html?vergaderingid="+nummer);
       return;
     }
-    
+
     nlohmann::json data = nlohmann::json::object();
     auto ret=sqlw->queryT("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document left join DocumentVersie on DocumentVersie.documentId = Document.id where nummer=? limit 1", {nummer});
     if(ret.empty()) {
@@ -1228,6 +1229,7 @@ int main(int argc, char** argv)
       res.status = 404;
       return;
     }
+
 
     string externeid = eget(ret[0], "externeidentifier");
     data["meta"] = packResultsJson(ret)[0];
@@ -1275,13 +1277,15 @@ int main(int argc, char** argv)
       if(da["nummer"] != "")
 	da["fractie"] = getPartyFromNumber(sqlw.get(), (int)da["nummer"]);
     }
-    
+
     if(!bronDocumentId.empty()) {
       data["brondocumentData"] = packResultsJson(sqlw->queryT("select * from document where id=? order by rowid desc limit 1", {bronDocumentId}));
     }
 
     data["bijlagen"] = packResultsJson(sqlw->queryT("select * from document where bronDocument=?", {documentId}));
+
     auto zlinks = sqlw->queryT("select distinct(naar) as naar, zaak.nummer znummer from Link,Zaak where van=? and naar=zaak.id and category='Document' and linkSoort='Zaak'", {documentId});
+
     set<string> actids;
     set<string> znummers;
     for(auto& zlink : zlinks) {
@@ -1296,13 +1300,13 @@ int main(int argc, char** argv)
       }
 
       data["zaken"][znummer]["docs"] = packResultsJson(sqlw->queryT("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId}));
-      
+
       data["zaken"][znummer]["besluiten"] = packResultsJson(sqlw->queryT("select * from besluit where zaakid=? order by rowid", {zaakId}));
       set<string> agendapuntids;
       for(auto& b: data["zaken"][znummer]["besluiten"]) {
 	agendapuntids.insert((string)b["agendapuntId"]);
       }
-      
+
       for(auto& agendapuntid : agendapuntids) {
 	auto agendapunten = sqlw->queryT("select * from Agendapunt where id = ?", {agendapuntid});
 	for(auto& agendapunt: agendapunten)
@@ -1311,7 +1315,7 @@ int main(int argc, char** argv)
     }
     data["znummers"]=znummers;
     nlohmann::json activiteiten = nlohmann::json::array();
-    
+
     if(!actids.empty()) {
       for(auto& actid : actids) {
 	auto activiteit = packResultsJson(sqlw->queryT("select * from Activiteit where id = ? order by rowid desc limit 1", {actid}));
@@ -1323,7 +1327,6 @@ int main(int argc, char** argv)
 	}
       }
     }
-
     // directly linked activity
     auto diract = packResultsJson(sqlw->queryT("select Activiteit.* from Link,Activiteit where van=? and naar=Activiteit.id", {documentId}));
     for(auto&a : diract) {
@@ -1332,7 +1335,6 @@ int main(int argc, char** argv)
       a["datum"] = d;
       activiteiten.push_back(a);
     }
-    
     sort(activiteiten.begin(), activiteiten.end(), [](auto&a, auto&b) {
       return a["datum"] < b["datum"];
     });
@@ -1365,7 +1367,6 @@ int main(int argc, char** argv)
       data["content"] = getHtmlForDocument(documentId, true); // bare!
       data["meta"]["iframe"] = "getdoc";
     }
-    
     res.set_content(e.render_file("./partials/getorig.html", data), "text/html");
   });
   
