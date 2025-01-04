@@ -15,7 +15,7 @@
     {% for d in data %}
     <tr>
       <td> {{d.bijgewerkt}} </td>
-      <td> {{d.voortouwAfkorting}}</td>
+      <td> <abbr title="{{d.voortouwNaam}}">{{d.voortouwAfkorting}}</abbr></td>
       <td><a href="activiteit.html?nummer={{d.nummer}}"> {{d.onderwerp}}</a></td>
       <td> {{d.noot}} {{d.soort}}</td>
     </tr>
