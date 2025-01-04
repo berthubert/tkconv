@@ -1645,6 +1645,8 @@ int main(int argc, char** argv)
     fmt::print("Req: {} {} {} max-db {} {} msec\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
 	       (unsigned int)tp.d_maxout, tk.getMsec(&req));
 
+    res.set_header("Content-Security-Policy", "frame-ancestors 'none';");
+
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
 
