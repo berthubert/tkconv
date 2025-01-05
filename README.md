@@ -69,6 +69,7 @@ Dit project bestaat uit de volgende tools:
  * tkserve: stelt de data uit de sqlite database beschikbaar, en voert
    zoekslagen uit op de database gemaakt door tkindex
  * tkbot: nog experimenteler dan de rest, detecteert "nieuwe" documenten
+ * tkparse: checkt verslagen en slaat op wanneer welk kamerlid wat en hoe lang gezegd heeft
 
 # Pagina's
 
@@ -161,7 +162,19 @@ sqlite3 tk.sqlite3 < maak-indexen
 En daarna voor productie:
 
 ```bash
-while true; do ./build/tkgetxml ; ./build/tkconv  ; ./build/tkpull;  ./build/tkindex; sleep 60; done
+while true
+do
+        ./build/tkgetxml
+        ./build/tkconv
+        ./build/tkpull
+        ./build/oppull
+        ./build/tkparse
+        ./build/tkindex
+        ./build/tkindex --days=14  --tkindex tkindex-small.sqlite3
+        ./build/tkbot
+        echo sleeping
+        sleep 60
+done
 ```
 
 En parallel:
