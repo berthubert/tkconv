@@ -90,6 +90,7 @@ std::string htmlEscape(const std::string& data);
 std::string urlEscape(const std::string& data);
 std::string getTodayDBFormat();
 std::string getTimeDBFormat(time_t t);
+std::string getNowDBFormat();
 std::string toQuotedPrintable(const std::string& in);
 
 template<typename T>

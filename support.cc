@@ -418,6 +418,10 @@ std::string getTimeDBFormat(time_t t)
   return fmt::format("{:%Y-%m-%d}", fmt::localtime(t));
 }
 
+std::string getNowDBFormat()
+{
+  return fmt::format("{:%Y-%m-%dT%H:%M:%S}", fmt::localtime(time(0)));
+}
 
 std::string getTodayDBFormat()
 {
