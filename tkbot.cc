@@ -25,10 +25,10 @@ bool emitIfNeeded(SQLiteWriter& sqlw, const ScannerHit& sh, const Scanner& sc)
   return true;
 }
 
-void logEmission(SQLiteWriter& sqlw, const ScannerHit&sh, const Scanner& sc)
+void logEmission(SQLiteWriter& sqlw, const ScannerHit&sh, const Scanner& sc, const std::string& emissionId)
 {
-  string when = fmt::format("{:%Y-%m-%dT%H:%M:%S}", fmt::localtime(time(0)));
-  sqlw.addValue({{"identifier", sh.identifier}, {"userid", sc.d_userid}, {"soort", sc.d_soort}, {"timestamp", when}, {"scannerId", sc.d_id}}, "sentNotification");
+  string when = getNowDBFormat();
+  sqlw.addValue({{"identifier", sh.identifier}, {"userid", sc.d_userid}, {"soort", sc.d_soort}, {"timestamp", when}, {"scannerId", sc.d_id}, {"emissionId", emissionId}}, "sentNotification");
 
 }
 
@@ -91,7 +91,10 @@ int main(int argc, char** argv)
   atomic<size_t> ctr = 0;
   std::mutex mlock; // for all & userdb
 
-  auto worker = [&ctr, &all, &scanners, &userdb, &mlock]() {
+  map<std::string, std::string> emissionId;
+  
+  auto worker = [&ctr, &all, &scanners, &userdb,
+		 &emissionId, &mlock]() {
     unique_ptr<SQLiteWriter> own;
     {
       std::lock_guard<std::mutex> l(mlock); // sqlite gets unhappy if you all try to open the same db at the same time
@@ -107,13 +110,16 @@ int main(int argc, char** argv)
 	auto ds = scanner->get(*own); // this does the actual work
 
 	for(const auto& d: ds) {
-	  std::lock_guard<std::mutex> l(mlock); 	  // for userdb and all
+	  // for userdb and all and emissionid
+	  std::lock_guard<std::mutex> l(mlock);   
   
 	  if(emitIfNeeded(userdb, d, *scanner.get())) {
 	    fmt::print("\tNummer {}\n", d.identifier);
 	    
 	    all[scanner->d_userid][d.identifier].insert(scanner.get());
-	    logEmission(userdb, d, *scanner.get());
+	    if(!emissionId.count(scanner->d_userid))
+	      emissionId[scanner->d_userid] = getLargeId();
+	    logEmission(userdb, d, *scanner.get(), emissionId[scanner->d_userid]);
 	  }
 	  else
 	    fmt::print("\t(skip Nummer {})\n", d.identifier);
@@ -182,6 +188,13 @@ int main(int argc, char** argv)
     inja::Environment e2;
     e2.set_html_autoescape(true);
     string html = e2.render_file("./partials/email.html", data);
+    userdb.addValue({{"user", user},
+		    {"email", getEmailForUserId(userdb, user)},
+		    {"id", emissionId[user]},
+		    {"timestamp", getNowDBFormat()},
+		    {"subject", subject}
+      }, "emissions");
+
     sendEmail("10.0.0.2",
 			"opentk@hubertnet.nl",
 	      getEmailForUserId(userdb, user),
