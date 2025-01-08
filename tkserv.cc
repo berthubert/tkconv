@@ -1627,6 +1627,10 @@ int main(int argc, char** argv)
     row = cr.lsqw.query("select count(1) c from sentNotification");
     addMetric(os, "numnotifications", "Number of sent notifications", "gauge", get<int64_t>(row[0]["c"]));
 
+    row = cr.lsqw.query("select count(1) c from emissions");
+    addMetric(os, "numemissions", "Number of (email) emissions", "gauge", get<int64_t>(row[0]["c"]));
+
+    
     row = cr.tp.getLease()->queryT("select count(1) c from Document");
     addMetric(os, "numdocs", "Number of Document", "gauge", get<int64_t>(row[0]["c"]));
     row = cr.tp.getLease()->queryT("select count(1) c from Verslag");
