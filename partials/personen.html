@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block main %}
+<h4>Kamerleden en voormalige kamerleden (sinds 2008)</h4>
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Titels</th>
+      <th>Naam</th>
+      <th>Fractie(s)</th>
+      <th>Eerste lidmaatschap</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in data %}
+    <tr>
+      	<td> {{l.titels}} </td>
+	<td><a href="persoon.html?nummer={{l.nummer}}"> {{l.roepnaam}} {{l.tussenvoegsel}} {{l.achternaam}}</a></td>
+
+	<td> {{ join(l.fracties, ", ") }} </td>
+	<td> {{l.voorheteerst}} </td>
+      </tr>
+      {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+	

@@ -698,6 +698,29 @@ int main(int argc, char** argv)
     return make_pair<string,string>(e.render_file("./partials/search.html", data), "text/html");
   });
 
+
+  sws.wrapGet({}, "/personen.html", [&tp](auto& cr) {
+    nlohmann::json data;
+    data["pagemeta"]["title"]="Alle personen";
+    data["og"]["title"] = "Alle personen";
+    data["og"]["description"] = "Alle personen";
+    data["og"]["imageurl"] = "";
+
+    auto personen = packResultsJson(tp.getLease()->queryT(R"(select min(van) voorheteerst, titels, persoon.nummer, roepnaam,tussenvoegsel,achternaam,json_group_array(distinct(afkorting)) fracties from persoon,fractiezetelpersoon,fractiezetel,fractie where  fractiezetelpersoon.persoonid = persoon.id and fractiezetelpersoon.fractiezetelid = fractiezetel.id and fractie.id=fractiezetel.fractieid and van > '2008-01-01' group by persoon.id order by achternaam,roepnaam)"));
+
+    for(auto& p : personen) {
+      nlohmann::json a =  nlohmann::json::parse((string)p["fracties"]);
+      p["fracties"] = a;
+    }
+    data["data"] = personen;
+    
+    inja::Environment e;
+    e.set_html_autoescape(true); 
+      
+    return make_pair<string,string>(e.render_file("./partials/personen.html", data), "text/html");
+  });
+
+
   
   sws.d_svr.Get("/zaak.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.get_param_value("nummer");
@@ -910,6 +933,8 @@ int main(int argc, char** argv)
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");
 
   doTemplate("kamerleden.html", "kamerleden.html", R"(select fractiezetel.gewicht fzgewicht, persoon.titels, persoon.roepnaam, persoon.tussenvoegsel, persoon.achternaam, persoon.nummer, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' union all select fractiezetel.gewicht fzgewicht, '' titels, '' roepnaam, '' tussenvoegsel, 'Vacature' achternaam, nummer, afkorting from FractieZetelVacature,fractieZetel, fractie where totEnMet='' and fractiezetel.id = fractiezetelid and fractie.id = fractieid order by afkorting, fzgewicht)");
+
+
   
   doTemplate("geschenken.html", "geschenken.html", "select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer,substr(persoongeschenk.bijgewerkt,0,11)  pgbijgewerkt from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by persoongeschenk.bijgewerkt desc");
 
