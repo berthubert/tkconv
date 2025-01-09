@@ -706,7 +706,7 @@ int main(int argc, char** argv)
     data["og"]["description"] = "Alle personen";
     data["og"]["imageurl"] = "";
 
-    auto personen = packResultsJson(tp.getLease()->queryT(R"(select min(van) voorheteerst, titels, persoon.nummer, roepnaam,tussenvoegsel,achternaam,json_group_array(distinct(afkorting)) fracties from persoon,fractiezetelpersoon,fractiezetel,fractie where  fractiezetelpersoon.persoonid = persoon.id and fractiezetelpersoon.fractiezetelid = fractiezetel.id and fractie.id=fractiezetel.fractieid and van > '2008-01-01' group by persoon.id order by achternaam,roepnaam)"));
+    auto personen = packResultsJson(tp.getLease()->queryT(R"(select min(van) voorheteerst, titels, persoon.nummer, roepnaam,tussenvoegsel,achternaam,json_group_array(distinct(afkorting)) fracties from persoon,fractiezetelpersoon,fractiezetel,fractie where  fractiezetelpersoon.persoonid = persoon.id and fractiezetelpersoon.fractiezetelid = fractiezetel.id and fractie.id=fractiezetel.fractieid group by persoon.id order by achternaam,roepnaam)"));
 
     for(auto& p : personen) {
       nlohmann::json a =  nlohmann::json::parse((string)p["fracties"]);
