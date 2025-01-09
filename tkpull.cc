@@ -11,9 +11,20 @@
 #include "support.hh"
 
 using namespace std;
+
+void ifExistsThenRename(const std::string& fname)
+{
+  string newname = fmt::sprintf("%s.%d", fname, time(0));
+  if(rename(fname.c_str(), newname.c_str()) == 0) {
+    fmt::print("Already had a file for {}, renamed to {}\n",
+		fname, newname);
+  }
+}
+
 void storeDocument(const std::string& id, const std::string& content, const string& prefix)
 {
   string fname=makePathForId(id, prefix, "", true);
+  ifExistsThenRename(fname);
   FILE* t = fopen((fname+".tmp").c_str(), "w");
   if(!t)
     throw runtime_error("Unable to open file "+fname+": "+string(strerror(errno)));
