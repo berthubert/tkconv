@@ -45,9 +45,9 @@ void storeDocument(const std::string& id, const std::string& content, const stri
 
 int main(int argc, char** argv)
 {
-  SQLiteWriter sqlw("tk.sqlite3");
+  SQLiteWriter sqlw("tk.sqlite3", SQLWFlag::ReadOnly);
 
-  int sizlim = 50000000;
+  int sizlim = 250000000;
   string limit="2007-01-01";
   auto wantDocs = sqlw.queryT("select id,enclosure,contentLength from Document where datum > ? and contentLength < ?", {limit, sizlim});
 
@@ -147,7 +147,6 @@ int main(int argc, char** argv)
       fmt::print("Got {} bytes\n", res->body.size());
       storeDocument(need.id, res->body, prefix);
       retrieved++;
-      usleep(100000);
     }
     fmt::print("Retrieved {} documents, {} were too large, {} errors\n", retrieved, toolarge, error);
   }
