@@ -14,7 +14,11 @@ using namespace std;
 
 void ifExistsThenRename(const std::string& fname)
 {
-  string newname = fmt::sprintf("%s.%d", fname, time(0));
+  struct stat sb;
+  if(stat(fname.c_str(), &sb) < 0)
+    return;
+  
+  string newname = fmt::sprintf("%s.%d", fname, sb.st_mtime);
   if(rename(fname.c_str(), newname.c_str()) == 0) {
     fmt::print("Already had a file for {}, renamed to {}\n",
 		fname, newname);
