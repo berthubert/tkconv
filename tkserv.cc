@@ -1024,12 +1024,14 @@ int main(int argc, char** argv)
   });
   
   sws.d_svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string fractie=req.get_param_value("fractie");
+    
     nlohmann::json data;
     auto lease = tp.getLease();
     int totaalvragen=0;
     auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, aantal, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
 
-    
+    map<string, unsigned int> fcounts;
     for(auto& ov : ovragen) {
       ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
       /*
@@ -1062,11 +1064,37 @@ int main(int argc, char** argv)
       }
 	
       ov["aan"] = aan;
-      if(ov.count("indiennummer"))
-	ov["fractie"] = getPartyFromNumber(lease.get(), ov["indiennummer"]);
+      if(ov.count("indiennummer")) {
+	string f = getPartyFromNumber(lease.get(), ov["indiennummer"]);
+	ov["fractie"] = f;
+	fcounts[f]++;
+      }
     }
-    data["openVragen"] = ovragen;
+    if(!fractie.empty()) {
+      data["fractie"] = fractie;
+      nlohmann::json filtered;
+      totaalvragen = 0;
+      for(const auto & ov : ovragen) {
+	if(ov["fractie"] == fractie) {
+	  filtered.push_back(ov);
+	  if(ov["aantal"].is_number())
+	    totaalvragen += (int)ov["aantal"];
+	}
+      }
+      data["openVragen"] = filtered;
+    }
+    else {
+      data["openVragen"] = ovragen;
+      data["fractie"]="";
+    }
     data["aantalvragen"] = totaalvragen;
+
+    nlohmann::json fractiecounts;
+    for(const auto& [fractie, count] : fcounts) {
+      fractiecounts.push_back(nlohmann::json::object({{"fractie", fractie},
+						      {"count", count}}));
+    }
+    data["fractiecounts"]=fractiecounts;
     inja::Environment e;
     e.set_html_autoescape(true);
 

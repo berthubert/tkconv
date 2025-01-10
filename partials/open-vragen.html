@@ -9,6 +9,16 @@
 {% endblock %}
 
 {% block main %}
+<center><p>
+<a href="open-vragen.html">Alles</a>
+{% for f in fractiecounts %}
+{% if f.fractie != fractie %}
+<b>|</b> <a href="open-vragen.html?fractie={{f.fractie}}"> {{f.fractie}} ({{f.count}})</a>
+{% else %}
+<b>| {{f.fractie}} ({{f.count}}) </b></a>
+{% endif %}
+{% endfor %}
+</p></center>
       <table class="striped">
 	<thead>
 	  <tr>
