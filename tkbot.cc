@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     }
   }
       
-  ThingPool<SQLiteWriter> tp("tk.sqlite3");
+  ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
   //   user       doc         scanner
   map<string, map<string, set<Scanner*>>> all;
 
