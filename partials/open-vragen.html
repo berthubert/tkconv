@@ -5,21 +5,33 @@
 {% endblock %}
 
 {% block customheader %}
-<p>{{ aantalvragen }} open vragen in {{ length(openVragen) }} documenten (afgelopen 5 jaar)</p>
+<p>{{ aantalvragen }} open vragen in {{ length(openVragen) }} documenten</p>
 {% endblock %}
 
 {% block main %}
-<center><p>
-<a href="open-vragen.html">Alles</a>
+<center>
+  <p>
+    <small>
+      <a href="open-vragen.html">Alles</a>
 {% for f in fractiecounts %}
 {% if f.fractie != fractie %}
-<b>|</b> <a href="open-vragen.html?fractie={{f.fractie}}"> {{f.fractie}} ({{f.count}})</a>
-{% else %}
-<b>| {{f.fractie}} ({{f.count}}) </b></a>
-{% endif %}
-{% endfor %}
-</p></center>
-      <table class="striped">
+      <b>|</b> <a href="open-vragen.html?fractie={{f.fractie}}"> {{f.fractie}} ({{f.count}})</a>
+      {% else %}
+      <b>| {{f.fractie}} ({{f.count}}) </b>
+      {% endif %}
+      {% endfor %}
+      {% for m in ministeriecounts %}
+      {% if m.ministerie != ministerie %}
+      <b>|</b> <a href="open-vragen.html?ministerie={{m.ministerie}}"> {{m.afko}}&nbsp;({{m.count}})</a>
+      {% else %}
+      <b>| {{m.afko}}&nbsp;({{m.count}}) </b>
+      {% endif %}
+      {% endfor %}
+      
+    </small>
+  </p>
+</center>
+<table class="striped">
 	<thead>
 	  <tr>
             <th>Datum</th>

@@ -213,13 +213,13 @@ struct VoteResult
   int voorstemmen=0, tegenstemmen=0, nietdeelgenomen=0;
 };
 
-static string getPartyFromNumber(SQLiteWriter& sqlw, int nummer)
+static string getPartyFromNumber(SQLiteWriter& sqlw, int nummer, bool addOoit=true)
 {
   auto party = sqlw.queryT("select afkorting, persoon.functie from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.nummer=? and  persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid order by fractiezetelpersoon.van desc limit 1", {nummer});
   if(party.empty())
     return "";
 
-  if(get<string>(party[0]["functie"]) != "Tweede Kamerlid")
+  if(addOoit && get<string>(party[0]["functie"]) != "Tweede Kamerlid")
     return "Ooit " +std::get<string>(party[0]["afkorting"])+ " kamerlid";
   else
     return std::get<string>(party[0]["afkorting"]);
@@ -1025,6 +1025,7 @@ int main(int argc, char** argv)
   
   sws.d_svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string fractie=req.get_param_value("fractie");
+    string ministerie=req.get_param_value("ministerie");
     
     nlohmann::json data;
     auto lease = tp.getLease();
@@ -1032,6 +1033,7 @@ int main(int argc, char** argv)
     auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, aantal, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
 
     map<string, unsigned int> fcounts;
+    map<string, unsigned int> minicounts;
     for(auto& ov : ovragen) {
       ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
       /*
@@ -1054,24 +1056,29 @@ int main(int argc, char** argv)
 	replaceSubstring(aan, "minister van ", "");
 	replaceSubstring(aan, "minister voor " , "");
 	replaceSubstring(aan, "staatssecretaris van ", "");
+	if(aan=="minister-president")
+	  aan="AZ";
 	dest.insert(aan);
+	minicounts[aan]++;
       }
       string aan;
       for(const auto& d : dest) {
 	if(!aan.empty())
-	  aan+=", ";
+	  aan+=" | ";
 	aan += d;
       }
 	
       ov["aan"] = aan;
       if(ov.count("indiennummer")) {
-	string f = getPartyFromNumber(lease.get(), ov["indiennummer"]);
+	string f = getPartyFromNumber(lease.get(), ov["indiennummer"], false);
 	ov["fractie"] = f;
 	fcounts[f]++;
       }
     }
+    
     if(!fractie.empty()) {
       data["fractie"] = fractie;
+      data["ministerie"]="";
       nlohmann::json filtered;
       totaalvragen = 0;
       for(const auto & ov : ovragen) {
@@ -1083,9 +1090,26 @@ int main(int argc, char** argv)
       }
       data["openVragen"] = filtered;
     }
+    else if(!ministerie.empty()) {
+      data["fractie"]="";
+      data["ministerie"]=ministerie;
+
+      nlohmann::json filtered;
+      totaalvragen = 0;
+      for(const auto & ov : ovragen) {
+	string aan = ov["aan"];
+	if(aan.find(ministerie) != string::npos) {
+	  filtered.push_back(ov);
+	  if(ov["aantal"].is_number())
+	    totaalvragen += (int)ov["aantal"];
+	}
+      }
+      data["openVragen"] = filtered;
+    }
     else {
       data["openVragen"] = ovragen;
       data["fractie"]="";
+      data["ministerie"]="";
     }
     data["aantalvragen"] = totaalvragen;
 
@@ -1094,7 +1118,37 @@ int main(int argc, char** argv)
       fractiecounts.push_back(nlohmann::json::object({{"fractie", fractie},
 						      {"count", count}}));
     }
+    nlohmann::json ministeriecounts;
+    std::unordered_map<string,string> afkos
+      {
+	{"Defensie", "DEF"},
+	{"Binnenlandse Zaken en Koninkrijksrelaties", "BZK"},
+	{"Economische Zaken", "EZ"},
+	{"Volksgezondheid, Welzijn en Sport", "VWS"},
+	{"Sociale Zaken en Werkgelegenheid", "SZW"},
+	{"Volkshuisvesting en Ruimtelijke Ordening", "VRO"},
+	{"Klimaat en Groene Groei", "KGG"},
+	{"Onderwijs, Cultuur en Wetenschap", "OCW"},
+	{"Asiel en Migratie", "A&M"},
+	{"Justitie en Veiligheid", "J&V"},
+	{"Landbouw, Visserij, Voedselzekerheid en Natuur", "LVVN"},
+	{"Infrastructuur en Waterstaat", "I&W"},
+	{"Financiën", "FIN"},
+	{"Buitenlandse Handel en Ontwikkelingshulp", "BHO"},
+	{"Buitenlandse Zaken", "BZ"},
+      };
+    for(const auto& [mini, count] : minicounts) {
+      string afko = mini;
+      if(auto iter = afkos.find(mini); iter != afkos.end())
+	afko = iter->second;
+      ministeriecounts.push_back(nlohmann::json::object({{"ministerie", mini},
+							 {"afko", afko},
+							 {"count", count}}));
+    }
+
+    
     data["fractiecounts"]=fractiecounts;
+    data["ministeriecounts"]=ministeriecounts;
     inja::Environment e;
     e.set_html_autoescape(true);
 
@@ -1102,7 +1156,7 @@ int main(int argc, char** argv)
     data["og"]["title"] = "Open vragen";
     data["og"]["description"] = "Open vragen uit de Tweede Kamer";
     data["og"]["imageurl"] = "";
-    
+
     res.set_content(e.render_file("./partials/open-vragen.html", data), "text/html");
   });
 
