@@ -171,8 +171,8 @@ do
         ./build/oppull xml
         ./build/tkparse
         ./build/tkindex
-        ./build/tkindex --days=14  --tkindex tkindex-small.sqlite3
-        ./build/tkbot
+        ./build/tkindex --days=14 --tkindex tkindex-small.sqlite3
+        ./build/tkbot --smtp-server=10.0.0.2 --sender-mail=opentk@yourdomain
         echo sleeping
         sleep 60
 done
