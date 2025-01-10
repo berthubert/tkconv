@@ -10,6 +10,8 @@
 #include "thingpool.hh"
 #include "support.hh"
 #include "scanmon.hh"
+#include "argparse/argparse.hpp"
+
 using namespace std;
 
 bool emitIfNeeded(SQLiteWriter& sqlw, const ScannerHit& sh, const Scanner& sc)
@@ -74,6 +76,24 @@ string getEmailForUserId(SQLiteWriter& sqlw, const std::string& userid)
 
 int main(int argc, char** argv)
 {
+  argparse::ArgumentParser args("tkbot", "0.0");
+  args.add_argument("--smtp-server").help("IP address of SMTP smart host. If empty, no mail will get sent").default_value("");
+  args.add_argument("--sender-email").help("From address of email we send").default_value("");
+    
+  try {
+    args.parse_args(argc, argv);
+  }
+  catch (const std::runtime_error& err) {
+    std::cout << err.what() << std::endl << args;
+    std::exit(1);
+  }
+  string smtpserver = args.get<string>("--smtp-server");
+  string fromaddr = args.get<string>("--sender-email");
+  if(!smtpserver.empty() && fromaddr.empty()) {
+    fmt::print("An smtp server has been defined, but no sender email address (-sender-email)\n");
+    std::exit(1);
+  }
+  
   SQLiteWriter userdb("user.sqlite3");  
 
   auto toscan=userdb.queryT("select rowid,* from scanners");
@@ -174,7 +194,7 @@ int main(int argc, char** argv)
       stanza["hits"]=docdescs;
       data["payload"].push_back(stanza);
     }
-    cout << data.dump() <<endl;
+    cout << getEmailForUserId(userdb, user)<<": "<<data.dump() <<endl;
     inja::Environment e;
     string msg = e.render_file("./partials/email.txt", data);
     string subject;
@@ -195,10 +215,15 @@ int main(int argc, char** argv)
 		    {"subject", subject}
       }, "emissions");
 
-    sendEmail("10.0.0.2",
-			"opentk@hubertnet.nl",
-	      getEmailForUserId(userdb, user),
-	      subject , msg, html);
+    if(!smtpserver.empty()) {
+      //cout<<"Would send email through "<<smtpserver<<endl;
+      sendEmail(smtpserver,
+		fromaddr,
+		getEmailForUserId(userdb, user),
+		subject , msg, html);
+    }
+    else
+      cout<<"Not sending out email, no smtp-server configured\n";
   }
   for(auto& sc : scanners)
     updateScannerDate(userdb, *sc);
