@@ -1058,8 +1058,8 @@ int main(int argc, char** argv)
 	replaceSubstring(aan, "staatssecretaris van ", "");
 	if(aan=="minister-president")
 	  aan="AZ";
-	dest.insert(aan);
-	minicounts[aan]++;
+	if(dest.insert(aan).second)
+	  minicounts[aan]++;
       }
       string aan;
       for(const auto& d : dest) {
