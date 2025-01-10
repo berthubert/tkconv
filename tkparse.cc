@@ -32,6 +32,20 @@ struct sprekers_walker: pugi::xml_tree_walker
   pugi::xml_node found;
 };
 
+
+struct vragen_walker: pugi::xml_tree_walker
+{
+  virtual bool for_each(pugi::xml_node& node)
+  {
+    if(string(node.name()) == "vraag") {
+      vragen++;
+    }
+    return true; // continue traversal
+  }
+  unsigned int vragen=0;
+};
+
+
 struct tekst_walker : pugi::xml_tree_walker
 {
   virtual bool for_each(pugi::xml_node& node)
@@ -116,9 +130,52 @@ struct spreektijd_walker: pugi::xml_tree_walker
 };
 
 
+void doSchriftelijkeVragen(SQLiteWriter& sqlw)
+{
+  sqlw.queryT("create table if not exists SchriftelijkeVraagStat (documentId TEXT PRIMARY KEY, documentNummer TEXT, aantal INT)");
+
+  sqlw.queryT("create index if not exists docnumidx on SchriftelijkeVraagStat(documentNummer)");
+
+  
+  auto alreadyRows = sqlw.queryT("select documentId from SchriftelijkeVraagStat");
+  set<string> skip;
+  for(const auto& ar : alreadyRows)
+    skip.insert(eget(ar, "documentId"));
+  
+  auto potentials = sqlw.queryT("select Document.nummer,DocumentVersie.externeidentifier,Document.id from Document,DocumentVersie where soort='Schriftelijke vragen' and DocumentVersie.documentid = document.id and +externeidentifier!=''");
+  fmt::print("Got {} schriftelijke vragen with an external identifier, and {} ids we counted already\n",
+	     potentials.size(), skip.size());
+  unsigned int totvragen = 0, skipped=0, looked=0;
+  for(auto& p : potentials) {
+    if(skip.count(eget(p, "id"))) {
+      skipped++;
+      continue;
+    }
+    string eid = eget(p, "externeidentifier");
+    string fname = makePathForExternalID(eid, "op", ".xml");
+    pugi::xml_document pnode;
+    if (!pnode.load_file(fname.c_str())) {
+      cout<<"Could not load '"<<eid<<"' from "<< fname <<endl;
+      continue;
+    }
+    vragen_walker walker;
+    pnode.traverse(walker);
+    //    fmt::print("Got {} vragen for {}\n", walker.vragen, eget(p, "nummer"));
+    sqlw.addOrReplaceValue({{"documentId", eget(p, "id")}, {"documentNummer", eget(p, "nummer")}, {"aantal", walker.vragen}}, "SchriftelijkeVraagStat");
+    totvragen += walker.vragen;
+    looked++;
+  }
+  fmt::print("In total saw {} vragen over {} documents we looked at, skipped {}\n",
+	     totvragen, looked, 
+	     skipped);
+}
+
 int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3");
+
+  doSchriftelijkeVragen(sqlw);
+  
   sqlw.queryT("create table if not exists VergaderingSpreker (vergaderingId TEXT, verslagId, persoonId TEXT)");
   sqlw.queryT("create unique index if not exists uniidx on VergaderingSpreker(vergaderingId, verslagId, persoonId)");
 

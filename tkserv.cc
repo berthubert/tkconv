@@ -1026,9 +1026,10 @@ int main(int argc, char** argv)
   sws.d_svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     nlohmann::json data;
     auto lease = tp.getLease();
+    int totaalvragen=0;
+    auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, aantal, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
 
-    auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
-
+    
     for(auto& ov : ovragen) {
       ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
       /*
@@ -1037,6 +1038,8 @@ int main(int argc, char** argv)
      functies = ["minister van Financiën","staatssecretaris van Financiën","Tweede Kamerlid","Tweede Kamerlid"]
  indiennummer = 2401
       */
+      if(ov["aantal"].is_number())
+	totaalvragen += (int)ov["aantal"];
 
       nlohmann::json functies = nlohmann::json::parse((string)ov["functies"]);
       set<string> dest;
@@ -1063,7 +1066,7 @@ int main(int argc, char** argv)
 	ov["fractie"] = getPartyFromNumber(lease.get(), ov["indiennummer"]);
     }
     data["openVragen"] = ovragen;
-    
+    data["aantalvragen"] = totaalvragen;
     inja::Environment e;
     e.set_html_autoescape(true);
 

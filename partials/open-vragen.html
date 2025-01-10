@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block customheader %}
-<p>{{ length(openVragen) }} sets nog open kamervragen afgelopen 5 jaar</p>
+<p>{{ aantalvragen }} open vragen in {{ length(openVragen) }} documenten (afgelopen 5 jaar)</p>
 {% endblock %}
 
 {% block main %}
@@ -16,6 +16,7 @@
 	    <th>Onderwerp</th>
 	    <th>1e Indiener</th>
 	    <th>Aan</th>
+	    <th>#</th>
 	    <th>Uitstel</th>
 	  </tr>
 	</thead>
@@ -26,6 +27,7 @@
 	    <td> <a href="document.html?nummer={{d.docunummer}}"> {{d.onderwerp}} </a></td>
 	      <td> <a href="persoon.html?nummer={{d.indiennummer}}">{{d.indiener}} ({{d.fractie}})</a> </td>
 	    <td> {{d.aan}} </td>
+	    <td> {{d.aantal}} </td>
 	    <td> {% if d.numuitstel > 0 %} Ja {% endif %} </td>
           </tr>
 	  {% endfor %}
