@@ -15,16 +15,16 @@
       <a href="open-vragen.html">Alles</a>
 {% for f in fractiecounts %}
 {% if f.fractie != fractie %}
-      <b>|</b> <a href="open-vragen.html?fractie={{f.fractie}}"> {{f.fractie}}&nbsp;({{f.count}})</a>
+      <b>|</b> <a href="open-vragen.html?fractie={{f.fractie}}"> {{f.fractie}}</a>&nbsp;({{f.count}})
       {% else %}
       <b>| {{f.fractie}} ({{f.count}}) </b>
       {% endif %}
       {% endfor %}
       {% for m in ministeriecounts %}
       {% if m.ministerie != ministerie %}
-      <b>|</b> <a href="open-vragen.html?ministerie={{m.ministerie}}"> {{m.afko}}&nbsp;({{m.count}})</a>
+      <b>|</b> <a href="open-vragen.html?ministerie={{m.ministerie}}"> <abbr title="{{m.ministerie}}">{{m.afko}}</abbr></a>&nbsp;({{m.count}})
       {% else %}
-      <b>| {{m.afko}}&nbsp;({{m.count}}) </b>
+      <b>| <abbr title="{{m.ministerie}}">{{m.afko}}</abbr>&nbsp;({{m.count}}) </b>
       {% endif %}
       {% endfor %}
       

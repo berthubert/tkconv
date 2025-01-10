@@ -1057,7 +1057,7 @@ int main(int argc, char** argv)
 	replaceSubstring(aan, "minister voor " , "");
 	replaceSubstring(aan, "staatssecretaris van ", "");
 	if(aan=="minister-president")
-	  aan="AZ";
+	  aan="Algemene Zaken";
 	if(dest.insert(aan).second)
 	  minicounts[aan]++;
       }
@@ -1121,6 +1121,7 @@ int main(int argc, char** argv)
     nlohmann::json ministeriecounts;
     std::unordered_map<string,string> afkos
       {
+	{"Algemene Zaken", "AZ"},
 	{"Defensie", "DEF"},
 	{"Binnenlandse Zaken en Koninkrijksrelaties", "BZK"},
 	{"Economische Zaken", "EZ"},
