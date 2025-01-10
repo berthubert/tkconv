@@ -108,6 +108,6 @@ int main(int argc, char** argv)
       fmt::print("got {} entries\n", entries);
       usleep(100000);
     }
-    cout<<"Done - saw "<<catentries<<" new entries for category"<<endl;
+    cout<<"Done - saw "<<catentries<<" new entries for category "<< category<<endl;
   }
 }
