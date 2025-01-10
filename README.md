@@ -168,6 +168,7 @@ do
         ./build/tkconv
         ./build/tkpull
         ./build/oppull
+        ./build/oppull xml
         ./build/tkparse
         ./build/tkindex
         ./build/tkindex --days=14  --tkindex tkindex-small.sqlite3
