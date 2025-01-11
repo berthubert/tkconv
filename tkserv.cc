@@ -620,10 +620,11 @@ int main(int argc, char** argv)
     }
 
     lid[0]["afkorting"] = getPartyFromNumber(sqlw.get(), nummer);
+    string persoonId = lid[0]["id"];
     nlohmann::json j = nlohmann::json::object();
     j["meta"] = lid[0];
 
-    auto zaken = packResultsJson(sqlw->queryT("select substr(zaak.gestartOp,0,11) gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc, nummer desc", {(string)lid[0]["id"]}));
+    auto zaken = packResultsJson(sqlw->queryT("select substr(zaak.gestartOp,0,11) gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc, nummer desc", {persoonId}));
 
     for(auto& z: zaken) {
       z["aangenomen"]="";
@@ -649,6 +650,8 @@ int main(int argc, char** argv)
     j["activiteiten"] = packResultsJson(sqlw->queryT("select substr(activiteit.datum, 0, 11) datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer}));
 
     j["geschenken"] = packResultsJson(sqlw->queryT("select datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer}));
+
+    j["toezeggingen"] = packResultsJson(sqlw->queryT("select substr(toezegging.datum, 0,11) datum, ministerie, tekst, activiteit.nummer, activiteit.voortouwAfkorting from toezegging, activiteit where activiteit.id = activiteitId and persoonId = ? and toezegging.status != 'Voldaan' order by toezegging.datum" , {persoonId}));
     
     j["pagemeta"]["title"]="Kamerlid";
     string tv = lid[0]["tussenvoegsel"];

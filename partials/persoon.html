@@ -52,6 +52,30 @@ kind: 'persoon'
     </table>
   </details>
 <p></p>
+<details>
+  <summary  role="button">Ontvangen onvervulde toezeggingen ({{ length(toezeggingen) }})</summary>
+    <table class="striped">
+      <thead>
+	<tr>
+	  <th>Datum</th>
+	  <th>Tekst</th>
+	  <th>Ministerie</th>
+	  <th>Commissie</th>
+	</tr>
+      </thead>
+      <tbody>
+	{% for t in toezeggingen %}
+	<tr>
+	  <td> {{t.datum}} </td>
+	  <td> {{t.tekst}} (<a href="activiteit.html?nummer={{t.nummer}}">{{t.nummer}}</a>)</td>
+	  <td> {{t.ministerie}} </td>
+	  <td> {{t.voortouwAfkorting}} </td>
+	</tr>
+	{% endfor %}
+      </tbody>
+    </table>
+  </details>
+<p></p>
 <details open>
   <summary role="button">Gesproken ({{length(gesproken)}})</summary>
   <table class="striped">
