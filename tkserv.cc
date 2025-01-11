@@ -837,7 +837,7 @@ int main(int argc, char** argv)
 
     r["docs"] = packResultsJson(sqlw->queryT("select Document.* from link,Document where linkSoort='Activiteit' and link.naar=? and Document.id=link.van", {activiteitId}));
 
-    r["toezeggingen"] = packResultsJson(sqlw->queryT("select * from Toezegging where activiteitId=?", {activiteitId}));
+    r["toezeggingen"] = packResultsJson(sqlw->queryT("select * from Toezegging where activiteitId=? order by nummer asc", {activiteitId}));
     
     try {
       string url = fmt::format("https://cdn.debatdirect.tweedekamer.nl/search?van={}&tot={}&sortering=relevant&vanaf=0&appVersion=10.34.1&platform=web&totalFormat=new",
