@@ -405,7 +405,7 @@ std::string urlEscape(const std::string& data)
   buffer.reserve(1.1*data.size());
   for(const auto& c : data) {
     if(!isalnum(c) && (c!= '-' && c != '.' && c !='_' && c != '~'))
-      buffer += fmt::sprintf("%%%02x", (unsigned int) c);
+      buffer += fmt::sprintf("%%%02x", (unsigned int) (unsigned char) c);
     else
       buffer.append(1, c); 
   }
