@@ -199,15 +199,11 @@ async function activiteitinit(f)
 
 async function getActiviteitDetails(f)
 {
-//    const url = new URL(window.location.href);
- //   url.searchParams.set("zaak", f.nummer);
-   // history.pushState({}, "", url);
-
     const response = await fetch('activiteit/'+f.nummer);
     if (response.ok === true) {
         const data = await response.json();
         f["activiteit"] = data;
-       f["loaded"]=true;
+	f["loaded"]=true;
     }
 
     const response2 = await fetch('have-monitor/activiteit/'+f.nummer);
@@ -218,10 +214,8 @@ async function getActiviteitDetails(f)
 	console.log(`data["have"] = ${data.have}`);
     }
     else {
-	console.log("Mis");
+	console.log("Mis - no monitor or error");
     }
-
-    
 }
 
 async function ksdinit(f)
