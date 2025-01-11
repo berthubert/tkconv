@@ -942,7 +942,6 @@ int main(int argc, char** argv)
   doTemplate("geschenken.html", "geschenken.html", "select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer,substr(persoongeschenk.bijgewerkt,0,11)  pgbijgewerkt from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by persoongeschenk.bijgewerkt desc");
 
 
-  doTemplate("toezeggingen.html", "toezeggingen.html", "select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger, substr(activiteit.datum, 0, 11) datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting, voortouwNaam from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc");
 
   
   sws.d_svr.Get("/index.html", [](const httplib::Request &req, httplib::Response &res) {
@@ -1024,6 +1023,81 @@ int main(int argc, char** argv)
   // experimental, for vragen.html
   sws.d_svr.Get("/recente-kamervragen", [&tp](const httplib::Request &req, httplib::Response &res) {
     res.set_content(packResultsJson(tp.getLease()->queryT("select nummer,onderwerp,naam,gestartOp from Zaak,ZaakActor where zaakid=zaak.id and relatie='Indiener' and gestartOp > '2018-01-01' and soort = 'Schriftelijke vragen' order by gestartOp desc")).dump(), "application/json"); // XXX hardcoded date
+  });
+
+  sws.d_svr.Get("/toezeggingen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+
+    string commissie = req.get_param_value("commissie");
+    string fractie = req.get_param_value("fractie");
+    
+    auto toez =  packResultsJson(tp.getLease()->queryT("select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger, substr(activiteit.datum, 0, 11) datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, persoon.nummer pnummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting, voortouwNaam from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc"));
+
+    
+    map<string, unsigned int> mincount, voortouwcount, fractiecount;
+    unordered_map<string, string> abbr2title;
+    for(const auto& t : toez) {
+      if(t.count("ministerie"))
+	mincount[t["ministerie"]]++;
+      if(t.count("voortouwAfkorting")) {
+	voortouwcount[t["voortouwAfkorting"]]++;
+	abbr2title[t["voortouwAfkorting"]] = t["voortouwNaam"];
+      }
+      if(t.count("fractienaam"))
+	fractiecount[t["fractienaam"]]++;
+
+
+    }
+
+    nlohmann::json jmincount, jvoortouwcount, jfractiecount;
+    for(const auto& c : {&mincount, &voortouwcount, &fractiecount}) {
+      for(const auto& [item, count]: *c) {
+	if(item.empty())
+	  continue;
+	if(c == &mincount)
+	  jmincount.push_back(nlohmann::json({{"item", item}, {"escitem", urlEscape(item)}, {"count", count}}));
+	else if(c == &voortouwcount)
+	  jvoortouwcount.push_back(nlohmann::json({{"item", item},
+						   {"fullitem", abbr2title[item]},
+						   {"escitem", urlEscape(item)}, {"count", count}}));
+	else if(c == &fractiecount)
+	  jfractiecount.push_back(nlohmann::json({{"item", item},  {"escitem", urlEscape(item)}, {"count", count}}));
+      }
+    }
+    
+    // use pnummer
+
+    nlohmann::json filtered = nlohmann::json::array();
+    if(!commissie.empty()) {
+      for(auto& t : toez) {
+	if(t["voortouwAfkorting"]==commissie)
+	  filtered.push_back(t);
+      }
+    }
+    else if(!fractie.empty()) {
+      for(auto& t : toez) {
+	//	cout<<t["fractienaam"] <<"  == " << fractie << endl;
+	if(t["fractienaam"] == fractie)
+	  filtered.push_back(t);
+      }
+    }
+    else
+      filtered = toez;
+    
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    nlohmann::json data;
+    data["pagemeta"]["title"]="OpenTK - Toezeggingen";
+    data["og"]["title"] = "OpenTK - Toezeggingen";
+    data["og"]["description"] = "Toezeggingen van het kabinet";
+    data["og"]["imageurl"] = "";
+    data["data"] = filtered;
+    data["voortouw"] = commissie;
+    data["fractie"] = fractie;
+    data["mincount"] = jmincount;
+    data["fractiecount"] = jfractiecount;
+    data["voortouwcount"] = jvoortouwcount;
+    
+    res.set_content(e.render_file("./partials/toezeggingen.html", data), "text/html");
   });
   
   sws.d_svr.Get("/open-vragen.html", [&tp](const httplib::Request &req, httplib::Response &res) {

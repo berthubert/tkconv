@@ -29,5 +29,6 @@ CREATE INDEX persoonnummeridx on persoon(nummer);
 CREATE INDEX ksdindex on document(kamerstukdossierid);
 create index brondocidx on document(bronDocument);
 CREATE INDEX FractieZetelPersoon_idx ON FractieZetelPersoon(persoonId, fractieZetelId, van DESC);
+create index toezact on Toezegging(activiteitId);
 analyze;
 

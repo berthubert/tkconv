@@ -3,6 +3,27 @@
 
 {% block main %}
 <h3>Openstaande toezeggingen door kabinet ({{length(data)}})</h3>
+<center><small>
+    <a href="toezeggingen.html">Alles</a>
+{% for f in fractiecount %}
+{% if f.item != fractie %}
+<b>|</b> <a href="toezeggingen.html?fractie={{f.escitem}}">{{f.item}}</a>&nbsp;({{f.count}})
+{% else %}
+<b>| {{f.item}}&nbsp;({{f.count}}) </b>
+{% endif %}
+{% endfor %}
+
+
+    {% for m in voortouwcount %}
+{% if m.item != voortouw %}
+<b>|</b> <a href="toezeggingen.html?commissie={{m.escitem}}"><abbr title="{{m.fullitem}}">{{m.item}}</abbr></a>&nbsp;({{m.count}})
+{% else %}
+<b>| {{m.item}}&nbsp;({{m.count}}) </b>
+{% endif %}
+{% endfor %}
+</small></center>
+
+
 <table class="striped">
   <thead>
     <tr>
@@ -25,7 +46,7 @@
       <td> {{d.naamToezegger}}</td>
       <td> {{d.ministerie}}</td>
       {% if existsIn(d, "achternaam") %}
-      <td> {{ d.initialen}} {{d.tussenvoegsel}} {{d.achternaam}} </td>
+      <td> {{ d.initialen}} {{d.tussenvoegsel}} {{d.achternaam}} {% if  d.fractienaam !="" %} ({{d.fractienaam}}) {% endif %}</td>
       {% else %}
       <td>{{d.fractienaam}}</td>
       {% endif %}
