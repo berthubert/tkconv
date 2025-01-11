@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block div %}
 id="recent-docs" x-data="{
-				nummer: '',
-activiteit: { zaal: '', videourl: '', meta: { onderwerp: '', datum: '', noot: ''} },
+nummer: '',
+activiteit: { zaal: '', videourl: '', meta: { onderwerp: '', datum: '', noot: ''}, toezeggingen: [] },
 loaded: false,
 kind: 'activiteit',
 haveMonitor: false
@@ -34,6 +34,19 @@ haveMonitor: false
     <div x-html="activiteit['meta'].noot"></div>
   </div>
 </template>
+
+<p></p>
+<template x-if="activiteit['toezeggingen'].length > 0">
+  <div>
+    <h4>Toezeggingen</h4>
+    <ul>
+      <template x-for="t in activiteit['toezeggingen']">
+	<li><span x-text="t.tekst"></span> (<span x-text="t.status"></span>)</li>
+      </template>
+    </ul>
+  </div>
+</template>
+
 
 <h4>Betrokkenen</h4>
 <ul>
