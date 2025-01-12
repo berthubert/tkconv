@@ -26,6 +26,54 @@ kind: 'persoon'
 {% endblock %}
 
 {% block main %}
+<details>
+  <summary  role="button">Ontvangen onvervulde toezeggingen ({{ length(toezeggingen) }})</summary>
+    <table class="striped">
+      <thead>
+	<tr>
+	  <th>Datum</th>
+	  <th>Tekst</th>
+	  <th>Ministerie</th>
+	  <th>Commissie</th>
+	</tr>
+      </thead>
+      <tbody>
+	{% for t in toezeggingen %}
+	<tr>
+	  <td> {{t.datum}} </td>
+	  <td> {{t.tekst}} (<a href="activiteit.html?nummer={{t.nummer}}">{{t.nummer}}</a>)</td>
+	  <td> {{t.ministerie}} </td>
+	  <td> {{t.voortouwAfkorting}} </td>
+	</tr>
+	{% endfor %}
+      </tbody>
+    </table>
+  </details>
+<p></p>
+<details>
+  <summary  role="button">Onbeantwoorde schriftelijke vragen ({{ length(openvragen) }})</summary>
+    <table class="striped">
+      <thead>
+	<tr>
+	  <th>Datum</th>
+	  <th>Onderwerp</th>
+	  <th>Uitstel</th>
+	  <th>#&nbsp;vragen</th>
+	</tr>
+      </thead>
+      <tbody>
+	{% for o in openvragen %}
+	<tr>
+	  <td> {{o.sdatum}} </td>
+	  <td> {{o.onderwerp}} (<a href="zaak.html?nummer={{o.nummer}}">{{o.nummer}}</a>)</td>
+	  <td> {% if o.numuitstel > 0%}Ja{% endif %} </td>
+	  <td> {{o.aantal}}  </td>
+	</tr>
+	{% endfor %}
+      </tbody>
+    </table>
+  </details>
+<p></p>
   <details>
     <summary  role="button">Zaken ({{ length(zaken) }})</summary>
     <table class="striped">
@@ -46,30 +94,6 @@ kind: 'persoon'
 	  <td><a href="zaak.html?nummer={{z.nummer}}"> {{z.nummer}}</a></td>
 	  <td> {% for d in z.docs %}{% if not loop.is_first %}, {% endif %}{{d.soort}}{% endfor %} </td>
 	  <td >{{z.aangenomen}} </td>
-	</tr>
-	{% endfor %}
-      </tbody>
-    </table>
-  </details>
-<p></p>
-<details>
-  <summary  role="button">Ontvangen onvervulde toezeggingen ({{ length(toezeggingen) }})</summary>
-    <table class="striped">
-      <thead>
-	<tr>
-	  <th>Datum</th>
-	  <th>Tekst</th>
-	  <th>Ministerie</th>
-	  <th>Commissie</th>
-	</tr>
-      </thead>
-      <tbody>
-	{% for t in toezeggingen %}
-	<tr>
-	  <td> {{t.datum}} </td>
-	  <td> {{t.tekst}} (<a href="activiteit.html?nummer={{t.nummer}}">{{t.nummer}}</a>)</td>
-	  <td> {{t.ministerie}} </td>
-	  <td> {{t.voortouwAfkorting}} </td>
 	</tr>
 	{% endfor %}
       </tbody>
