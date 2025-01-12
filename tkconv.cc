@@ -34,6 +34,7 @@ int main(int argc, char** argv)
     }
   }
   SQLiteWriter sqlw("tk.sqlite3");
+  sqlw.query("PRAGMA optimize");
   SQLiteWriter xmlstore("xml.sqlite3");
 
   sqlw.query("create table if not exists link (van TEXT, naar TEXT) STRICT");
