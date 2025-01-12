@@ -1,5 +1,5 @@
 # Tools om de Tweede Kamer open data te gebruiken
-bert hubert / bert@hubertnet.nl / https://berthub.eu/
+bert hubert / bert@hubertnet.nl / https://berthub.eu/ / https://opentk.nl/
 
 > Er is nu [ook een blogpost met een eindgebruikershandleiding](https://berthub.eu/articles/posts/welkom-bij-opentk/)!
 
@@ -40,12 +40,18 @@ dan de tweedekamer.nl website laat zien. Dit geldt met name voor documenten
 van de kamer zelf. Deze worden wel weergegeven op de site, maar er staat
 niet bij waar het document bijhoort, welke vergadering, welke activiteit.
 
+Nog een ding - de software heet 'tkconv', en het project en de website heten
+[OpenTK](https://opentk.nl).
+
 # Met dank aan
 
 Veel dank aan Jan Allersma, Wander Nauta, Bart Smit, Peter Peerdeman en Bart
 Schuller voor hun open source bijdragen & tests!  Verder bouwt dit project op de
 noeste arbeid van de staf van de Tweede Kamer, zonder hun werk was er niks
 weer te geven.
+
+Ook komt een hoop nuttige input van gebruikers van de software bij
+ministeries, bestuursorganen, fracties en bij de Tweede Kamer zelf. 
 
 De software leunt verder zwaar op [SQLite](https://sqlite.org), [Pico CSS](https://picocss.com/),
 [Pugixml](https://pugixml.org/), [nlohmann-json](https://json.nlohmann.me/),
