@@ -652,7 +652,9 @@ int main(int argc, char** argv)
     j["geschenken"] = packResultsJson(sqlw->queryT("select datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer}));
 
     j["toezeggingen"] = packResultsJson(sqlw->queryT("select substr(toezegging.datum, 0,11) datum, ministerie, tekst, activiteit.nummer, activiteit.voortouwAfkorting from toezegging, activiteit where activiteit.id = activiteitId and persoonId = ? and toezegging.status != 'Voldaan' order by toezegging.datum" , {persoonId}));
-    
+
+    j["openvragen"] = packResultsJson(sqlw->queryT("select substr(openvragen.gestartOp, 0, 11) sdatum, aantal, openvragen.* from openvragen,zaakactor,zaak,persoon left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer  where persoon.id=persoonid and zaak.id = openvragen.id and zaak.id = zaakactor.zaakid and relatie='Indiener' and persoon.id=? order by sdatum asc", {persoonId}));
+
     j["pagemeta"]["title"]="Kamerlid";
     string tv = lid[0]["tussenvoegsel"];
     if(!tv.empty())
@@ -1031,7 +1033,6 @@ int main(int argc, char** argv)
     string fractie = req.get_param_value("fractie");
     
     auto toez =  packResultsJson(tp.getLease()->queryT("select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger, substr(activiteit.datum, 0, 11) datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, persoon.nummer pnummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting, voortouwNaam from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc"));
-
     
     map<string, unsigned int> mincount, voortouwcount, fractiecount;
     unordered_map<string, string> abbr2title;
