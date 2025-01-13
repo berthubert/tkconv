@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block customheader %}
-<p>{{ aantalvragen }} open vragen in {{ length(openVragen) }} documenten</p>
+<p>{{ aantalvragen }} open vragen, in {{ length(openVragen) }} documenten (waarvan <font color="#ff0000">{{ totlaatzonderuitstel }}</font> te laat zonder uitstel)</p>
 {% endblock %}
 
 {% block main %}
@@ -44,12 +44,15 @@
 	</thead>
 	<tbody>
 	  {% for d in openVragen %}
-          <tr>
-            <td>{{d.gestartOp}}</td>
-	    <td> <a href="document.html?nummer={{d.docunummer}}"> {{d.onderwerp}} </a></td>
-	      <td> <a href="persoon.html?nummer={{d.indiennummer}}">{{d.indiener}} ({{d.fractie}})</a> </td>
-	    <td> {{d.aan}} </td>
-	    <td> {{d.aantal}} </td>
+          <tr >
+            <td {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %}> {{d.gestartOp}}
+		
+	    </td>
+	    <td {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %}> <a {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %} href="document.html?nummer={{d.docunummer}}"> {{d.onderwerp}} </a></td>
+	      <td {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %}> <a {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %} href="persoon.html?nummer={{d.indiennummer}}">{{d.indiener}} ({{d.fractie}})</a> </td>
+	    <td {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %}> {{d.aan}}
+	    </td>
+	    <td {% if d.laatzonderuitstel==1 %} style='color: #ff0000;' {% endif %}> {{d.aantal}} </td>
 	    <td> {% if d.numuitstel > 0 %} Ja {% endif %} </td>
           </tr>
 	  {% endfor %}
