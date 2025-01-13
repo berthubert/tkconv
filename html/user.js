@@ -16,11 +16,17 @@ async function doMijnInit(f)
 	if (response.ok === true) {
             const data = await response.json();
 	    console.log(data);
-	    f.state = 4;
-	    f.email = data.email;
-	    // remove the 'session=' from the URL
-	    const url = new URL("mijn.html", window.location.href);
-	    history.pushState({}, "", url);
+	    if(data.ok == 1) {
+		f.state = 4;
+		f.email = data.email;
+		// remove the 'session=' from the URL
+		const url = new URL("mijn.html", window.location.href);
+		history.pushState({}, "", url);
+	    }
+	    else {
+		window.alert("Deze login-link was al eens gebruikt, vraag een nieuwe aan!");
+		window.location.href = "mijn.html";		
+	    }
 	}
 	else {
 	    console.log("error joining session");
