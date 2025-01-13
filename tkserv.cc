@@ -1112,7 +1112,17 @@ int main(int argc, char** argv)
 
     map<string, unsigned int> fcounts;
     map<string, unsigned int> minicounts;
+    int totlaatzonderuitstel=0;
     for(auto& ov : ovragen) {
+      time_t van = getTstampUTC(ov["gestartOp"]);
+      if(van < time(0) - 3*7*86400 && ov["numuitstel"] == 0) {
+	ov["laatzonderuitstel"]=1;
+	totlaatzonderuitstel++;
+      }
+      else {
+	ov["laatzonderuitstel"]=0;
+      }
+	
       ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
       /*
         namen = ["E. Heinen","T. van Oostenbruggen","P.H. Omtzigt","J.N. van Vroonhoven"]
@@ -1228,6 +1238,7 @@ int main(int argc, char** argv)
     
     data["fractiecounts"]=fractiecounts;
     data["ministeriecounts"]=ministeriecounts;
+    data["totlaatzonderuitstel"] = totlaatzonderuitstel;
     inja::Environment e;
     e.set_html_autoescape(true);
 
