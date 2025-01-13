@@ -1107,31 +1107,20 @@ int main(int argc, char** argv)
     
     nlohmann::json data;
     auto lease = tp.getLease();
-    int totaalvragen=0;
+
     auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, aantal, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
 
     map<string, unsigned int> fcounts;
     map<string, unsigned int> minicounts;
     int totlaatzonderuitstel=0;
     for(auto& ov : ovragen) {
-      time_t van = getTstampUTC(ov["gestartOp"]);
-      if(van < time(0) - 3*7*86400 && ov["numuitstel"] == 0) {
-	ov["laatzonderuitstel"]=1;
-	totlaatzonderuitstel++;
-      }
-      else {
-	ov["laatzonderuitstel"]=0;
-      }
-	
-      ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);
       /*
         namen = ["E. Heinen","T. van Oostenbruggen","P.H. Omtzigt","J.N. van Vroonhoven"]
      relaties = ["Gericht aan","Gericht aan","Indiener","Medeindiener"]
      functies = ["minister van Financiën","staatssecretaris van Financiën","Tweede Kamerlid","Tweede Kamerlid"]
  indiennummer = 2401
       */
-      if(ov["aantal"].is_number())
-	totaalvragen += (int)ov["aantal"];
+      ov["gestartOp"] = ((string)ov["gestartOp"]).substr(0,10);      
 
       nlohmann::json functies = nlohmann::json::parse((string)ov["functies"]);
       set<string> dest;
@@ -1168,12 +1157,9 @@ int main(int argc, char** argv)
       data["fractie"] = fractie;
       data["ministerie"]="";
       nlohmann::json filtered;
-      totaalvragen = 0;
       for(const auto & ov : ovragen) {
 	if(ov["fractie"] == fractie) {
 	  filtered.push_back(ov);
-	  if(ov["aantal"].is_number())
-	    totaalvragen += (int)ov["aantal"];
 	}
       }
       data["openVragen"] = filtered;
@@ -1183,13 +1169,10 @@ int main(int argc, char** argv)
       data["ministerie"]=ministerie;
 
       nlohmann::json filtered;
-      totaalvragen = 0;
       for(const auto & ov : ovragen) {
 	string aan = ov["aan"];
 	if(aan.find(ministerie) != string::npos) {
 	  filtered.push_back(ov);
-	  if(ov["aantal"].is_number())
-	    totaalvragen += (int)ov["aantal"];
 	}
       }
       data["openVragen"] = filtered;
@@ -1199,8 +1182,22 @@ int main(int argc, char** argv)
       data["fractie"]="";
       data["ministerie"]="";
     }
-    data["aantalvragen"] = totaalvragen;
 
+    int totaalvragen=0;
+    for(auto& ov : data["openVragen"]) {
+      if(ov["aantal"].is_number())
+	totaalvragen += (int)ov["aantal"];
+
+      time_t van = getTstampUTC(ov["gestartOp"]);
+      if(van < time(0) - 3*7*86400 && ov["numuitstel"] == 0) {
+	ov["laatzonderuitstel"]=1;
+	totlaatzonderuitstel++;
+      }
+      else {
+	ov["laatzonderuitstel"]=0;
+      }
+    }
+    data["aantalvragen"] = totaalvragen;    
     nlohmann::json fractiecounts;
     for(const auto& [fractie, count] : fcounts) {
       fractiecounts.push_back(nlohmann::json::object({{"fractie", fractie},
@@ -1235,7 +1232,6 @@ int main(int argc, char** argv)
 							 {"count", count}}));
     }
 
-    
     data["fractiecounts"]=fractiecounts;
     data["ministeriecounts"]=ministeriecounts;
     data["totlaatzonderuitstel"] = totlaatzonderuitstel;
