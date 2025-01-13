@@ -65,7 +65,9 @@ void addTkUserManagement(SimpleWebSystem& sws)
 		fmt::format("Welkom!\nKlik nu op {}/mijn.html?id={} om je email-adres te koppelen aan OpenTK.", baseUrl, id),
 		fmt::format("Welkom!\nKlik nu op <a href='{}/mijn.html?id={}'>{}/mijn.html?id={}</a> om je email-adres te koppelen aan OpenTK.",
 			    baseUrl, id,
-			    baseUrl, id));
+			    baseUrl, id),
+		"opentk@hubertnet.nl"
+		);
 		
       j["ok"] = 1;
     }

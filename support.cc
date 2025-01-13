@@ -266,7 +266,7 @@ string toQuotedPrintable(const std::string& in)
   return out;
 }
 
-void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody)
+void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody, const std::string& bcc)
 {
   const char* allowed="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-.@=";
   if(from.find_first_not_of(allowed) != string::npos || to.find_first_not_of(allowed) != string::npos) {
@@ -300,6 +300,11 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
   sc.writen("RCPT To:<"+to+">\r\n");
   sponge(250);
 
+  if(!bcc.empty()) {
+    sc.writen("RCPT To:<"+ bcc +">\r\n");
+    sponge(250);
+  }
+  
   sc.writen("DATA\r\n");
   sponge(354);
   sc.writen("From: "+from+"\r\n");
