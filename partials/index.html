@@ -47,7 +47,7 @@ Meest recente documenten (live updates)
       <tr>
 	<td>{{ d.datum }}</td>
 	<td>{{ d.bijgewerkt }}</td>
-	<td><abbr title="{{ d.naam }}">{{ d.afkorting }}</abbr></td>
+	<td>{% if existsIn(d, "naam") %}<abbr title="{{ d.naam }}">{{ d.afkorting }}</abbr>{% endif %}</td>
 	{% if d.soort != "Verslag" %}
 	<td> {{ d.onderwerp }}  (<a href="document.html?nummer={{d.nummer}}">{{d.nummer}}</a>)</td>
 	{% else %}
