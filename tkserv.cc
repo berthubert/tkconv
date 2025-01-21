@@ -1669,37 +1669,47 @@ int main(int argc, char** argv)
   */
 
   sws.d_svr.Get("/stemmingen.html", [&tp](const httplib::Request &req, httplib::Response &res) {
-    string start = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 21 * 86400));
+
     auto sqlw = tp.getLease();
-    auto besluiten = packResultsJson(sqlw->queryT("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum desc,agendapuntZaakBesluitVolgorde asc", {start})); 
-
+    nlohmann::json besluiten;
     nlohmann::json stemmingen = nlohmann::json::array();
-    for(auto& b : besluiten) {
-      VoteResult vr;
-      if(!getVoteDetail(sqlw.get(), b["besluitid"], vr))
-	continue;
-
-      /*
-      fmt::print("{}, voor: {} ({}), tegen: {} ({}), niet deelgenomen: {} ({})\n",
-		 (string)b["besluitid"],
-		 vr.voorpartij, vr.voorstemmen,
-		 vr.tegenpartij, vr.tegenstemmen,
-		 vr.nietdeelgenomenpartij, vr.nietdeelgenomen);
-      */
-      string datum = b["datum"]; // 2024-10-10T12:13:14
-      datum[10]=' ';
-      datum.resize(16);
-      b["datum"] = datum;
-      b["voorpartij"] = vr.voorpartij;
-      b["tegenpartij"] = vr.tegenpartij;
-      b["voorstemmen"] = vr.voorstemmen;
-      b["tegenstemmen"] = vr.tegenstemmen;
-      b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
-      stemmingen.push_back(b);
+    int weeks = 3;
+    for( ; weeks < 19; weeks *= 2)  {
+      string start = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - weeks * 7 * 86400));
+      besluiten = packResultsJson(sqlw->queryT("select besluit.id as besluitid, besluit.soort as besluitsoort, besluit.tekst as besluittekst, besluit.opmerking as besluitopmerking, activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum desc,agendapuntZaakBesluitVolgorde asc", {start}));
+    
+      for(auto& b : besluiten) {
+	VoteResult vr;
+	if(!getVoteDetail(sqlw.get(), b["besluitid"], vr))
+	  continue;
+	
+	/*
+	  fmt::print("{}, voor: {} ({}), tegen: {} ({}), niet deelgenomen: {} ({})\n",
+	  (string)b["besluitid"],
+	  vr.voorpartij, vr.voorstemmen,
+	  vr.tegenpartij, vr.tegenstemmen,
+	  vr.nietdeelgenomenpartij, vr.nietdeelgenomen);
+	*/
+	string datum = b["datum"]; // 2024-10-10T12:13:14
+	datum[10]=' ';
+	datum.resize(16);
+	b["datum"] = datum;
+	b["voorpartij"] = vr.voorpartij;
+	b["tegenpartij"] = vr.tegenpartij;
+	b["voorstemmen"] = vr.voorstemmen;
+	b["tegenstemmen"] = vr.tegenstemmen;
+	b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
+	stemmingen.push_back(b);
+      }
+      if(stemmingen.size() < 30) {
+	stemmingen.clear();
+	continue; // try more weeks
+      }
+      break;
     }
     nlohmann::json data;
     data["stemmingen"] = stemmingen;
-    
+    data["weken"] = weeks;
     inja::Environment e;
     e.set_html_autoescape(true); 
 
