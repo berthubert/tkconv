@@ -11,26 +11,11 @@ async function doMijnInit(f)
 	console.log("Set state to 2");
     }
     else if(url.searchParams.get("session") != null) {
-	let session = url.searchParams.get("session");
-	const response = await fetch('join-session/'+session, { method: "POST"});
-	if (response.ok === true) {
-            const data = await response.json();
-	    console.log(data);
-	    if(data.ok == 1) {
-		f.state = 4;
-		f.email = data.email;
-		// remove the 'session=' from the URL
-		const url = new URL("mijn.html", window.location.href);
-		history.pushState({}, "", url);
-	    }
-	    else {
-		window.alert("Deze login-link was al eens gebruikt, vraag een nieuwe aan!");
-		window.location.href = "mijn.html";		
-	    }
-	}
-	else {
-	    console.log("error joining session");
-	}
+	f.session = url.searchParams.get("session");
+	f.state = 5;
+	// remove the 'session=' from the URL
+	const url2 = new URL("mijn.html", window.location.href);
+	history.pushState({}, "", url2);
     }
     else {
 	const response = await fetch('status');
@@ -101,6 +86,26 @@ async function doConfirmInvite(f)
     return false;
 }
 
+
+async function doConfirmRejoin(f)
+{
+    const response = await fetch('join-session/'+f.session, { method: "POST"});
+    if (response.ok === true) {
+        const data = await response.json();
+	console.log(data);
+	if(data.ok == 1) {
+	    f.state = 4;
+	    f.email = data.email;
+	}
+	else {
+	    window.alert("Deze login-link was al eens gebruikt, vraag een nieuwe aan!");
+	    window.location.href = "mijn.html";		
+	}
+    }
+    else {
+	console.log("error joining session");
+    }
+}
 
 async function removeMonitorAndUpdate(f, id)
 {
