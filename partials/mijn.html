@@ -3,7 +3,8 @@
 id="recent-docs" x-data="{
 email: '',
 id: '',
-state: -1
+state: -1,
+session: ''
 }" x-init="doMijnInit($data)"
 
 {% endblock %}
@@ -161,6 +162,16 @@ state: -1
   </div>
 </template>
 
+
+<template x-if="state==5">
+  <div>
+    <p>
+      Welkom terug (van je email)! Klik nu onderstaand op de knop "<b>Inloggen</b>" om opnieuw in te loggen.
+    </p>
+    
+    <input type="button" value="Inloggen" @click="doConfirmRejoin($data)"></input> 
+  </div>
+</template>
 
 
 {% endblock %}
