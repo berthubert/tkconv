@@ -179,6 +179,12 @@ void Sessions::dropSession(const std::string& sessionid, std::optional<string> u
     d_lsqw.query("delete from sessions where id=? and user=?", {sessionid, *user});
 }
 
+void Sessions::cleanExpired() 
+{
+  d_lsqw.query("delete from sessions where expireTstamp < ? and expireTstamp != 0 and expireTstamp not null", {(int64_t)time(0)});
+}
+
+
 void SimpleWebSystem::setExtraCookieSpec(const std::string& spec)
 {
   d_extraCookieSpec = spec;
@@ -257,14 +263,21 @@ void SimpleWebSystem::standardFunctions()
     auto c = cr.lsqw.query("select sessions.user, sessions.id, email from sessions,users where users.user = sessions.user and sessions.id=? and authenticated=1 and expireTstamp > ?", {sessionid, time(0)});
     if(c.size()==1) {
       string user= get<string>(c[0]["user"]);
+
+      // because fucking microsoft attempts to click on the login link, we can no longer delete
+      // the login session.....
+
+      
       // delete this temporary session
-      cr.sessions.dropSession(sessionid, user);
+      //cr.sessions.dropSession(sessionid, user);
+
+      
       // emailauthenticated session so it can reset your password, but no expiration
       string newsessionid = cr.sessions.createSessionForUser(user, "synth", cr.getIP(), true);
       cr.res.set_header("Set-Cookie",
                      "tkconv_session="+newsessionid+"; SameSite=Strict; Path=/; HttpOnly; " + cr.sws.d_extraCookieSpec +"Max-Age="+to_string(5*365*86400));
       cr.lsqw.query("update users set lastLoginTstamp=? where user=?", {time(0), user});
-      cr.log({{"action", "join-session"}, {"sessionid", sessionid}});
+      cr.log({{"action", "join-session"}, {"fromsessionid", sessionid}, {"sessionid", newsessionid}, {"user", user}});
       j["ok"]=1;
       j["email"] = eget(c[0], "email");
       cr.stats.successfulSessionJoin++;

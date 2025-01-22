@@ -75,6 +75,7 @@ public:
   std::string createSessionForUser(const std::string& user, const std::string& agent, const std::string& ip, bool authenticated=false, std::optional<time_t> expire={});
 
   void dropSession(const std::string& sessionid, std::optional<std::string> user={});
+  void cleanExpired();
   std::string getUser(const httplib::Request &req, const std::string& ip)  const;
 
 private:

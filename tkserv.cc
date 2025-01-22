@@ -17,9 +17,13 @@
 #include "inja.hpp"
 #include "thingpool.hh"
 #include "sws.hh"
+#include "search.hh"
 
 using namespace std;
-void addTkUserManagement(SimpleWebSystem& sws);
+void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
+			 const std::string& fromaddr,
+			 const std::string& baseUrl);
+
 
 template<class UnaryFunction>
 void recursive_iterate(nlohmann::json& j, UnaryFunction f)
@@ -423,7 +427,8 @@ int main(int argc, char** argv)
   sws.d_svr.set_keep_alive_max_count(1); 
   sws.d_svr.set_keep_alive_timeout(1);
   sws.standardFunctions();
-  addTkUserManagement(sws);
+  addTkUserManagement(sws, "10.0.0.2", "opentk@hubertnet.nl", "https://berthub.eu/tkconv");
+  //  addTkUserManagement(sws, "10.0.0.2", "opentk@hubertnet.nl", "http://127.0.0.1:8089");
   
   
   if(args.is_used("--rnd-admin-password")) {
@@ -787,7 +792,33 @@ int main(int argc, char** argv)
 	b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
       }
     }
+
+    set<string> seendocs;
+    for(auto& d : z["docs"])
+      seendocs.insert(d["nummer"]);
     
+    SQLiteWriter ssqlw("tkindex.sqlite3", SQLWFlag::ReadOnly);
+    ssqlw.query("ATTACH DATABASE 'tk.sqlite3' as meta");
+    
+    SearchHelper sh(ssqlw);
+    auto sresults = sh.search(nummer, {"Document"});
+    cout << "Got "<<sresults.size() << " search engin docs"<<endl;
+
+    nlohmann::json adocs = nlohmann::json::array();
+    for(auto& sr : sresults) {
+      cout<<"\t"<< sr.nummer <<endl;
+      if(!seendocs.count(sr.nummer)) {
+	adocs.push_back({{"nummer", sr.nummer},
+			 {"datum", sr.datum.substr(0,10)},
+			 {"onderwerp", sr.onderwerp},
+			 {"soort", sr.soort}
+	  });
+	cout<<"\t\tNew!\n";
+      }
+      else
+	cout<<"\t\tKnown already\n";
+    }
+    z["adocs"] = adocs;
     // XXX agendapunt multi
     z["pagemeta"]["title"]="Zaak";
     z["og"]["title"] = "Persoon";

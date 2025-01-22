@@ -25,13 +25,13 @@ static auto prepRSS(auto& doc, const std::string& title, const std::string& desc
 }
   
 
-void addTkUserManagement(SimpleWebSystem& sws)
-{
-  sws.wrapPost({}, "/create-user-invite", [](auto& cr) {
+void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
+			 const std::string& fromaddr,
+			 const std::string& baseUrl)
+{  
+  sws.wrapPost({}, "/create-user-invite", [mailserver, baseUrl, fromaddr](auto& cr) {
     string email = cr.req.get_file_value("email").content;
     nlohmann::json j;
-    string baseUrl="https://berthub.eu/tkconv";
-    //    string baseUrl="http://127.0.0.1:8089";
     
     if(email.empty()) {
       j["ok"]=0;
@@ -41,34 +41,39 @@ void addTkUserManagement(SimpleWebSystem& sws)
       try {
 	auto rows = cr.lsqw.query("select * from users where email=?", {email});
 	if(!rows.empty()) {
-	  string session = cr.sessions.createSessionForUser(get<string>(rows[0]["user"]), "Passwordless login session", cr.getIP(), true, time(0)+86400); // authenticated session
+	  string user=get<string>(rows[0]["user"]);
+	  cr.sessions.cleanExpired(); // needs to run somewhere
+	  
+	  string session = cr.sessions.createSessionForUser(user, "Passwordless login session", cr.getIP(), true, time(0)+ 14 * 86400); // authenticated session
+
 	  string dest=baseUrl + "/mijn.html?session="+session;
-	  sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "[OpenTK] log-in link",
-		    "Log in door op deze link te klikken: "+dest+"\nDeze link werkt maar *1* keer!",
-		    fmt::format("Log in door op deze link <a href='{}'>{}</a> te klikken. Let op, deze link werkt maar *1* keer!",
+	  sendEmail(mailserver, fromaddr, email, "[OpenTK] log-in link",
+		    "Log in door op deze link te klikken: "+dest+"\nDeze link werkt maar *14* dagen!",
+		    fmt::format("Log in door op deze link <a href='{}'>{}</a> te klikken. Let op, deze link werkt maar *14* dagen!",
 				dest, dest));
-	  cout<<"Sent email pointing user at "<<dest<<endl;
+	  cout<<"Sent email pointing user "<<email<<" at "<<dest<<endl;
 	  cr.stats.sessionJoinInvite++;
+	  cr.log({{"action", "invite-for-rejoin"}, {"email", email}, {"for", user}, {"session", session}});
 	  j["ok"] = 1;
 	  return j;
 	}
       }
-      catch(...) {
-	cerr<<"Could fail if there is no users table yet, is ok"<<endl;
+      catch(std::exception& e) {
+	cerr<<"Could fail if there is no users table yet, is ok: "<<e.what()<<endl;
       }
       string id = getLargeId();      
       time_t tstamp = time(0);
       cr.lsqw.addValue({{"id", id}, {"timestamp", tstamp}, {"email", email}}, "userInvite");
       cr.lsqw.query("delete from userInvite where email=? and timestamp < ?", {email, tstamp});
 
-      sendEmail("10.0.0.2", "opentk@hubertnet.nl", email, "[OpenTK] Koppel je email-adres",
+      sendEmail(mailserver, fromaddr, email, "[OpenTK] Koppel je email-adres",
 		fmt::format("Welkom!\nKlik nu op {}/mijn.html?id={} om je email-adres te koppelen aan OpenTK.", baseUrl, id),
 		fmt::format("Welkom!\nKlik nu op <a href='{}/mijn.html?id={}'>{}/mijn.html?id={}</a> om je email-adres te koppelen aan OpenTK.",
 			    baseUrl, id,
 			    baseUrl, id),
-		"opentk@hubertnet.nl"
+		fromaddr
 		);
-		
+      cr.log({{"action", "initial-invite"}, {"email", email}, {"session", id}});
       j["ok"] = 1;
     }
     return j;
@@ -102,7 +107,7 @@ void addTkUserManagement(SimpleWebSystem& sws)
 		      "tkconv_session="+sessionid+"; SameSite=Strict; Path=/; HttpOnly; " + cr.sws.d_extraCookieSpec +" Max-Age="+to_string(5*365*86400));
 
     cout<<"Logged in user '"<<user<<"' with email '"<<email<<"'"<<endl;
-    
+    cr.log({{"action", "confirm-invite"}, {"for", user}, {"session", sessionid}});
     j["ok"] = 1;
     j["email"] = email;
     return j;
