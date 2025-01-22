@@ -56,6 +56,19 @@ kind: 'zaak'
     </li>
     {% endfor %}
 </ul>
+{% if length(adocs) > 0 %}
+<h4>Extra documenten volgens zoekmachine</h4>
+<ul>
+  {% for a in adocs %}
+    <li>
+      {{a.datum}}:
+      <a href="document.html?nummer={{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}})
+    </li>
+    {% endfor %}
+</ul>
+
+{% endif %}
+
 <h4>Agendapunten</h4>
 <ul>
   {% for a in agendapunten %}
