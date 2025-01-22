@@ -62,7 +62,7 @@ executable('oppull', 'oppull.cc', 'support.cc', 'siphash.cc',
 	argparse_dep, vcs_dep])
 
 
-executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc', 'sws.cc', 'users.cc', 'scanmon.cc',
+executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc', 'sws.cc', 'users.cc', 'scanmon.cc', 'search.cc',
 	dependencies: [sqlitedep, json_dep,
 	simplesockets_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep, bcryptcpp_dep])
