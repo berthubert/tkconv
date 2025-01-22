@@ -935,6 +935,7 @@ int main(int argc, char** argv)
 
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html"); // unlisted
+  doTemplate("uitleg.html", "uitleg.html"); 
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");
 
   doTemplate("kamerleden.html", "kamerleden.html", R"(select fractiezetel.gewicht fzgewicht, persoon.titels, persoon.roepnaam, persoon.tussenvoegsel, persoon.achternaam, persoon.nummer, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' union all select fractiezetel.gewicht fzgewicht, '' titels, '' roepnaam, '' tussenvoegsel, 'Vacature' achternaam, nummer, afkorting from FractieZetelVacature,fractieZetel, fractie where totEnMet='' and fractiezetel.id = fractiezetelid and fractie.id = fractieid order by afkorting, fzgewicht)");
@@ -1726,9 +1727,11 @@ int main(int argc, char** argv)
     string twomonths = req.get_file_value("twomonths").content;
     string soorten = req.get_file_value("soorten").content;
     string limit = "";
-    if(twomonths=="true")
-      limit = "2024-08-11";
+    if(twomonths=="true") {
+      limit = getTimeDBFormat(time(0) - 2 * 30 * 86400);
+    }
 
+    string origterm = term;
     term = convertToSQLiteFTS5(term);
 
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
@@ -1736,7 +1739,7 @@ int main(int argc, char** argv)
     
     static auto s_uc = make_shared<int>(0);
     cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"', " <<
-      s_uc.use_count()<<" ongoing"<<endl;
+      s_uc.use_count()<<" ongoing, origterm: "<<origterm<<endl;
     DTime dt;
     dt.start();
     std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> matches; // ugh
@@ -1928,8 +1931,8 @@ int main(int argc, char** argv)
       off=11;
     g_stats.lats[off]++;
     
-    fmt::print("Req: {} {} {} max-db {} {} msec {}\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
-	       (unsigned int)tp.d_maxout, msec, off);
+    fmt::print("Req: {} {} {} max-db {} {} msec\n", req.path, req.params, req.has_header("User-Agent") ? req.get_header_value("User-Agent") : "",
+	       (unsigned int)tp.d_maxout, msec);
 
     res.set_header("Content-Security-Policy", "frame-ancestors 'self';");
 
