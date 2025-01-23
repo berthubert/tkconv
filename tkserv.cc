@@ -866,6 +866,11 @@ int main(int argc, char** argv)
 
     
     for(auto& ap: r["agendapunten"]) {
+
+      string noot = ap["noot"];
+      std::regex style_re(" style=\"[^\"]*\"");
+      ap["noot"] = std::regex_replace(noot, style_re, "");
+      
       ap["docs"] = packResultsJson(sqlw->queryT("select * from Document where agendapuntid=?",
 						{(string)ap["id"]}));
       ap["zdocs"] = packResultsJson(sqlw->queryT("select Document.* from link,link link2,zaak,document where link.naar=? and zaak.id=link.van and link2.naar = zaak.id and document.id=link2.van",  {(string)ap["id"]}));
