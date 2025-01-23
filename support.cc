@@ -217,6 +217,21 @@ string getSubdirForExternalID(const std::string& in)
   return fmt::sprintf("%02x/%02x", out[4], out[6]);
 }
 
+
+
+time_t getTstampRSSFormat(const std::string& str)
+{
+  // Fri, 17 Jan 2025 06:07:07 GMT
+  struct tm tm={};
+  // just ignore the timezone
+  if(!strptime(str.c_str(), "%a, %d %b %Y %H:%M:%S", &tm))
+    throw runtime_error("Failed to parse time " + str);
+
+  // this fixes it for us
+  return timegm(&tm);
+}
+
+
 time_t getTstamp(const std::string& str)
 {
   //  2024-09-17T13:00:00
