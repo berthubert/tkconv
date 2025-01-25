@@ -90,7 +90,7 @@ int main(int argc, char** argv)
   string smtpserver = args.get<string>("--smtp-server");
   string fromaddr = args.get<string>("--sender-email");
   if(!smtpserver.empty() && fromaddr.empty()) {
-    fmt::print("An smtp server has been defined, but no sender email address (-sender-email)\n");
+    fmt::print("An smtp server has been defined, but no sender email address (--sender-email)\n");
     std::exit(1);
   }
   
@@ -222,8 +222,10 @@ int main(int argc, char** argv)
 		getEmailForUserId(userdb, user),
 		subject , msg, html);
     }
-    else
+    else {
       cout<<"Not sending out email, no smtp-server configured\n";
+      cout<<"Would have sent: "<<msg<<endl;
+    }
   }
   for(auto& sc : scanners)
     updateScannerDate(userdb, *sc);
