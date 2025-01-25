@@ -41,7 +41,7 @@ kind: 'persoon'
 	{% for t in toezeggingen %}
 	<tr>
 	  <td> {{t.datum}} </td>
-	  <td> {{t.tekst}} (<a href="activiteit.html?nummer={{t.nummer}}">{{t.nummer}}</a>)</td>
+	  <td> {{t.tekst}} (<a href="activiteit.html?nummer={{t.nummer}}">{{t.nummer}}</a>, <a href="toezegging.html?nummer={{t.tnummer}}">{{t.tnummer}}</a>)</td>
 	  <td> {{t.ministerie}} </td>
 	  <td> {{t.voortouwAfkorting}} </td>
 	</tr>
