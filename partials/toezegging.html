@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block div %}
+{% endblock %}
+
+{% block javascript %}
+{% endblock %}
+
+{% block customheader %}
+<p></p>
+<h4>Toezegging {{toez.tnummer}} ({{toez.status}})</h4>
+
+{% endblock %}
+
+{% block main %}
+<h5>Datum {{toez.tdatum}}</h5>
+
+<blockquote>
+  {{toez.tekst}}
+  <footer>{{toez.naamToezegger}} ({{toez.ministerie}})</footer>
+</blockquote>
+
+<p>
+Toezegging is onderdeel van activiteit <a href="activiteit.html?nummer={{toez.anummer}}">{{toez.anummer}}: {{toez.aonderwerp}}</a> ({{toez.adatum}}).
+</p>
+
+{% if default(toez.pnummer, "") != "" %}
+<p>
+  Toezegging is gedaan aan <a href="persoon.html?nummer={{toez.pnummer}}">{{toez.roepnaam}} {{toez.tussenvoegsel}} {{toez.achternaam}}</a> {% if existsIn(toez, "pfractie") %}({{toez.pfractie}}) {% endif %}.
+</p>
+{% else if default(toez.afkorting, "") != "" %}
+<p>
+Toezegging is gedaan aan {{toez.afkorting}}.
+</p>
+{% endif %}
+
+{% if default(toez.dnummer, "") != ""  %}
+
+<p>
+Toezegging is op {{toez.ddatum}} nagekomen in kamerbrief <a href="document.html?nummer={{toez.dnummer}}">{{toez.dnummer}}: {{toez.donderwerp}}</a>.
+</p>
+{% endif %}
+{% endblock %}
+	

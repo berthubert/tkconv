@@ -654,7 +654,7 @@ int main(int argc, char** argv)
 
     j["activiteiten"] = packResultsJson(sqlw->queryT("select substr(activiteit.datum, 0, 11) datum, activiteit.onderwerp, activiteit.nummer, activiteit.voortouwNaam, activiteit.soort from ActiviteitActor,activiteit,persoon where persoon.nummer=? and activiteit.id=activiteitid and activiteitactor.persoonid = persoon.id order by datum desc", {nummer}));
 
-    j["geschenken"] = packResultsJson(sqlw->queryT("select datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer}));
+    j["geschenken"] = packResultsJson(sqlw->queryT("select persoongeschenk.id, datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer}));
 
     j["toezeggingen"] = packResultsJson(sqlw->queryT("select substr(toezegging.datum, 0,11) datum, ministerie, tekst, activiteit.nummer, activiteit.voortouwAfkorting from toezegging, activiteit where activiteit.id = activiteitId and persoonId = ? and toezegging.status != 'Voldaan' order by toezegging.datum" , {persoonId}));
 
@@ -730,6 +730,45 @@ int main(int argc, char** argv)
     return make_pair<string,string>(e.render_file("./partials/personen.html", data), "text/html");
   });
 
+  sws.d_svr.Get("/toezegging.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    /* CREATE TABLE Toezegging ('id' TEXT PRIMARY KEY, 'skiptoken' INT,
+    "nummer" TEXT, "tekst" TEXT,
+    "kamerbriefNakoming" TEXT,  <-- nummer, link
+    "bijgewerkt" TEXT, "datum" TEXT,
+    "ministerie" TEXT, 
+    "status" TEXT,
+    "datumNakoming" TEXT,
+    "activiteitId" TEXT,  <- link
+    "fractieId" TEXT, <- link
+    "persoonId" TEXT, <- link
+    "naamToezegger" TEXT,
+    "updated" TEXT) STRICT;
+    */
+
+    
+    string nummer = req.get_param_value("nummer");
+    nlohmann::json z = nlohmann::json::object();
+    auto sqlw = tp.getLease();
+    auto toez = sqlw->queryT("select toezegging.nummer tnummer, substr(toezegging.datum, 0, 11) tdatum, document.nummer dnummer, document.onderwerp donderwerp, substr(document.datum, 0, 11) ddatum, activiteit.onderwerp aonderwerp, activiteit.nummer anummer, substr(activiteit.datum, 0, 11) adatum, persoon.nummer pnummer, * from Toezegging,Activiteit left join Persoon on Persoon.id=Toezegging.persoonId left join Fractie on fractieid=fractie.id left join Document on Document.nummer = kamerbriefNakoming where Activiteit.id = activiteitId and Toezegging.nummer=?", {nummer});
+    
+    if(toez.empty()) {
+      res.status = 404;
+      return;
+    }
+    nlohmann::json data; 
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    
+    data["pagemeta"]["title"]="Toezegging " + nummer;
+    data["og"]["title"] = "Toezegging "+nummer;
+    data["og"]["description"] ="";
+    data["og"]["imageurl"] = "";
+    data["toez"]=packResultsJson(toez)[0];
+    if(data["toez"]["pnummer"] != "")
+      data["toez"]["pfractie"] = getPartyFromNumber(sqlw.get(), (int)data["toez"]["pnummer"]);
+	   
+    res.set_content(e.render_file("./partials/toezegging.html", data), "text/html");
+  });
 
   
   sws.d_svr.Get("/zaak.html", [&tp](const httplib::Request &req, httplib::Response &res) {
