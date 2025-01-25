@@ -656,7 +656,7 @@ int main(int argc, char** argv)
 
     j["geschenken"] = packResultsJson(sqlw->queryT("select persoongeschenk.id, datum, substr(persoongeschenk.bijgewerkt,0,11) bijgewerkt, omschrijving from PersoonGeschenk,Persoon where persoon.id=persoonid and nummer=? order by gewicht", {nummer}));
 
-    j["toezeggingen"] = packResultsJson(sqlw->queryT("select substr(toezegging.datum, 0,11) datum, ministerie, tekst, activiteit.nummer, activiteit.voortouwAfkorting from toezegging, activiteit where activiteit.id = activiteitId and persoonId = ? and toezegging.status != 'Voldaan' order by toezegging.datum" , {persoonId}));
+    j["toezeggingen"] = packResultsJson(sqlw->queryT("select substr(toezegging.datum, 0,11) datum, ministerie, tekst, activiteit.nummer, activiteit.voortouwAfkorting, toezegging.nummer tnummer from toezegging, activiteit where activiteit.id = activiteitId and persoonId = ? and toezegging.status != 'Voldaan' order by toezegging.datum" , {persoonId}));
 
     j["openvragen"] = packResultsJson(sqlw->queryT("select substr(openvragen.gestartOp, 0, 11) sdatum, aantal, openvragen.* from openvragen,zaakactor,zaak,persoon left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer  where persoon.id=persoonid and zaak.id = openvragen.id and zaak.id = zaakactor.zaakid and relatie='Indiener' and persoon.id=? order by sdatum asc", {persoonId}));
 
