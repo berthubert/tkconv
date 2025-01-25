@@ -761,7 +761,7 @@ int main(int argc, char** argv)
     
     data["pagemeta"]["title"]="Toezegging " + nummer;
     data["og"]["title"] = "Toezegging "+nummer;
-    data["og"]["description"] ="";
+    data["og"]["description"] = eget(toez[0], "tekst");
     data["og"]["imageurl"] = "";
     data["toez"]=packResultsJson(toez)[0];
     if(data["toez"]["pnummer"] != "")
