@@ -41,7 +41,7 @@ haveMonitor: false
     <h4>Toezeggingen</h4>
     <ul>
       <template x-for="t in activiteit['toezeggingen']">
-	<li><span x-text="t.nummer+': '+t.tekst"></span>
+	<li><a x-bind:href="'toezegging.html?nummer='+t.nummer"><span x-text="t.nummer"></span></a>: <span x-text="t.tekst"></span>
 	  (<template x-if="t.kamerbriefNakoming != ''"><a x-bind:href="`document.html?nummer=${t.kamerbriefNakoming}`"><span x-text="t.status"></span> in <span x-text="t.kamerbriefNakoming"></span></a></template><template x-if="t.kamerbriefNakoming == ''"><span x-text="t.status"></span></template>)
 	</li>
       </template>

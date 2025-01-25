@@ -167,7 +167,7 @@ kind: 'persoon'
     </thead>
     <tbody>
       {% for g in geschenken %} 
-        <tr>
+        <tr id="{{g.id}}">
 	  <td>{{g.datum}}</td>
 	  <td>{{g.bijgewerkt}}</td>
 	  <td>{{g.omschrijving}}</td>
