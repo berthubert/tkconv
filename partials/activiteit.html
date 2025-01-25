@@ -35,8 +35,8 @@ haveMonitor: false
   </div>
 </template>
 
-<p></p>
-<template x-if="activiteit['toezeggingen'].length > 0">
+<p id="toezeggingen"></p>
+<template  x-if="activiteit['toezeggingen'].length > 0">
   <div>
     <h4>Toezeggingen</h4>
     <ul>
@@ -63,7 +63,7 @@ haveMonitor: false
 <h4>Bijlagen</h4>
 <ul>
   <template x-for="d in activiteit['docs']">
-    <li><a x-bind:href=`document.html?nummer=${d.nummer}`><span x-text="`${d.onderwerp}`"></span></a>
+    <li><a x-bind:href="`document.html?nummer=${d.nummer}`"><span x-text="`${d.onderwerp}`"></span></a>
       <span x-text="'('+d.nummer+')'"></span>
     </li>
   </template>
