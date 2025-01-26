@@ -841,7 +841,7 @@ int main(int argc, char** argv)
     
     SearchHelper sh(ssqlw);
     auto sresults = sh.search(nummer, {"Document"});
-    cout << "Got "<<sresults.size() << " search engin docs"<<endl;
+    cout << "Got "<<sresults.size() << " search engine docs also mentioning "<<nummer<<endl;
 
     nlohmann::json adocs = nlohmann::json::array();
     for(auto& sr : sresults) {
@@ -1594,12 +1594,17 @@ int main(int argc, char** argv)
     for(auto& zlink : zlinks) {
       zids.insert(eget(zlink, "naar"));
     }
-    auto harvestzaken = getZakenFromDocument(documentId);
-    for(auto& [nummer, zid] : harvestzaken) {
-      if(!zids.count(zid)) {
-	cout<<"Stuffing in zaak "<<nummer<<endl;
-	zlinks.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"naar", zid}, {"znummer", nummer}});
+    try {
+      auto harvestzaken = getZakenFromDocument(documentId);
+      for(auto& [nummer, zid] : harvestzaken) {
+	if(!zids.count(zid)) {
+	  cout<<"Stuffing in zaak "<<nummer<<endl;
+	  zlinks.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"naar", zid}, {"znummer", nummer}});
+	}
       }
+    }
+    catch(std::exception& e) {
+      cout<<"Search engine did not cooperate getting us the text of the document: "<<e.what()<<endl;
     }
     
     set<string> actids;
