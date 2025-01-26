@@ -84,10 +84,16 @@ kind: 'zoek'
 	<template x-if="d.category=='Activiteit'">
 	  <td><a x-text="d.nummer" x-bind:href="'activiteit.html?nummer='+d.nummer"></a></td>
 	</template>
-
-	<template x-if="d.category=='Vergadering'">
-	  <td><a x-text="d.nummer" x-bind:href="'verslag.html?vergaderingid='+d.vergaderingId"></a></td>
+	<template x-if="d.category=='Verslag'">
+	  <td><a x-text="d.nummer.substr(0,8)" x-bind:href="'verslag.html?vergaderingid='+d.nummer"></a></td>
 	</template>
+	<template x-if="d.category=='Toezegging'">
+	  <td><a x-text="d.nummer" x-bind:href="'toezegging.html?nummer='+d.nummer"></a></td>
+	</template>
+	<template x-if="d.category=='PersoonGeschenk'">
+	  <td><a x-text="d.nummer.substr(0,8)" x-bind:href="'persoon.html?nummer='+d.persoonnummer+'#'+d.nummer"></a></td>
+	</template>
+	
 	
 	<td x-text="d.onderwerp"></td>
 	<td x-html="d.snip"></td>

@@ -6,7 +6,7 @@ Nieuwe OpenTK documenten, gevonden door je monitors:
       <li>
 	{{ join(a.scannernames, ", ") }}:
 	<ul>
-	  {% for b in a.hits %}<li><a href="https://berthub.eu/tkconv/document.html?nummer={{ b.nummer }}">{{b.dispnummer}}</a>: {{ b.description }}</li>{% endfor %}
+	  {% for b in a.hits %}<li><a href="https://berthub.eu/tkconv/{{b.relurl}}">{{b.dispnummer}}</a>: {{ b.description }}</li>{% endfor %}
 	</ul>
       </li>
       {% endfor %}
