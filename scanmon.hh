@@ -2,12 +2,19 @@
 #include <string>
 #include "sqlwriter.hh"
 #include "support.hh"
+#include "search.hh"
 
 struct ScannerHit
 {
   std::string identifier;
   std::string date;
   std::string kind;
+  std::string relurl;
+  bool operator<(const ScannerHit& rhs) const
+  {
+    return std::tie(identifier, kind) <
+      std::tie(rhs.identifier, rhs.kind);
+  }
 };
 
 
@@ -36,6 +43,7 @@ struct Scanner
       sh.identifier = eget(h, "nummer");
       sh.date = eget(h, "datum");
       sh.kind = "Document";
+      sh.relurl = "get/"+sh.identifier;
       ret.push_back(sh);
     }
     return ret;
@@ -176,6 +184,20 @@ struct ZaakScanner : Scanner
   std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
   {
     auto hits = sqlw.queryT("select document.nummer, document.datum from Zaak,Link,Document where zaak.nummer=? and zaak.id=link.naar and document.id = link.van and datum >= ?", {d_nummer, d_cutoff});
+
+    SearchHelper sh(sqlw);
+    std::set<std::string> already;
+    for(auto& h : hits)
+      already.insert(eget(h,"nummer"));
+    
+    auto sresults = sh.search(d_nummer, {"Document"}, d_cutoff);
+    for(const auto& sr : sresults) {
+      if(already.count(sr.nummer))
+	continue;
+      std::cout << "Stuffing in document "<<sr.nummer<< " for zaak " << d_nummer<< std::endl;
+      hits.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"nummer", sr.nummer}, {"datum", sr.datum}});
+
+    }
     return sqlToScannerHits(hits);
   }
   
@@ -257,63 +279,12 @@ struct GeschenkScanner : Scanner
 // this one requires a SQLiteWriter with both tkindex and tk databases connected!
 struct ZoekScanner : Scanner
 {
-  std::string getType() override
-  {
-    return "Zoekopdracht";
-  }
-
-  static std::unique_ptr<Scanner> make(SQLiteWriter& sqlw, const std::string& id) 
-  {  
-    ZoekScanner s;
-    auto row = s.getRow(sqlw, id);  
-    s.d_query = eget(row, "query");
-    s.d_categorie = eget(row, "categorie");
-    return std::make_unique<ZoekScanner>(s);
-  }
+  std::string getType() override;
+  static std::unique_ptr<Scanner> make(SQLiteWriter& sqlw, const std::string& id) ;
   // needs sqlw with tk.sqlite3 (as meta.*) AND tkindex
-  std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
-  {
-    auto matches = sqlw.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category=?)", {d_query, d_cutoff, d_categorie.empty(), d_categorie});
-
-     std::vector<ScannerHit> ret;
-    for(auto& m : matches) {
-      auto doc =  sqlw.queryT("select onderwerp, bijgewerkt, titel, nummer, datum FROM meta.Document where id=?",   {eget(m, "uuid")});
-      if(doc.empty())
-	continue;
-      
-      for(const auto& f : doc[0]) {
-	m[f.first]=f.second;
-      }
-      ret.emplace_back(eget(m, "nummer"),
-		       eget(m, "datum"),
-		       "Document");
-
-    }
-
-    for(auto& m : matches) {
-      if(m.count("nummer"))
-	continue;
-      if(eget(m,"category") != "Activiteit")
-	continue;
-      // this is not used yet, but we COULD find activities
-      auto act =  sqlw.queryT("select nummer, datum FROM meta.Activiteit where id=?",   {eget(m, "uuid")});
-      if(act.empty())
-	continue;
-      ret.emplace_back(eget(act[0], "nummer"),
-		       eget(act[0], "datum"),
-		       "Activiteit");
-    }
-    
-    return ret;
-  }
+  std::vector<ScannerHit> get(SQLiteWriter& sqlw) override;
   
-  std::string describe(SQLiteWriter& sqlw) override
-  {
-    std::string ret = "Zoekopdracht " + d_query;
-    if(!d_categorie.empty())
-      ret += " (categorie "+d_categorie+")";
-    return ret;
-  }
+  std::string describe(SQLiteWriter& sqlw) override;
   std::string d_query;
   std::string d_categorie;
 };

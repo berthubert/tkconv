@@ -506,3 +506,9 @@ QuotedWord <-  < '"'  [^"]*  '"' >
   }
   return retval;
 }
+
+std::string deHTML(const std::string& html)
+{
+  std::regex html_re("<[^>]*>");
+  return std::regex_replace(html, html_re, " ");
+}

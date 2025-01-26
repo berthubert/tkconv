@@ -887,7 +887,6 @@ int main(int argc, char** argv)
 
     
     auto persactors = sqlw->queryT("select ActiviteitActor.*, Persoon.nummer from ActiviteitActor left join Persoon on Persoon.id=ActiviteitActor.persoonId where activiteitId=? and activiteitactor.relatie='Deelnemer' order by volgorde", {activiteitId});
-
     auto comactors = sqlw->queryT("select ActiviteitActor.*, Commissie.id from ActiviteitActor left join Commissie on commissie.id=ActiviteitActor.commissieId where activiteitId=? and relatie like '%commissie%' order by volgorde", {activiteitId});
     
     r["persactors"] = packResultsJson(persactors);
@@ -1010,7 +1009,9 @@ int main(int argc, char** argv)
 
   doTemplate("kamerstukdossiers.html", "kamerstukdossiers.html");
   doTemplate("vragen.html", "vragen.html"); // unlisted
+
   doTemplate("uitleg.html", "uitleg.html"); 
+
   doTemplate("commissies.html", "commissies.html", "select commissieid,substr(max(datum), 0, 11) mdatum,commissie.afkorting, commissie.naam, inhoudsopgave,commissie.soort from activiteitactor,commissie,activiteit where commissie.id=activiteitactor.commissieid and activiteitactor.activiteitid = activiteit.id group by 1 order by commissie.naam asc");
 
   doTemplate("kamerleden.html", "kamerleden.html", R"(select fractiezetel.gewicht fzgewicht, persoon.titels, persoon.roepnaam, persoon.tussenvoegsel, persoon.achternaam, persoon.nummer, afkorting from Persoon,fractiezetelpersoon,fractiezetel,fractie where persoon.functie='Tweede Kamerlid' and persoonid=persoon.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and totEnMet='' union all select fractiezetel.gewicht fzgewicht, '' titels, '' roepnaam, '' tussenvoegsel, 'Vacature' achternaam, nummer, afkorting from FractieZetelVacature,fractieZetel, fractie where totEnMet='' and fractiezetel.id = fractiezetelid and fractie.id = fractieid order by afkorting, fzgewicht)");
@@ -1019,8 +1020,7 @@ int main(int argc, char** argv)
   
   doTemplate("geschenken.html", "geschenken.html", "select datum, omschrijving, functie, initialen, tussenvoegsel, roepnaam, achternaam, gewicht,nummer,substr(persoongeschenk.bijgewerkt,0,11)  pgbijgewerkt from persoonGeschenk, Persoon where Persoon.id=persoonId and datum > '2019-01-01' order by persoongeschenk.bijgewerkt desc");
 
-
-
+  
   
   sws.d_svr.Get("/index.html", [](const httplib::Request &req, httplib::Response &res) {
     res.status = 301;
@@ -1535,7 +1535,6 @@ int main(int argc, char** argv)
       return;
     }
 
-
     string externeid = eget(ret[0], "externeidentifier");
     data["meta"] = packResultsJson(ret)[0];
     data["meta"]["datum"] = ((string)data["meta"]["datum"]).substr(0, 10);
@@ -1591,6 +1590,18 @@ int main(int argc, char** argv)
 
     auto zlinks = sqlw->queryT("select distinct(naar) as naar, zaak.nummer znummer from Link,Zaak where van=? and naar=zaak.id and category='Document' and linkSoort='Zaak'", {documentId});
 
+    set<string> zids;
+    for(auto& zlink : zlinks) {
+      zids.insert(eget(zlink, "naar"));
+    }
+    auto harvestzaken = getZakenFromDocument(documentId);
+    for(auto& [nummer, zid] : harvestzaken) {
+      if(!zids.count(zid)) {
+	cout<<"Stuffing in zaak "<<nummer<<endl;
+	zlinks.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"naar", zid}, {"znummer", nummer}});
+      }
+    }
+    
     set<string> actids;
     set<string> znummers;
     for(auto& zlink : zlinks) {
@@ -1808,7 +1819,6 @@ int main(int argc, char** argv)
 
     string origterm = term;
     term = convertToSQLiteFTS5(term);
-
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     
@@ -1817,7 +1827,7 @@ int main(int argc, char** argv)
       s_uc.use_count()<<" ongoing, origterm: "<<origterm<<endl;
     DTime dt;
     dt.start();
-    std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> matches; // ugh
+
     int mseclimit = 10000;
 
     shared_ptr<int> uc = s_uc;
@@ -1830,50 +1840,37 @@ int main(int argc, char** argv)
       mseclimit = 2000;
       fmt::print(">3 searchs ongoing, limiting to {}\n", mseclimit);
     }
+
+    SearchHelper sh(idx);
+    auto sres = sh.search(term, {}, limit, mseclimit, 280);
+    nlohmann::json results = nlohmann::json::array();
+    for(const auto& r : sres) {
+      if(soorten=="moties" && r.soort != "Motie")
+	continue;
+      if(soorten=="vragenantwoorden" &&
+	 (r.soort != "Schriftelijke vragen" &&
+	  r.soort != "Antwoord schriftelijke vragen" &&
+	  r.soort != "Antwoord schriftelijke vragen (nader)"))
+	continue;
+      results.push_back(nlohmann::json({
+	    {"nummer", r.nummer},
+	    {"datum", r.datum},
+	    {"score", r.score},
+	    {"category", r.categorie},
+	    {"onderwerp", r.onderwerp},
+	    {"snip", r.snippet},
+	    {"bijgewerkt", r.bijgewerkt},
+	    {"persoonnummer", r.persoonnummer}
+	  }));
+				       
+    }
     
-    if(soorten=="moties") {
-      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort='Motie' order by score limit 280", {term, limit}, mseclimit);
-    }
-    else if(soorten=="vragenantwoorden") {
-      matches = idx.queryT("SELECT uuid, soort, Document.onderwerp, Document.titel, document.nummer, document.bijgewerkt, document.datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch, meta.document WHERE docsearch match ? and document.id = uuid and document.datum > ? and document.soort in ('Schriftelijke vragen', 'Antwoord schriftelijke vragen', 'Antwoord schriftelijke vragen (nader)')  order by score limit 280", {term, limit}, mseclimit);
-    }
-    else {
-      matches = idx.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, bm25(docsearch) as score, category FROM docsearch WHERE docsearch match ? and datum > ? order by score limit 280", {term, limit}, mseclimit);
-      
-      for(auto& m : matches) {
-	auto doc =  idx.queryT("select onderwerp, bijgewerkt, titel, nummer, datum FROM meta.Document where id=?",
-			      {get<string>(m["uuid"])});
-	if(doc.empty())
-	  continue;
-	for(const auto& f : doc[0])
-	  m[f.first]=f.second;
-      }
-      for(auto& m : matches) {
-	if(m.count("onderwerp")) // already matched as document
-	  continue;
-      
-	auto verslag = idx.queryT("SELECT titel as onderwerp, Vergadering.id as vergaderingId, Verslag.updated as bijgewerkt, '' as titel, Vergadering.datum FROM meta.Verslag, meta.Vergadering WHERE Verslag.id = ? and Vergadering.id = Verslag.vergaderingId", {get<string>(m["uuid"])});
-	
-	if(verslag.empty()) {
-	  fmt::print("Weird - uuid {} is not a Document and not a Verslag? Probably erased. Category {}\n", get<string>(m["uuid"]), eget(m, "category"));
-	  m.clear();
-	  continue;
-	}
-
-	for(const auto& f : verslag[0])
-	  m[f.first]=f.second;
-
-	m["category"]="Vergadering";
-	m["nummer"] =get<string>(verslag[0]["vergaderingId"]).substr(0, 8);
-      }
-    }
-    // remove empty matches which could not be found
-    erase_if(matches, [](const auto& m) { return m.empty(); });
+    // soorten!
     auto usec = dt.lapUsec();
-    fmt::print("Got {} matches in {} msec\n", matches.size(), usec/1000.0);
+    fmt::print("Got {} matches in {} msec\n", results.size(), usec/1000.0);
     g_stats.searchUsec += usec;
     nlohmann::json response=nlohmann::json::object();
-    response["results"]= packResultsJson(matches);
+    response["results"]= results;
 
     response["milliseconds"] = usec/1000.0;
     res.set_content(response.dump(), "application/json");

@@ -40,30 +40,52 @@ void updateScannerDate(SQLiteWriter& sqlw, const Scanner& sc)
   sqlw.queryT("update scanners set cutoff=? where rowid=?", {cutoff, sc.d_id});
 }
 
-string getDocDescription(SQLiteWriter& sqlw, const std::string& nummer)
+string getDescription(SQLiteWriter& sqlw, const std::string& nummer, const std::string& category)
 {
-  auto res = sqlw.queryT("select onderwerp,titel from Document where nummer=?",
-			 {nummer});
-  if(res.empty()) {
-    res = sqlw.queryT("select titel from Vergadering where id=?",
+  if(category=="Document") {
+    auto res = sqlw.queryT("select onderwerp,titel from Document where nummer=?",
+			   {nummer});
+    if(!res.empty())
+      return eget(res[0], "onderwerp");
+    else return "";
+  }
+  else if(category=="Verslag") {
+    auto res = sqlw.queryT("select titel from Vergadering where id=?",
 			 {nummer});
     if(res.empty()) {
-      res = sqlw.queryT("select soort||' '||onderwerp as onderwerp,datum from Activiteit where nummer=?",
-			 {nummer});
-      if(res.empty())
-	return "";
-      string resp = eget(res[0], "onderwerp");
-      string datum = eget(res[0], "datum");
-      if(!datum.empty()) {
-	datum[10]= ' ';
-	resp += " (" +datum+")";
-      }
-      else resp += " (nog geen datum)";
-      return resp;
+      cout<<"Could not find Verslag "<<nummer<<endl;
+      return "";
     }
     return eget(res[0], "titel");
   }
-  return eget(res[0], "onderwerp");
+  else if(category=="Activiteit") {
+    auto res = sqlw.queryT("select soort||' '||onderwerp as onderwerp,datum from Activiteit where nummer=?",
+			 {nummer});
+    if(res.empty())
+      return "";
+    string resp = eget(res[0], "onderwerp");
+    string datum = eget(res[0], "datum");
+    if(!datum.empty()) {
+      datum[10]= ' ';
+      resp += " (" +datum+")";
+    }
+    else resp += " (nog geen datum)";
+    return resp;
+  }
+  else if(category=="PersoonGeschenk") {
+    auto res = sqlw.queryT("select omschrijving,roepnaam,tussenvoegsel,achternaam from PersoonGeschenk,Persoon where Persoon.id = PersoonID and persoongeschenk.id =?", {nummer});
+    if(res.empty())
+      return "";
+    return "Geschenk aan " + eget(res[0], "roepnaam") + " " + eget(res[0], "tussenvoegsel") + " " +eget(res[0], "achternaam")+": "+eget(res[0], "omschrijving");
+  }
+  else if(category=="Toezegging") {
+    auto res = sqlw.queryT("select * from toezegging where nummer=?", {nummer});
+    if(res.empty())
+      return "";
+    return "Toezegging van "+eget(res[0], "naamToezegger") + " ("+eget(res[0], "ministerie")+"): "+eget(res[0], "tekst");
+  }
+  else throw(runtime_error("Unknown category "+category+" in getDescription"));
+  return "";
 }
 
 string getEmailForUserId(SQLiteWriter& sqlw, const std::string& userid)
@@ -105,8 +127,10 @@ int main(int argc, char** argv)
   }
       
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
-  //   user       doc         scanner
-  map<string, map<string, set<Scanner*>>> all;
+  //   user         id          scanners
+
+  
+  map<string, map<ScannerHit, set<Scanner*>>> all;
 
   atomic<size_t> ctr = 0;
   std::mutex mlock; // for all & userdb
@@ -134,15 +158,16 @@ int main(int argc, char** argv)
 	  std::lock_guard<std::mutex> l(mlock);   
   
 	  if(emitIfNeeded(userdb, d, *scanner.get())) {
-	    fmt::print("\tNummer {}\n", d.identifier);
+	    fmt::print("\tNummer {} {}\n", d.identifier, d.kind);
 	    
-	    all[scanner->d_userid][d.identifier].insert(scanner.get());
+	    all[scanner->d_userid][d].insert(scanner.get());
+
 	    if(!emissionId.count(scanner->d_userid))
 	      emissionId[scanner->d_userid] = getLargeId();
 	    logEmission(userdb, d, *scanner.get(), emissionId[scanner->d_userid]);
 	  }
 	  else
-	    fmt::print("\t(skip Nummer {})\n", d.identifier);
+	    fmt::print("\t(skip Nummer {} {})\n", d.identifier, d.kind);
 	}
       }
       catch(std::exception& e) {
@@ -162,7 +187,7 @@ int main(int argc, char** argv)
   // wait for everyone to be done - all is now filled
   
   for(auto& [user, content] : all) {
-    map<set<Scanner*>, set<string>> grpd;
+    map<set<Scanner*>, set<ScannerHit>> grpd;
     set<Scanner*> allscanners;
     
     for(auto& [doc, lescanners] : content) {
@@ -179,14 +204,17 @@ int main(int argc, char** argv)
       nlohmann::json docdescs=nlohmann::json::array();
       for(auto& d : docs) {
 	nlohmann::json ddesc;
-	if(d.length() > 11) {
+	if(d.identifier.length() > 11) {
 	  // 76423359-0db5-4503-8e41-b8440ab71faf
-	  ddesc["dispnummer"] = d.substr(0, 8);
+	  ddesc["dispnummer"] = d.identifier.substr(0, 8);
 	}
-	else ddesc["dispnummer"]=d;
+	else ddesc["dispnummer"]=d.identifier;
 	
-	ddesc["nummer"]= d;
-	ddesc["description"] = getDocDescription(tp.getLease().get(), d);
+	ddesc["nummer"]= d.identifier;
+	ddesc["category"] = d.kind;
+	ddesc["relurl"] = d.relurl;
+	ddesc["description"] = getDescription(tp.getLease().get(), d.identifier,
+					      d.kind);
 	docdescs.push_back(ddesc);
       }
       nlohmann::json stanza;

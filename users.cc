@@ -3,6 +3,7 @@
 #include "sws.hh"
 #include "scanmon.hh"
 #include "pugixml.hpp"
+#include "search.hh"
 #include <fmt/chrono.h>
 using namespace std;
 
@@ -144,7 +145,7 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
 
   sws.wrapPost({Capability::IsUser}, "/add-search-monitor", [](auto& cr) {
     string query = cr.req.get_file_value("query").content;
-    query = convertToSQLiteFTS5(query);
+    query = convertToSQLiteFTS5(query); // this was unfortunate
     string categorie = cr.req.get_file_value("categorie").content;
     string id = getLargeId();
     cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "zoek"}, {"categorie", ""}, {"query", query}, {"cutoff", getTodayDBFormat()}}, "scanners");
@@ -310,8 +311,10 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
 
     SQLiteWriter own("tkindex-small.sqlite3", SQLWFlag::ReadOnly);
     own.query("ATTACH database 'tk.sqlite3' as meta");
-    
-    auto matches = own.queryT("SELECT uuid, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category FROM docsearch WHERE docsearch match ? and (? or category=?)", {q, categorie.empty(), categorie});
+    SearchHelper sh(own);
+
+    // for now we can't do the rest, only Document XXX
+    auto matches = sh.search(q, {"Document"});
     cout<<"Have "<<matches.size()<<" matches\n";
     pugi::xml_document doc;
     pugi::xml_node channel = prepRSS(doc, "Zoek RSS naar " +q, "Documenten gematched door zoekstring "+q);
@@ -320,10 +323,10 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     
     
     for(auto& m : matches) {
-      auto docs = own.queryT("select Document.onderwerp, Document.titel titel, Document.nummer nummer, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie'  where Document.id=?", {eget(m, "uuid")});
+      auto docs = own.queryT("select Document.onderwerp, Document.titel titel, Document.nummer nummer, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie'  where Document.nummer=?", {m.nummer});
 
       if(docs.empty()) {
-	cout<<"No hits for "<<eget(m, "uuid")<<endl;
+	cout<<"No hits for "<< m.nummer<<endl;
 	continue;
       }
       auto& r = docs[0];

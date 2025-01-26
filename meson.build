@@ -37,8 +37,12 @@ executable('tkgetxml', 'tkgetxml.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
+#executable('roget', 'roget.cc', 'support.cc', 'siphash.cc', 
+#	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep, simplesockets_dep,
+#	argparse_dep, vcs_dep])
 
-executable('tkbot', 'tkbot.cc', 'support.cc', 'siphash.cc', 'scanmon.cc',
+
+executable('tkbot', 'tkbot.cc', 'support.cc', 'siphash.cc', 'scanmon.cc', 'search.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
 	sqlitewriter_dep, pugi_dep, simplesockets_dep,
 	argparse_dep, vcs_dep])
@@ -74,6 +78,14 @@ executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
 	argparse_dep, vcs_dep])
 
 
-executable('testrunner', 'testrunner.cc', 'support.cc',  'siphash.cc',
+#executable('playground2', 'playground2.cc', 'support.cc', 'siphash.cc', 'tz.cpp',
+#	cpp_args : '-DUSE_OS_TZDB=1',	  
+#	dependencies: [sqlitedep, json_dep, fmt_dep,
+#	simplesockets_dep,
+#	cpphttplib, sqlitewriter_dep, pugi_dep,
+#	argparse_dep, vcs_dep])
+
+
+executable('testrunner', 'testrunner.cc', 'support.cc',  'siphash.cc', 'search.cc', 
 dependencies: [sqlitedep, json_dep, fmt_dep, sqlitedep, sqlitewriter_dep, doctest_dep, cpphttplib, simplesockets_dep])
 

@@ -95,6 +95,8 @@ std::string getTimeDBFormat(time_t t);
 std::string getNowDBFormat();
 std::string toQuotedPrintable(const std::string& in);
 
+std::string deHTML(const std::string& html);
+
 template<typename T>
 std::string eget(const T& cont, const std::string& fname)
 {
