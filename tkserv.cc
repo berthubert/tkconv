@@ -1594,17 +1594,19 @@ int main(int argc, char** argv)
     for(auto& zlink : zlinks) {
       zids.insert(eget(zlink, "naar"));
     }
-    try {
-      auto harvestzaken = getZakenFromDocument(documentId);
-      for(auto& [nummer, zid] : harvestzaken) {
-	if(!zids.count(zid)) {
-	  cout<<"Stuffing in zaak "<<nummer<<endl;
-	  zlinks.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"naar", zid}, {"znummer", nummer}});
+    if(zids.empty()) {
+      try {
+	auto harvestzaken = getZakenFromDocument(documentId);
+	for(auto& [nummer, zid] : harvestzaken) {
+	  if(!zids.count(zid)) {
+	    cout<<"Stuffing in zaak "<<nummer<<endl;
+	    zlinks.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"naar", zid}, {"znummer", nummer}});
+	  }
 	}
       }
-    }
-    catch(std::exception& e) {
-      cout<<"Search engine did not cooperate getting us the text of the document: "<<e.what()<<endl;
+      catch(std::exception& e) {
+	cout<<"Search engine did not cooperate getting us the text of the document: "<<e.what()<<endl;
+      }
     }
     
     set<string> actids;
