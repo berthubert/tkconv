@@ -155,7 +155,7 @@ static string getHtmlForDocument(const std::string& id, bool bare=false)
     command = fmt::format("echo '<pre>' ; catdoc < '{}'; echo '</pre>'",
 			  fname);
   else if(isXML(fname))
-    command = fmt::format("xmlstarlet tr tk-div.xslt < '{}'",
+    command = fmt::format("xmlstarlet tr tk.xslt < '{}'",
 			  fname);
   else
     command = fmt::format("pdftohtml {} {} -dataurls -stdout", bare ? "": "-s", fname);

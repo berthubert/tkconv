@@ -3,6 +3,8 @@
   xmlns:vv="http://www.tweedekamer.nl/ggm/vergaderverslag/v1.0"
   exclude-result-prefixes="vv"
 >
+  <xsl:param name="embeddable" select="'true'" />
+
   <xsl:output method="html"
     version="5.0"
     doctype-system="about:legacy-compat"
@@ -14,27 +16,34 @@
   documented in https://github.com/TweedeKamerDerStaten-Generaal/OpenDataPortaal/tree/master/xsd/vlos -->
 
   <xsl:template match="/*">
-    <html>
-      <head>
-        <title>
-          <xsl:apply-templates select="*" mode="title" />
-        </title>
-        <link
-          rel="stylesheet"
-          href="../pico.min.css"
-        />
-        <style>
-          .interrumpant {
-          background-color: var(--pico-mark-background-color);
-          }
-        </style>
-      </head>
-      <body>
-        <main class="container">
-          <xsl:apply-templates select="*" />
-        </main>
-      </body>
-    </html>
+    <xsl:choose>
+      <xsl:when test="$embeddable='true'">
+        <xsl:apply-templates select="*" />
+      </xsl:when>
+      <xsl:otherwise>
+        <html>
+          <head>
+            <title>
+              <xsl:apply-templates select="*" mode="title" />
+            </title>
+            <link
+              rel="stylesheet"
+              href="html/pico.min.css"
+            />
+            <style>
+              .interrumpant {
+              background-color: var(--pico-mark-background-color);
+              }
+            </style>
+          </head>
+          <body>
+            <main class="container">
+              <xsl:apply-templates select="*" />
+            </main>
+          </body>
+        </html>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
 
   <xsl:template match="vv:vergadering">
