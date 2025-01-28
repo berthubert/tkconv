@@ -1232,7 +1232,7 @@ int main(int argc, char** argv)
     if(!fractie.empty()) {
       data["fractie"] = fractie;
       data["ministerie"]="";
-      nlohmann::json filtered;
+      nlohmann::json filtered = nlohmann::json::array();
       for(const auto & ov : ovragen) {
 	if(ov["fractie"] == fractie) {
 	  filtered.push_back(ov);
@@ -1244,7 +1244,7 @@ int main(int argc, char** argv)
       data["fractie"]="";
       data["ministerie"]=ministerie;
 
-      nlohmann::json filtered;
+      nlohmann::json filtered = nlohmann::json::array();
       for(const auto & ov : ovragen) {
 	string aan = ov["aan"];
 	if(aan.find(ministerie) != string::npos) {
