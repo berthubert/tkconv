@@ -1390,7 +1390,7 @@ int main(int argc, char** argv)
 
     if(act.empty()) {
       res.status=404;
-      res.set_content("No such activity", "text/plain");
+      res.set_content("Activiteit niet gevonden - soms verwijdert de Tweede Kamer documenten, vergaderingen, verslagen etc. Probeer het later nog eens!", "text/plain");
       return;
     }
     inja::Environment e;
