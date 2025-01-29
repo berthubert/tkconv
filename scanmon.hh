@@ -112,7 +112,17 @@ struct PersoonScanner : Scanner
     for(const auto& vh: vhits)
       hits.push_back(vh);
     
-    return sqlToScannerHits(hits);
+    auto ret = sqlToScannerHits(hits);
+
+    auto toez = sqlw.queryT("select substr(toezegging.datum, 0,11) datum, toezegging.nummer nummer from toezegging, activiteit,persoon where persoon.nummer = ? and activiteit.id = activiteitId  and toezegging.persoonid = persoon.id and toezegging.datum > ?" , {d_nummer, d_cutoff});
+    for(const auto& t: toez) {
+      ScannerHit sh{.identifier = eget(t, "nummer"),
+		    .date = eget(t, "datum"),
+		    .kind = "Toezegging",
+		    .relurl = "toezegging.html?nummer="+eget(t, "nummer")};
+      ret.push_back(sh);
+    }
+    return ret;
   }
   
   std::string describe(SQLiteWriter& sqlw) override
