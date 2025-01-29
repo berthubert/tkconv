@@ -169,10 +169,18 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     return j;
   });
 
+  sws.wrapPost({Capability::IsUser}, "/add-toezeggingen-monitor", [](auto& cr) {
+    string fractie = cr.req.get_file_value("fractie").content;
+    string voortouw = cr.req.get_file_value("voortouw").content;
+    string id = getLargeId();
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "toezeggingen"}, {"fractie", fractie}, {"voortouwAfkorting", voortouw}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    return nlohmann::json{{"ok", 1}, {"id", id}};    
+  });
 
   sws.wrapGet({Capability::IsUser}, "/have-monitor/:kind/:nummer", [](auto& cr) {
     string kind = cr.req.path_params.at("kind");
     string nummer = cr.req.path_params.at("nummer");
+    cout<<"nummer: "<<nummer<<endl;
     string selector;
     std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> rows;
     if(kind == "persoon" || kind =="activiteit" || kind=="zaak") 
@@ -184,7 +192,15 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
       string toevoeging = cr.req.get_param_value("toevoeging");
       rows = cr.lsqw.query("select id from scanners where soort=? and nummer =? and toevoeging =? and userid=?", {kind, nummer, toevoeging, cr.user});
     }
-    
+    else if(kind=="toezeggingen") {
+      if(nummer=="all")
+	rows = cr.lsqw.query("select id from scanners where soort=? and (fractie is null or fractie='') and (voortouwAfkorting is null or voortouwAfkorting ='') and  userid=?", {kind, cr.user});
+      else if(nummer.find("fractie=") == 0)
+	rows = cr.lsqw.query("select id from scanners where soort=? and  userid=? and fractie=?", {kind, cr.user, nummer.substr(8)});
+      else if(nummer.find("voortouw=") == 0)
+	rows = cr.lsqw.query("select id from scanners where soort=? and  userid=? and voortouwAfkorting=?", {kind, cr.user, nummer.substr(9)});
+
+    }
     if(!selector.empty()) {
       rows=cr.lsqw.query("select id from scanners where soort=? and "+selector+" =? and userid=?", {kind, nummer, cr.user});
     }

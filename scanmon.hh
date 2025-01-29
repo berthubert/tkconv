@@ -248,6 +248,61 @@ struct KsdScanner : Scanner
   std::string d_nummer, d_toevoeging;
 };
 
+// finds either all new Toezeggingen, or only ones for a certain commission or
+// political fraction
+
+struct ToezeggingenScanner : Scanner
+{
+  std::string getType() override
+  {
+    return "Toezeggingen";
+  }
+
+  static std::unique_ptr<Scanner> make(SQLiteWriter& sqlw, const std::string& id) 
+  {  
+    ToezeggingenScanner s;
+    auto row = s.getRow(sqlw, id);
+    s.d_fractie = eget(row, "fractie");
+    s.d_voortouwAfkorting = eget(row, "voortouwAfkorting");
+    return std::make_unique<ToezeggingenScanner>(s);
+  }
+  
+  std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
+  {
+    auto hits = sqlw.queryT("select toezegging.nummer, toezegging.datum from Toezegging,Activiteit left join Fractie on fractieId=fractie.id where toezegging.datum >= ? and activiteit.id = activiteitId and (? or fractie.afkorting=?) and (? or activiteit.voortouwAfkorting=?)",
+			    {d_cutoff,
+			     d_fractie.empty(), d_fractie,
+			     d_voortouwAfkorting.empty(), d_voortouwAfkorting
+			    });
+  
+    std::vector<ScannerHit> ret;
+    for(auto& h : hits) {
+      ScannerHit sh{.identifier=eget(h, "nummer"),
+		    .date =eget(h, "datum"),
+		    .kind = "Toezegging",
+		    .relurl = "toezegging.html?nummer="+eget(h, "nummer"),
+      };
+      ret.push_back(sh);
+    }
+    return ret;
+  }
+  
+  std::string describe(SQLiteWriter& sqlw) override
+  {
+    if(d_fractie.empty() && d_voortouwAfkorting.empty())
+      return "Alle toezeggingen";
+    else if(!d_fractie.empty()) {
+      return "Toezeggingen aan fractie "+d_fractie;
+    }
+    else if(!d_voortouwAfkorting.empty())
+      return "Toezeggingen aan commissie "+d_voortouwAfkorting;
+    else
+      return "???";
+  }
+  std::string d_fractie, d_voortouwAfkorting;
+};
+
+
 #if 0
 struct GeschenkScanner : Scanner
 {

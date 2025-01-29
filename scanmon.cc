@@ -48,4 +48,5 @@ std::map<std::string, decltype(&ZaakScanner::make)> g_scanmakers  =
       {"zoek", ZoekScanner::make},
       {"commissie", CommissieScanner::make},
       {"persoon", PersoonScanner::make},
+      {"toezeggingen", ToezeggingenScanner::make},
     };
