@@ -1,5 +1,22 @@
 {% extends "base.html" %}
-{% block div %}{% endblock %}
+{% block div %}
+x-data="{
+haveMonitor: false,
+monitorId: '',
+nummer: '{% if(fractie!="") %}fractie={{fractie}}{%else if(voortouw!="") %}voortouw={{voortouw}}{% else %}all{%endif%}',
+kind: 'toezeggingen',
+fractie: '{{fractie}}',
+voortouw: '{{voortouw}}'
+}" x-init="checkMonitor($data)"
+
+{% endblock %}
+
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
+{% endblock %}
+
 
 {% block main %}
 <h3>Openstaande toezeggingen door kabinet ({{length(data)}})
@@ -9,7 +26,7 @@
   {% if voortouw != "" %}
   aan de commissie {{ voortouw }}
   {% endif %}
-  
+  <span x-html="makeBell($data, haveMonitor);"></span>
 </h3>
 <center><small>
     <a href="toezeggingen.html">Alles</a>

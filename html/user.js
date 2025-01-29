@@ -152,7 +152,8 @@ async function checkMonitor(f)
 	    const response2 = await fetch(`have-monitor/${f.kind}/${f.nummer}`);
 	    if (response2.ok === true) {
 		const data = await response2.json();
-		console.log(`have-monitor: ${data}`);
+		console.log("have-monitor: ")
+		console.log(data);
 		f.haveMonitor=  data["have"] === 1;
 		f.monitorId = data["id"];
 	    }
@@ -209,7 +210,6 @@ function doMakeBell(f)
     else {
 	color='#999999';
 	
-
 	if(f.kind == "persoon")
 	    func = "addPersoonMonitor($data)";
 	else if(f.kind == "commissie")
@@ -222,6 +222,9 @@ function doMakeBell(f)
 	    func = "addZaakMonitor($data)";
 	else if(f.kind == "ksd")
 	    func = "addKsdMonitor($data)";
+	else if(f.kind == "toezeggingen")
+	    func = "addToezeggingenMonitor($data)";
+
     }
     
     return `<svg @click="${func}" id="belletje" fill="${color}" height="48px" width="48px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -262,6 +265,31 @@ async function addKsdMonitor(f)
     }
     return false;
 }
+
+async function addToezeggingenMonitor(f)
+{
+    if(f.haveMonitor)
+	return false;
+ 
+    console.log(`Should add toezeggingen ${f.nummer} ${f.fractie} ${f.voortouw}`);
+    const formData = new FormData();
+    formData.append('fractie', f.fractie);
+    formData.append('voortouw', f.voortouw);
+
+    const response = await fetch('add-toezeggingen-monitor', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+	console.log(data);
+	f.haveMonitor = true;
+	f.monitorId = data["id"];
+	console.log(f.monitorId);
+    }
+    else {
+	console.log("error");
+    }
+    return false;
+}
+
 
 async function addZoekMonitor(f)
 {
