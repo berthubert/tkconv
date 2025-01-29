@@ -37,7 +37,7 @@ void logEmission(SQLiteWriter& sqlw, const ScannerHit&sh, const Scanner& sc, con
 void updateScannerDate(SQLiteWriter& sqlw, const Scanner& sc)
 {
   string cutoff = getTodayDBFormat();
-  sqlw.queryT("update scanners set cutoff=? where rowid=?", {cutoff, sc.d_id});
+  sqlw.queryT("update scanners set cutoff=? where id=?", {cutoff, sc.d_id});
 }
 
 string getDescription(SQLiteWriter& sqlw, const std::string& nummer, const std::string& category)
