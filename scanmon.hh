@@ -107,13 +107,17 @@ struct PersoonScanner : Scanner
   {
     auto hits = sqlw.queryT("select relatie,document.nummer, document.datum from Document,DocumentActor,Persoon where persoon.nummer=? and documentactor.documentid=document.id and persoon.id=persoonid and datum >= ?", {d_nummer, d_cutoff});
 
+    auto ret = sqlToScannerHits(hits);
     auto vhits = sqlw.queryT("select vergaderingid as nummer, datum from Vergaderingspreker,vergadering,persoon where vergadering.id=vergaderingid and persoon.nummer=? and spreekSeconden > 0 and persoon.id = persoonid and datum >= ?", {d_nummer, d_cutoff});
 
-    for(const auto& vh: vhits)
-      hits.push_back(vh);
+    for(const auto& vh: vhits) {
+      ScannerHit sh{.identifier = eget(vh, "nummer"),
+		    .date = eget(vh, "datum"),
+		    .kind = "Verslag",
+		    .relurl = "vergadering.html?nummer="+eget(vh, "nummer")};
+      ret.push_back(sh);
+    }
     
-    auto ret = sqlToScannerHits(hits);
-
     auto toez = sqlw.queryT("select substr(toezegging.datum, 0,11) datum, toezegging.nummer nummer from toezegging, activiteit,persoon where persoon.nummer = ? and activiteit.id = activiteitId  and toezegging.persoonid = persoon.id and toezegging.datum > ?" , {d_nummer, d_cutoff});
     for(const auto& t: toez) {
       ScannerHit sh{.identifier = eget(t, "nummer"),
