@@ -10,6 +10,7 @@ struct ScannerHit
   std::string date;
   std::string kind;
   std::string relurl;
+  std::string snippet;
   bool operator<(const ScannerHit& rhs) const
   {
     return std::tie(identifier, kind) <

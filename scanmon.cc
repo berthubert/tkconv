@@ -25,7 +25,7 @@ std::vector<ScannerHit> ZoekScanner::get(SQLiteWriter& sqlw)
   // nummer/identifier, datum, category
   std::vector<ScannerHit> ret;
   for(auto& m : matches) {
-    ret.emplace_back(m.nummer, m.datum, m.categorie, m.relurl);
+    ret.emplace_back(m.nummer, m.datum, m.categorie, m.relurl, m.snippet);
   }
   return ret;
     
