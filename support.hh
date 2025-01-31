@@ -97,15 +97,28 @@ std::string toQuotedPrintable(const std::string& in);
 
 std::string deHTML(const std::string& html);
 
+template<typename T, typename R>
+R genget(const T& cont, const std::string& fname)
+{
+  R ret{};
+  auto iter = cont.find(fname);
+  if(iter == cont.end() || !std::get_if<R>(&iter->second))
+    return ret;
+
+  return std::get<R>(iter->second);  
+}
+
 template<typename T>
 std::string eget(const T& cont, const std::string& fname)
 {
-  std::string ret;
-  auto iter = cont.find(fname);
-  if(iter == cont.end() || !std::get_if<std::string>(&iter->second))
-    return ret;
-
-  return std::get<std::string>(iter->second);  
+  return genget<T, std::string>(cont, fname);
 }
+
+template<typename T>
+int64_t iget(const T& cont, const std::string& fname)
+{
+  return genget<T, int64_t>(cont, fname);
+}
+
 
 std::string convertToSQLiteFTS5(const std::string& in);
