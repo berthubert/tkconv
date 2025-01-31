@@ -209,7 +209,7 @@ int main(int argc, char** argv)
       nlohmann::json docdescs=nlohmann::json::array();
       for(auto& d : docs) {
 	nlohmann::json ddesc;
-	if(d.identifier.length() > 11) {
+	if(d.identifier.length() > 16) { // don't shorten TZ number, TZ202501-123
 	  // 76423359-0db5-4503-8e41-b8440ab71faf
 	  ddesc["dispnummer"] = d.identifier.substr(0, 8);
 	}
