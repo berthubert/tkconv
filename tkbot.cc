@@ -175,6 +175,8 @@ int main(int argc, char** argv)
 		   e.what());
       }
     }
+    std::lock_guard<std::mutex> l(mlock); // sqlite might also get unhappy about simultaneous closes?
+    own.reset();
   };
 
   vector<thread> workers;
@@ -185,7 +187,10 @@ int main(int argc, char** argv)
   for(auto& w : workers)
     w.join();
   // wait for everyone to be done - all is now filled
-  
+
+  usleep(100000); // we've had some hard to explain sqlite SQLITE_BUSY errors
+  // this should not help but it looks like it did at one point
+
   for(auto& [user, content] : all) {
     map<set<Scanner*>, set<ScannerHit>> grpd;
     set<Scanner*> allscanners;
