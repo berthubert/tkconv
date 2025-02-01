@@ -433,7 +433,7 @@ std::string urlEscape(const std::string& data)
 }
 
 
-std::string getTimeDBFormat(time_t t)
+std::string getDateDBFormat(time_t t)
 {
   return fmt::format("{:%Y-%m-%d}", fmt::localtime(t));
 }
@@ -445,7 +445,7 @@ std::string getNowDBFormat()
 
 std::string getTodayDBFormat()
 {
-  return getTimeDBFormat(time(0));
+  return getDateDBFormat(time(0));
 }
 
 /*

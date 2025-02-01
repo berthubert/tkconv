@@ -91,7 +91,7 @@ void replaceSubstring(std::string &originalString, const std::string &searchStri
 std::string htmlEscape(const std::string& data);
 std::string urlEscape(const std::string& data);
 std::string getTodayDBFormat();
-std::string getTimeDBFormat(time_t t);
+std::string getDateDBFormat(time_t t);
 std::string getNowDBFormat();
 std::string toQuotedPrintable(const std::string& in);
 

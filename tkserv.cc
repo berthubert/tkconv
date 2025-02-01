@@ -1406,10 +1406,13 @@ int main(int argc, char** argv)
 
   sws.d_svr.Get("/activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     // from 4 days ago into the future
-    string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0)-4*86400));
+    string dlim = getDateDBFormat(time(0)-4*86400);
+
+    string today = getTodayDBFormat();
     
     auto acts = packResultsJson(tp.getLease()->queryT("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp, voortouwAfkorting, voortouwNaam from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > ? order by datum asc", {dlim}));
 
+    bool noMarkerYet = true;
     for(auto& a : acts) {
       a["naam"] = htmlEscape(a["naam"]);
       a["onderwerp"] = htmlEscape(a["onderwerp"]);
@@ -1418,6 +1421,13 @@ int main(int argc, char** argv)
       datum=datum.substr(0,16);
       replaceSubstring(datum, "T", "&nbsp;");
       a["datum"]=datum;
+
+      if(noMarkerYet == true && datum >= today) {
+	a["marker"]="vandaag";
+	noMarkerYet = false;
+      }
+      else
+	a["marker"] = "";
     }
     nlohmann::json data = nlohmann::json::object();
     data["data"] = acts;
@@ -1821,7 +1831,7 @@ int main(int argc, char** argv)
     string soorten = req.get_file_value("soorten").content;
     string limit = "";
     if(twomonths=="true") {
-      limit = getTimeDBFormat(time(0) - 2 * 30 * 86400);
+      limit = getDateDBFormat(time(0) - 2 * 30 * 86400);
     }
 
     string origterm = term;

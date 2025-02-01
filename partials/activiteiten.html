@@ -2,6 +2,9 @@
 
 {% block main %}
 <h4>Recente en toekomstige activiteiten</h4>
+<p>
+  Activiteiten vanaf vier dagen geleden. Of <a href="#vandaag">spring ⏩ naar vandaag</a>.
+</p>
 <table class="striped">
   <thead>
     <tr>
@@ -14,7 +17,7 @@
   </thead>
   <tbody>
     {% for d in data %}
-    <tr>
+    <tr{%if d.marker != "" %} id="{{d.marker}}" {%endif%}>
       <td> {{d.datum }}</td>
       <td> {{d.naam}}</td>
       <td> <abbr title="{{d.voortouwNaam}}">{{d.voortouwAfkorting}}</abbr></td>

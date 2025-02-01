@@ -94,7 +94,7 @@ int main(int argc, char** argv)
   if (args.get<int>("--days") > 0) {
     int days = args.get<int>("--days");
     cout << "Number of days set: "<< days << endl;
-    limit = getTimeDBFormat(time(0) - days * 86400);
+    limit = getDateDBFormat(time(0) - days * 86400);
   }
   cout<<"Limit for documents: "<<limit<<endl;
   SQLiteWriter todo("tk.sqlite3", SQLWFlag::ReadOnly);
