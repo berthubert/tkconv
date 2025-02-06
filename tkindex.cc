@@ -106,7 +106,7 @@ int main(int argc, char** argv)
   }
 
   fmt::print("Getting document ids from database since {}\n", limit);
-  auto wantDocs = todo.queryT("select id,titel,onderwerp,datum,'Document' as category, contentLength, bijgewerkt from Document where datum > ?", {limit});
+  auto wantDocs = todo.queryT("select id,titel,onderwerp,max(datum,datumRegistratie) datum, 'Document' as category, contentLength, bijgewerkt from Document where datum > ?", {limit});
 
   fmt::print("There are {} documents in the tk database that need to be indexed\n", wantDocs.size());
 
@@ -244,7 +244,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	dropids.insert(si.first); 
       }
       else if(!isPresentRightSize(si.first, si.second.contentLength)) {
-	fmt::print("Document enclosure for indexed document with id {} is wrong size, reindexing\n", si.first);
+	fmt::print("Document {} enclosure for indexed document with id {} is wrong size (!= {}), reindexing\n", si.second.category, si.first, si.second.contentLength);
 	reindex.insert(si.first); 
       }
     }
