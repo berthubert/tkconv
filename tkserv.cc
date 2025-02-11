@@ -1222,11 +1222,13 @@ int main(int argc, char** argv)
       }
 	
       ov["aan"] = aan;
-      if(ov.count("indiennummer")) {
+      if(ov.count("indiennummer") && ov["indiennummer"].is_number()) {
 	string f = getPartyFromNumber(lease.get(), ov["indiennummer"], false);
 	ov["fractie"] = f;
 	fcounts[f]++;
       }
+      else
+	ov["fractie"]="?";
     }
     
     if(!fractie.empty()) {
@@ -1261,8 +1263,9 @@ int main(int argc, char** argv)
 
     int totaalvragen=0;
     for(auto& ov : data["openVragen"]) {
-      if(ov["aantal"].is_number())
+      if(ov["aantal"].is_number()) {
 	totaalvragen += (int)ov["aantal"];
+      }
 
       time_t van = getTstampUTC(ov["gestartOp"]);
       if(van < time(0) - 3*7*86400 && ov["numuitstel"] == 0) {
