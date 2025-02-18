@@ -218,6 +218,7 @@ int main(int argc, char** argv)
 	ddesc["nummer"]= d.identifier;
 	ddesc["category"] = d.kind;
 	ddesc["relurl"] = d.relurl;
+	ddesc["snippet"] = d.snippet;
 	ddesc["description"] = getDescription(tp.getLease().get(), d.identifier,
 					      d.kind);
 	docdescs.push_back(ddesc);
