@@ -1,5 +1,45 @@
 "use strict";
 
+async function updateInterval(f, id, newint)
+{
+    console.log(id, newint);
+
+    const formData = new FormData();
+    formData.append('id', id);
+
+    formData.append('interval', newint);
+
+    const response = await fetch('set-monitor-interval', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+	f.msg[id]="Aangepast";
+    }
+    else {
+	console.log("error");
+    }
+
+    return false;
+}
+
+async function updateAllInterval(f, newint)
+{
+    const formData = new FormData();
+    formData.append('interval', newint);
+
+    const response = await fetch('set-my-monitors-interval', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+	for (let e of f.monitors) {
+	    e.interval = newint;
+	}
+	f.allinterval="";
+    }
+    else {
+	console.log("error");
+    }
+
+    return false;
+}
 
 
 async function doMijnInit(f)

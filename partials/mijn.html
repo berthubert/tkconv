@@ -4,7 +4,11 @@ id="recent-docs" x-data="{
 email: '',
 id: '',
 state: -1,
-session: ''
+session: '',
+intervals: [['live', 0], ['5 minuten', 300], ['1 uur', 3600], ['1 dag', 86400], ['1 week', 7*86400]],
+allinterval: '',
+msg: {},
+selected: '1 dag'
 }" x-init="doMijnInit($data)"
 
 {% endblock %}
@@ -144,16 +148,33 @@ session: ''
 			l4.142,35.758c4.375,2.109,7.418,6.541,7.418,11.726V193.9z"/>
 	</g>
 </g>
-</svg> te klikken op de relevante pagina's. Meer tips <a href="uitleg.html#monitors">vind je hier</a>.
-      </p>
+      </svg> te klikken op de relevante pagina's.
+    </p>
+    <p>
+      Monitors kunnen *live* mail sturen, maar bijvoorbeeld ook per uur, 5 minuten, dag of week. Meer tips <a href="uitleg.html#monitors">vind je hier</a>.
+    </p>
+    <select style="width: 50%; text-align: center;" x-model="allinterval">
+      <option value="" selected>--Wijzig interval voor alle monitors--</option>
+      <template x-for="i in intervals">
+	<option x-bind:value="i[1]" x-text="i[0]" ></option>
+      </template>
+    </select>
+    <button :disabled="allinterval==''" text="Bevestig" @click="updateAllInterval($data, allinterval)">Bevestig</button>
     <table class="striped">
       <thead>
-	<tr><th>Type</th><th>Omschrijving</th><th>Hits</th><th>X</th></tr>
+	<tr><th>Type</th><th>Omschrijving</th><th>Hits</th><th>Interval</th><th>X</th></tr>
       </thead>
       <tbody>
       <template x-for="m in monitors">
 	<tr><td x-text="m.type"></td><td x-text="m.description"></td>
 	  <td><span x-text="m.cnt"></span></td>
+	  <td>
+	    <select x-model="m.interval" @change="updateInterval($data, m.id, m.interval)"> 
+	      <template x-for="i in intervals">
+		<option x-bind:value="i[1]" x-text="i[0]" :selected="i[1] == m.interval"  ></option>
+	      </template>
+	    </select><span x-text="msg[m.id]"></span>
+	  </td>
 	  <td><a @click.prevent="removeMonitorAndUpdate($data, m.id)" href="#">🗑</a></td>
 	</tr>
       </template>
