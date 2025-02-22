@@ -33,9 +33,11 @@ struct Scanner
     d_id = id;
     d_userid = eget(res[0], "userid");
     d_soort = eget(res[0], "soort");
+    d_lastRun = iget(res[0], "lastRun");
+    d_interval = iget(res[0], "interval");
     return res[0];
   }
-  auto sqlToScannerHits(std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>>& hits)
+  auto sqlDocumentToScannerHits(std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>>& hits)
   {
     std::vector<ScannerHit> ret;
     ret.reserve(hits.size());
@@ -51,6 +53,7 @@ struct Scanner
   }
   std::string d_cutoff, d_userid, d_soort;
   std::string d_id;
+  time_t d_lastRun, d_interval;
 };
 
 
@@ -71,7 +74,7 @@ struct CommissieScanner : Scanner
   std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
   {
     auto hits = sqlw.queryT("select datum,document.nummer,relatie from ZaakActor,Zaak,link,document where commissieId=? and ZaakId=zaak.id and naar=zaak.id and document.id=van and datum >= ? and category='Document' and relatie='Voortouwcommissie' order by datum", {d_commissieid, d_cutoff});
-    return sqlToScannerHits(hits);
+    return sqlDocumentToScannerHits(hits);
   }
   
   std::string describe(SQLiteWriter& sqlw) override
@@ -108,7 +111,7 @@ struct PersoonScanner : Scanner
   {
     auto hits = sqlw.queryT("select relatie,document.nummer, document.datum from Document,DocumentActor,Persoon where persoon.nummer=? and documentactor.documentid=document.id and persoon.id=persoonid and datum >= ?", {d_nummer, d_cutoff});
 
-    auto ret = sqlToScannerHits(hits);
+    auto ret = sqlDocumentToScannerHits(hits);
     auto vhits = sqlw.queryT("select vergaderingid as nummer, datum from Vergaderingspreker,vergadering,persoon where vergadering.id=vergaderingid and persoon.nummer=? and spreekSeconden > 0 and persoon.id = persoonid and datum >= ?", {d_nummer, d_cutoff});
 
     for(const auto& vh: vhits) {
@@ -166,7 +169,7 @@ struct ActiviteitScanner : Scanner
   std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
   {
     auto hits = sqlw.queryT("select Document.nummer, document.datum from link,Document,activiteit where linkSoort='Activiteit' and link.naar=activiteit.id and activiteit.nummer=? and Document.id=link.van and document.datum >= ?", {d_nummer, d_cutoff});
-    return sqlToScannerHits(hits);
+    return sqlDocumentToScannerHits(hits);
   }
   
   std::string describe(SQLiteWriter& sqlw) override
@@ -213,7 +216,7 @@ struct ZaakScanner : Scanner
       hits.push_back(std::unordered_map<std::string,MiniSQLite::outvar_t>{{"nummer", sr.nummer}, {"datum", sr.datum}});
 
     }
-    return sqlToScannerHits(hits);
+    return sqlDocumentToScannerHits(hits);
   }
   
   std::string describe(SQLiteWriter& sqlw) override
@@ -248,7 +251,7 @@ struct KsdScanner : Scanner
   std::vector<ScannerHit> get(SQLiteWriter& sqlw) override
   {
     auto hits = sqlw.queryT("select document.nummer,datum from document,kamerstukdossier where kamerstukdossierid=kamerstukdossier.id and kamerstukdossier.nummer=? and toevoeging=? and datum >= ?", {d_nummer, d_toevoeging, d_cutoff});
-    return sqlToScannerHits(hits);
+    return sqlDocumentToScannerHits(hits);
   }
   
   std::string describe(SQLiteWriter& sqlw) override

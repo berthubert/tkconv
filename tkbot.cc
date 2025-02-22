@@ -34,10 +34,10 @@ void logEmission(SQLiteWriter& sqlw, const ScannerHit&sh, const Scanner& sc, con
 
 }
 
-void updateScannerDate(SQLiteWriter& sqlw, const Scanner& sc)
+void updateScannerDate(SQLiteWriter& sqlw, const Scanner& sc, time_t lastRun)
 {
   string cutoff = getTodayDBFormat();
-  sqlw.queryT("update scanners set cutoff=? where id=?", {cutoff, sc.d_id});
+  sqlw.queryT("update scanners set cutoff=?, lastRun=? where id=?", {cutoff, lastRun, sc.d_id});
 }
 
 string getDescription(SQLiteWriter& sqlw, const std::string& nummer, const std::string& category)
@@ -118,7 +118,9 @@ int main(int argc, char** argv)
   
   SQLiteWriter userdb("user.sqlite3");  
 
-  auto toscan=userdb.queryT("select rowid,* from scanners");
+  time_t now = time(0);
+  auto toscan=userdb.queryT("select rowid,* from scanners where (lastRun is NULL or interval is NULL) or (lastRun + interval < ?)",
+			    {now});
   vector<unique_ptr<Scanner>> scanners;
   for(auto& ts: toscan) {
     if(auto iter = g_scanmakers.find(eget(ts,"soort")); iter != g_scanmakers.end()) {
@@ -258,9 +260,10 @@ int main(int argc, char** argv)
     }
     else {
       cout<<"Not sending out email, no smtp-server configured\n";
-      cout<<"Would have sent: "<<msg<<endl;
+      cout<<"Would have sent "<<getEmailForUserId(userdb,user)<<": "<<msg<<endl;
     }
   }
+  time_t lastRun = time(0);
   for(auto& sc : scanners)
-    updateScannerDate(userdb, *sc);
+    updateScannerDate(userdb, *sc, lastRun);
 }

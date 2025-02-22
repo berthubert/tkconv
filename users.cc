@@ -26,6 +26,8 @@ static auto prepRSS(auto& doc, const std::string& title, const std::string& desc
 }
   
 
+static int g_defScannerIntS = 300;
+
 void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
 			 const std::string& fromaddr,
 			 const std::string& baseUrl)
@@ -114,11 +116,12 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     return j;
   });
 
-
+  
   sws.wrapPost({Capability::IsUser}, "/add-person-monitor", [](auto& cr) {
     string nummer = cr.req.get_file_value("nummer").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "persoon"}, {"nummer", nummer}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "persoon"}, {"nummer", nummer}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}}, "scanners");
     
     return nlohmann::json{{"ok", 1}, {"id", id}};
   });
@@ -126,20 +129,23 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
   sws.wrapPost({Capability::IsUser}, "/add-commissie-monitor", [](auto& cr) {
     string nummer = cr.req.get_file_value("nummer").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "commissie"}, {"commissieId", nummer}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "commissie"}, {"commissieId", nummer}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}}, "scanners");
     return nlohmann::json{{"ok", 1}, {"id", id}};
   });
 
   sws.wrapPost({Capability::IsUser}, "/add-activiteit-monitor", [](auto& cr) {
     string nummer = cr.req.get_file_value("nummer").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "activiteit"}, {"nummer", nummer}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "activiteit"}, {"nummer", nummer}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}}, "scanners");
     return nlohmann::json{{"ok", 1}, {"id", id}};
   });
   sws.wrapPost({Capability::IsUser}, "/add-zaak-monitor", [](auto& cr) {
     string nummer = cr.req.get_file_value("nummer").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "zaak"}, {"nummer", nummer}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "zaak"}, {"nummer", nummer}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}}, "scanners");
     return nlohmann::json{{"ok", 1}, {"id", id}};
   });
 
@@ -148,7 +154,8 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     query = convertToSQLiteFTS5(query); // this was unfortunate
     string categorie = cr.req.get_file_value("categorie").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "zoek"}, {"categorie", ""}, {"query", query}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "zoek"}, {"categorie", ""}, {"query", query}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}}, "scanners");
     return nlohmann::json{{"ok", 1}, {"id", id}};
   });
 
@@ -157,7 +164,9 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     string nummer = cr.req.get_file_value("nummer").content;
     string toevoeging = cr.req.get_file_value("toevoeging").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "ksd"}, {"nummer", nummer}, {"toevoeging", toevoeging}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "ksd"}, {"nummer", nummer}, {"toevoeging", toevoeging}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}
+      }, "scanners");
     return nlohmann::json{{"ok", 1}, {"id", id}};    
   });
 
@@ -169,11 +178,32 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     return j;
   });
 
+  sws.wrapPost({Capability::IsUser}, "/set-monitor-interval", [](auto& cr) {
+    string id = cr.req.get_file_value("id").content;
+    int interval = atoi(cr.req.get_file_value("interval").content.c_str());
+    cr.lsqw.query("update scanners set interval=? where id=? and userid=?", {interval, id, cr.user});
+    nlohmann::json j;
+    j["ok"]=1;
+    return j;
+  });
+
+  sws.wrapPost({Capability::IsUser}, "/set-my-monitors-interval", [](auto& cr) {
+    int interval = atoi(cr.req.get_file_value("interval").content.c_str());
+    cr.lsqw.query("update scanners set interval=? where userid=?", {interval, cr.user});
+    cr.log({{"action", "set-my-monitor-interval"}, {"for", cr.user}, {"to", interval}});
+    nlohmann::json j;
+    j["ok"]=1;
+    return j;
+  });
+
+  
   sws.wrapPost({Capability::IsUser}, "/add-toezeggingen-monitor", [](auto& cr) {
     string fractie = cr.req.get_file_value("fractie").content;
     string voortouw = cr.req.get_file_value("voortouw").content;
     string id = getLargeId();
-    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "toezeggingen"}, {"fractie", fractie}, {"voortouwAfkorting", voortouw}, {"cutoff", getTodayDBFormat()}}, "scanners");
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "toezeggingen"}, {"fractie", fractie}, {"voortouwAfkorting", voortouw}, {"cutoff", getTodayDBFormat()},
+		      {"lastRun", 0}, {"interval", g_defScannerIntS}
+      }, "scanners");
     return nlohmann::json{{"ok", 1}, {"id", id}};    
   });
 
@@ -241,6 +271,8 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
       jmon["type"] = ptr->getType();
       jmon["id"] = id;
       jmon["cnt"] = count;
+      jmon["interval"] = ptr->d_interval;
+	  
       jmonitors.push_back(jmon);
     }
     j["monitors"] = jmonitors;
