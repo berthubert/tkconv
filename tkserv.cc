@@ -2033,7 +2033,8 @@ int main(int argc, char** argv)
 
     // Allow conditional GET and HEAD for all requests: if browsers, proxies or bots already have
     // a response cached that is bytewise identical to what we've just generated, don't resend it.
-    if(res.status == 200 && (req.method == "GET" || req.method == "HEAD") && !res.has_header("ETag")) {
+    // note that files served directly by httplib don't have a body, so let's not hash that
+    if(res.status == 200 && res.body.size() && (req.method == "GET" || req.method == "HEAD") && !res.has_header("ETag")) {
       string etag = fmt::format("\"{:x}-{}\"", hash<string>{}(res.body), res.body.size());
       res.set_header("ETag", etag);
 
