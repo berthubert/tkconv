@@ -4,3 +4,4 @@ tk.sqlite3-wal
 xml.sqlite3
 xml.sqlite3-shm
 xml.sqlite3-wal
+docker-compose.*

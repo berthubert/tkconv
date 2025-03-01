@@ -121,6 +121,19 @@ docker run -it -v $PWD:/app --rm tkconv:latest tkconv
 docker run -it -v $PWD:/app -p 8089:8089 --rm tkconv:latest tkserv
 ```
 
+## via docker compose
+
+Voor snelle start met hele stack kan je ook gebruik maken van docker-compose.yml file.
+Hiermee draai je de webserver en cronjob tegelijkertijd in één compose stack.
+Zorg dat docker [geinstalleerd is](https://docs.docker.com/engine/install/),
+clone deze repository en gebruik de volgende commando om de stack te starten:
+
+```shell
+docker-compose up -d
+```
+
+**TODO:** De mailserver is niet geconfigureerd in de docker-compose.yml file.
+
 ## zelf vanuit source compileren
 Als je de boel zelf wil draaien heb je ongeveer zoveel data nodig:
 ```

@@ -1,34 +1,34 @@
-CREATE INDEX datumindex on Document(datum);
-CREATE INDEX nummerdocidx on Document(nummer);
+CREATE INDEX IF NOT EXISTS datumindex on Document(datum);
+CREATE INDEX IF NOT EXISTS nummerdocidx on Document(nummer);
 
-CREATE INDEX zaindex on ZaakActor(zaakId);
-CREATE INDEX zaindex2 on ZaakActor(zaakId, relatie);
-CREATE INDEX docactordocidx on DocumentActor(documentId);
-CREATE INDEX persoongeschenkpersidx on persoonGeschenk(persoonId);
-CREATE INDEX zaakgestartidx on zaak(gestartOp);
-CREATE INDEX zaaksoortidx on Document(soort);
+CREATE INDEX IF NOT EXISTS zaindex on ZaakActor(zaakId);
+CREATE INDEX IF NOT EXISTS zaindex2 on ZaakActor(zaakId, relatie);
+CREATE INDEX IF NOT EXISTS docactordocidx on DocumentActor(documentId);
+CREATE INDEX IF NOT EXISTS persoongeschenkpersidx on persoonGeschenk(persoonId);
+CREATE INDEX IF NOT EXISTS zaakgestartidx on zaak(gestartOp);
+CREATE INDEX IF NOT EXISTS zaaksoortidx on Document(soort);
 
-CREATE INDEX actdatumidx on Activiteit(datum);
-CREATE INDEX agendapuntactidx on agendapunt(activiteitid);
-CREATE INDEX besluitagendapunt on besluit(agendapuntId);
+CREATE INDEX IF NOT EXISTS actdatumidx on Activiteit(datum);
+CREATE INDEX IF NOT EXISTS agendapuntactidx on agendapunt(activiteitid);
+CREATE INDEX IF NOT EXISTS besluitagendapunt on besluit(agendapuntId);
 
-CREATE INDEX docactorpersoonidx on DocumentActor(persoonId);
-create index stemmingbesluitidx on Stemming(besluitId);
-create index zaakbesluitidx on besluit(zaakid);
-CREATE INDEX zaaknumidx on zaak(nummer);
-CREATE INDEX zaakactorpersoonidx on zaakactor(persoonid);
-create index docagendapuntidx on document(agendapuntid);
-CREATE INDEX activactoridx on activiteitactor(activiteitid);
-CREATE INDEX actcomidx on activiteitactor(commissieId);
-CREATE INDEX zaakcomidx on zaakactor(commissieid);
+CREATE INDEX IF NOT EXISTS docactorpersoonidx on DocumentActor(persoonId);
+CREATE INDEX IF NOT EXISTS stemmingbesluitidx on Stemming(besluitId);
+CREATE INDEX IF NOT EXISTS zaakbesluitidx on besluit(zaakid);
+CREATE INDEX IF NOT EXISTS zaaknumidx on zaak(nummer);
+CREATE INDEX IF NOT EXISTS zaakactorpersoonidx on zaakactor(persoonid);
+CREATE INDEX IF NOT EXISTS docagendapuntidx on document(agendapuntid);
+CREATE INDEX IF NOT EXISTS activactoridx on activiteitactor(activiteitid);
+CREATE INDEX IF NOT EXISTS actcomidx on activiteitactor(commissieId);
+CREATE INDEX IF NOT EXISTS zaakcomidx on zaakactor(commissieid);
 
-CREATE INDEX docversiedocidx on DocumentVersie(documentId);
-CREATE INDEX docversextid on DocumentVersie(externeidentifier);
-CREATE INDEX activiteitpersoonidx on activiteitactor(persoonid);
-CREATE INDEX persoonnummeridx on persoon(nummer);
-CREATE INDEX ksdindex on document(kamerstukdossierid);
-create index brondocidx on document(bronDocument);
-CREATE INDEX FractieZetelPersoon_idx ON FractieZetelPersoon(persoonId, fractieZetelId, van DESC);
-create index toezact on Toezegging(activiteitId);
+CREATE INDEX IF NOT EXISTS docversiedocidx on DocumentVersie(documentId);
+CREATE INDEX IF NOT EXISTS docversextid on DocumentVersie(externeidentifier);
+CREATE INDEX IF NOT EXISTS activiteitpersoonidx on activiteitactor(persoonid);
+CREATE INDEX IF NOT EXISTS persoonnummeridx on persoon(nummer);
+CREATE INDEX IF NOT EXISTS ksdindex on document(kamerstukdossierid);
+CREATE INDEX IF NOT EXISTS brondocidx on document(bronDocument);
+CREATE INDEX IF NOT EXISTS FractieZetelPersoon_idx ON FractieZetelPersoon(persoonId, fractieZetelId, van DESC);
+CREATE INDEX IF NOT EXISTS toezact on Toezegging(activiteitId);
 analyze;
 
