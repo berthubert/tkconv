@@ -1,0 +1,26 @@
+---
+services:
+  tksync:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    command:
+      - tksync
+    restart: unless-stopped
+    volumes:
+      - data:/app
+
+  tkserv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - tkserv
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    volumes:
+      - data:/app
+
+volumes:
+  data:
