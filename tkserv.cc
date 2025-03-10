@@ -859,9 +859,9 @@ int main(int argc, char** argv)
     }
     z["adocs"] = adocs;
     // XXX agendapunt multi
-    z["pagemeta"]["title"]="Zaak";
-    z["og"]["title"] = "Persoon";
-    z["og"]["description"] = "Persoon";
+    z["pagemeta"]["title"]="Zaak "+nummer;
+    z["og"]["title"] = "Zaak " + nummer+" | " +  eget(zaken[0], "onderwerp");
+    z["og"]["description"] = "Zaak " + eget(zaken[0], "titel") + " | " + eget(zaken[0], "onderwerp");
     z["og"]["imageurl"] = "";
 
     inja::Environment e;
