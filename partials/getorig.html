@@ -7,8 +7,9 @@
   <p><em>{{meta.soort}}</em></p>
 </hblock>
 
-<p>Nummer: <b>{{meta.nummer}}</b>, datum: <b>{{meta.datum}}</b>, bijgewerkt: <b>{{meta.bijgewerkt}}</b>, versie: {{meta.versienummer}}</p>
-
+<p>Nummer: <b>{{meta.nummer}}</b>, datum: <b>{{meta.datum}}</b>, bijgewerkt: <b>{{meta.bijgewerkt}}</b>, versie: {{meta.versienummer}} {% if length(versions)>0 %}({% for key, value in versions %}{% if not loop.is_first %}, {% endif %}<a href="getraw/{{meta.nummer}}?version={{value}}">versie {{ key }}</a>{% endfor %}){%endif%}
+</p>
+<!-- {{ meta.id }} -->
 <p>
   <a href="getraw/{{meta.nummer}}">Directe link naar document</a> ({{meta.extensie}}), <a href="{{ kamerurl }}">link naar pagina op de Tweede Kamer site</a>{% if exists("meta.externeidentifier") %}{% if length(meta.externeidentifier) > 0 %}, <a href="https://zoek.officielebekendmakingen.nl/{{meta.externeidentifier}}.html">officiële HTML versie</a>  ({{meta.externeidentifier}}){% endif %}{% endif %}.
 </p>
