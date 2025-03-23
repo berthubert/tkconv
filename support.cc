@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <vector>
 #include <random>
+#include <filesystem>
 #include "siphash.h"
 #include <sclasses.hh>
 #include "base64.hpp"
@@ -76,6 +77,35 @@ string makePathForId(const std::string& id, const std::string& prefix, const std
   }
   
   return fmt::sprintf("%s/%s/%s/%s%s", prefix,a, b, id, suffix);
+}
+
+// hardcoded to docs/ for now, returns in order from oldest to newest
+// only the 173232434 strig is passed, nothing for the unversioned file
+std::vector<std::string> getVersionsForId(const std::string& id)
+{
+  string prefix="docs/";
+  if(id.size() < 10)
+    throw runtime_error("Incomplete ID requested");
+  // 92c78e5c-0bc0-4d3e-b1df-d43a100124bb
+  if(id.find_first_not_of("0123456789-abcdef") != string::npos)
+    throw runtime_error("Invalid ID");
+  
+  string a = id.substr(0,2);
+  string b = id.substr(2,2);
+  string p = prefix+a+"/"+b+"/";
+  std::vector<string> ret;
+  for(const auto& entry : std::filesystem::directory_iterator(p)) {
+    std::string filenameStr = entry.path().filename().string();
+    //if the first found entry is directory go thru it
+    if(entry.is_regular_file() && entry.path().stem().string() == id) {
+      string ext=entry.path().extension().string();
+      std::cout << "file: " << filenameStr << ", "<<entry.path()<<" "<<ext<<endl;
+      if(!ext.empty())
+	ret.push_back(ext.substr(1));
+    }
+    sort(ret.begin(), ret.end());
+  }
+  return ret;
 }
 
 bool isPresentNonEmpty(const std::string& id, const std::string& prefix, const std::string& suffix)

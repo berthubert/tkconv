@@ -62,6 +62,9 @@ struct TimeKeeper
 // we add the / to prefix for you
 std::string makePathForId(const std::string& id, const std::string& prefix="docs", const std::string& suffix="", bool makepath=false);
 
+// get versions of an ID, in order of extension, excluding the unversioned file
+std::vector<std::string> getVersionsForId(const std::string& id);
+
 // for external ids
 bool haveExternalIdFile(const std::string& id, const std::string& prefix="op", const std::string& suffix=".odt");
 

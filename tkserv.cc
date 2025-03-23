@@ -196,18 +196,20 @@ static string getHtmlForDocument(const std::string& id, bool bare=false)
   return ret;
 }
 
-static string getRawDocument(const std::string& id)
+static string getRawDocument(const std::string& id, unsigned int version=0)
 {
   string fname;
-  if(isPresentNonEmpty(id, "improvdocs")) {
+  if(!version && isPresentNonEmpty(id, "improvdocs")) {
     fmt::print("we have a better version of {}\n", id);
     fname = makePathForId(id, "improvdocs");
   }
   else
     fname = makePathForId(id);
+  if(version)
+    fname += "." + to_string(version);
   string ret = getContentsOfFile(fname);
   if(ret.empty())
-     throw runtime_error("Unable to get raw document: "+string(strerror(errno)));
+     throw runtime_error("Unable to get raw document from "+fname+": "+string(strerror(errno)));
   return ret;
 }
 
@@ -459,6 +461,8 @@ int main(int argc, char** argv)
   sws.d_svr.Get("/getraw/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2023D41173
     cout<<"getraw nummer: "<<nummer<<endl;
+    time_t version = atol(req.get_param_value("version").c_str());
+    
     string id, onderwerp, contentType;
     auto sqlw = tp.getLease();
     auto ret=sqlw->queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
@@ -478,6 +482,17 @@ int main(int argc, char** argv)
     }
 
     sqlw.release();
+
+    if(version) {
+      string path = makePathForId(id, "docs", "."+to_string(version));
+      cout<<path<<endl;
+      if(isPDF(path))
+	contentType = "application/pdf";
+      else
+	contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      cout<<"Set contentType to "<<contentType<<endl;
+    }
+    
     if(!onderwerp.empty()) {
       string fname=nummer+"-"+onderwerpToFilename(onderwerp);
       if(contentType =="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -486,10 +501,9 @@ int main(int argc, char** argv)
 	fname += ".pdf";
       res.set_header("Content-Disposition",  fmt::format("inline; filename=\"{}\"", fname));
     }
-    string content = getRawDocument(id);
+    string content = getRawDocument(id, version);
 
-
-    res.set_content(content, get<string>(ret[0]["contentType"]));
+    res.set_content(content, contentType);
   });
 
   sws.d_svr.Get("/personphoto/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
@@ -1588,6 +1602,14 @@ int main(int argc, char** argv)
 			     get<string>(ret[0]["nummer"]));
 
     string documentId=get<string>(ret[0]["id"]);
+    auto versions = getVersionsForId(documentId);
+    fmt::print("Versions of {}: {}\n", documentId, versions);
+    int c = 1;
+    data["versions"] = nlohmann::json::object();
+    for(const auto& v : versions) {
+      data["versions"][to_string(c)] = v;
+      c++;
+    }
     data["docactors"]= packResultsJson(sqlw->queryT("select DocumentActor.*, Persoon.nummer from DocumentActor left join Persoon on Persoon.id=Documentactor.persoonId where documentId=? order by relatie", {documentId}));
 
     for(auto& da : data["docactors"]) {
