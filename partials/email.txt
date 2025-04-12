@@ -3,4 +3,10 @@ Nieuwe OpenTK documenten, gevonden door je monitors:
 {% for a in payload %}* {{ join(a.scannernames, ", ") }}:
 {% for b in a.hits %}https://berthub.eu/tkconv/{{b.relurl}} - {{ b.description }}
 {% endfor %}
-{% endfor %}Op https://berthub.eu/tkconv/mijn.html kun je je monitors bijwerken of verwijderen. Als er problemen zijn, druk op reply en ik ga er mee aan de slag!
+{% endfor %} 
+
+Op https://berthub.eu/tkconv/mijn.html kun je je monitors bijwerken of verwijderen. 
+Als er problemen zijn, druk op reply en ik ga er mee aan de slag!
+
+Om op de hoogte te blijven van nieuwe OpenTK ontwikkelingen kan je je hier
+https://berthub.eu/ckmailer/start.html?hl=c6 inschrijven voor de nieuwsbrief.
