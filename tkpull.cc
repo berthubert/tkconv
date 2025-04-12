@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 	toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]),
 	    contentLength ? *contentLength : 0});
 	if(isPresentNonEmpty(get<string>(d["id"]), prefix))
-	  fmt::print("Re-retrieving {}, has wrong size on disk\n", get<string>(d["id"]));
+	  fmt::print("Re-retrieving {}, has wrong size on disk, should be {}\n", get<string>(d["id"]), get<int64_t>(d["contentLength"]));
       }
     }
     fmt::print("We have {} files to retrieve, {} are already present\n", toRetrieve.size(), present);
@@ -149,8 +149,13 @@ int main(int argc, char** argv)
       }
 
       fmt::print("Got {} bytes\n", res->body.size());
-      storeDocument(need.id, res->body, prefix);
-      retrieved++;
+      if(res->body.size() == (unsigned int)need.contentLength) {
+	storeDocument(need.id, res->body, prefix);
+	retrieved++;
+      }
+      else {
+	fmt::print("Unexpected size received, not storing document\n");
+      }
     }
     fmt::print("Retrieved {} documents, {} were too large, {} errors\n", retrieved, toolarge, error);
   }
