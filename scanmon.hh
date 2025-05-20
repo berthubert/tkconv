@@ -118,7 +118,7 @@ struct PersoonScanner : Scanner
       ScannerHit sh{.identifier = eget(vh, "nummer"),
 		    .date = eget(vh, "datum"),
 		    .kind = "Verslag",
-		    .relurl = "vergadering.html?nummer="+eget(vh, "nummer")};
+		    .relurl = "verslag.html?vergaderingid="+eget(vh, "nummer")};
       ret.push_back(sh);
     }
     
