@@ -123,8 +123,10 @@ async function getGenVragen(orig, dest, f)
 }
 
 let dateDescending = true;
-function orderByDate(f)
+function orderByDate(f, flip)
 {
+    if(flip)
+    	dateDescending = !dateDescending;
     f.foundDocs=f.foundDocs.sort(function(a,b) {
 	if(a.datum < b.datum)
 	    return dateDescending ? 1 : -1;
@@ -134,8 +136,11 @@ function orderByDate(f)
     });
 
     let columnText = dateDescending ? "Datum &#x25BC" : "Datum &#x25B2";
-    document.querySelectorAll("table.striped > thead > tr > th > a")[0].innerHTML = columnText;
-    dateDescending = !dateDescending;
+    // this is a somewhat silly hack, but it gets the job done on initial load
+    if(document.querySelectorAll("table.striped > thead > tr > th > a").length != 0) {
+	    document.querySelectorAll("table.striped > thead > tr > th > a")[0].innerHTML = columnText;
+    }
+
 }
 
 function orderByScore(f)
@@ -161,8 +166,9 @@ function init(f)
     else
 	f.soorten= "alles";
 
-    if(f.searchQuery != null)
+    if(f.searchQuery != null) {
 	getSearchResults(f);
+    }
 }
 
 async function commissieinit(f)
@@ -288,6 +294,7 @@ async function getSearchResults(f)
 
 	f.message = `${data["milliseconds"]} milliseconden`;
 	f.busy=false;
+	orderByDate(f, false);
     }
     else {
 	f.foundDocs=[];

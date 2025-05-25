@@ -66,11 +66,11 @@ kind: 'zoek'
 <table class="striped">
   <thead>
     <tr>
-      <th><a @click.prevent="orderByDate($data)" href="#">Datum</a></th>
+      <th><a @click.prevent="orderByDate($data, true)" href="#">Datum &#x25BC</a></th>
       <th>Bijgewerkt</th>
       <th>Nummer</th>
       <th>Onderwerp</th>
-      <th><a @click.prevent="orderByScore($data)" href="#">Snip</a></th>
+      <th><a @click.prevent="orderByScore($data, true)" href="#">Snip</a></th>
     </tr>
   </thead>
   <tbody>
