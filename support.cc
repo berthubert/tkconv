@@ -503,7 +503,18 @@ QuotedWord <-  < '"'  [^"]*  '"' >
     throw runtime_error("cpp-peglib grammar did not compile");
 
   p["BareWord"] = [](const peg::SemanticValues &vs) {
-    if(auto pos = vs.token_to_string().find_first_of(",.-"); pos != string::npos) {
+    /*
+      As an FTS5 bareword that is not "AND", "OR" or "NOT" (case sensitive). An FTS5 bareword is a string of one or more consecutive characters that are all either:
+
+    Non-ASCII range characters (i.e. unicode codepoints greater than 127), or
+    One of the 52 upper and lower case ASCII characters, or
+    One of the 10 decimal digit ASCII characters, or
+    The underscore character (unicode codepoint 95).
+    The substitute character (unicode codepoint 26).
+    XXX this is NOT quite what we do!
+     */
+     
+    if(auto pos = vs.token_to_string().find_first_of(",.-[];"); pos != string::npos) {
       return "\"" + vs.token_to_string() +"\"";
     }
     else
