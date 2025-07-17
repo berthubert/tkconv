@@ -28,6 +28,11 @@ int main(int argc, char** argv)
       categories.push_back(argv[n]);
   }
   SQLiteWriter sqlw("xml.sqlite3");
+
+  sqlw.query("create table if not exists meta (source TEXT, name TEXT, value INT) STRICT");
+  sqlw.query("create unique index if not exists metaindex on meta(source, name)");
+
+  
   for(const auto& category: categories) {
     sqlw.query("create table if not exists "+category+" (skiptoken INT)");
     sqlw.query("create index if not exists "+category+"skipidx on "+category+"(skiptoken)");
@@ -110,4 +115,6 @@ int main(int argc, char** argv)
     }
     cout<<"Done - saw "<<catentries<<" new entries for category "<< category<<endl;
   }
+  
+  sqlw.addOrReplaceValue({{"source", "tkgetxml"}, {"name", "lastupdate"}, {"value", time(0)}}, "meta");
 }

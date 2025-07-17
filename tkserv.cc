@@ -1926,6 +1926,27 @@ int main(int argc, char** argv)
     ret<<"tkserv_"<<key<<" "<< std::fixed<< value <<endl;
   };
 
+
+  sws.wrapGet({}, "/lastupdates", [&](auto& cr) {
+    auto tstamp = cr.tp.getLease()->queryT("select * from meta where name='lastupdate'");
+    nlohmann::json response=nlohmann::json::object();
+    for(auto& ts: tstamp) {
+      time_t t = get<int64_t>(ts["value"]);
+      response[eget(ts,"source")]["absolute"] = t;
+      response[eget(ts,"source")]["relative"] = time(0) - t;
+    }
+    
+    for(const auto& fname: {"xml.sqlite3"}) {
+      SQLiteWriter sqlw(fname, SQLWFlag::ReadOnly);
+      tstamp = sqlw.queryT("select * from meta where name='lastupdate'");
+      for(auto& ts: tstamp)  {
+	time_t t = get<int64_t>(ts["value"]);
+	response[eget(ts,"source")]["absolute"] = t;
+	response[eget(ts,"source")]["relative"] = time(0) - t;
+      }
+    }
+    return make_pair<string,string>(response.dump(), "application/json");
+  });
   
   sws.wrapGet({}, "/metrics", [&](auto& cr) {
     ostringstream os;

@@ -37,6 +37,8 @@ int main(int argc, char** argv)
   sqlw.query("PRAGMA optimize");
   SQLiteWriter xmlstore("xml.sqlite3");
 
+  sqlw.query("create table if not exists meta (source TEXT, name TEXT, value INT) STRICT");
+  sqlw.query("create unique index if not exists metaindex on meta(source, name)");
   sqlw.query("create table if not exists link (van TEXT, naar TEXT) STRICT");
   sqlw.query("create index if not exists linkvanidx on link(van)");
   sqlw.query("create index if not exists linknaaridx on link(naar)");
@@ -852,4 +854,7 @@ Hasref: {"commissie"}
 
   sqlw.query(R"(create table openvragen as select Zaak.id, Zaak.gestartOp, zaak.nummer, min(document.nummer) as docunummer, zaak.onderwerp, count(1) filter (where Document.soort='Schriftelijke vragen') as numvragen, count(1) filter (where Document.soort like 'Antwoord schriftelijke vragen%' or (Document.soort='Mededeling' and (document.onderwerp like '%ingetrokken%' or document.onderwerp like '%intrekken%'))) as numantwoorden, count(1) filter (where Document.soort like '%uitstel%') as numuitstel  from Zaak, Link, Document where Zaak.id = Link.naar and Document.id = Link.van and Zaak.gestartOp > ? group by 1, 3 having numvragen > 0 and numantwoorden==0 order by 2 desc)", {dlim});
   sqlw.query("create index openvragenid on openvragen(id)");
+
+  sqlw.addOrReplaceValue({{"source", "tkconv"}, {"name", "lastupdate"}, {"value", time(0)}}, "meta");
+
 }
