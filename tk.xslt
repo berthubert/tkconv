@@ -27,6 +27,9 @@
           .interrumpant {
           background-color: var(--pico-mark-background-color);
           }
+	  .motie  {
+		border-left: 3px solid;
+          }
         </style>
       </head>
       <body>
@@ -66,7 +69,7 @@
   </xsl:template>
 
   <xsl:template match="vv:draadboekfragment">
-    <section class="tekst">
+    <section class="motie">
       <xsl:apply-templates select="vv:tekst" />
     </section>
   </xsl:template>

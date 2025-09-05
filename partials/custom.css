@@ -8,6 +8,11 @@ tr,td {
 .interrumpant {
           background-color: var(--pico-mark-background-color);
 }
+.motie {
+	border-left: 3px solid;
+	padding-left: 0.6em;
+}
+
 span.jarig::before { content: '🎈'; }
 
 .stemming.meervoor .besluittekst {
