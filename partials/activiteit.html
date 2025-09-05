@@ -17,6 +17,7 @@ haveMonitor: false
 {% block main %}
 <hblock>
   <h4 x-text="activiteit['meta'].onderwerp"></h4>
+  <h5 x-text="activiteit['meta'].soort"></h5>
   <p><span x-text="activiteit['meta'].nummer"></span> <span x-html="makeBell($data, haveMonitor);"></span></p>
 </hblock>
 
