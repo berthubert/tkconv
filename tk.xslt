@@ -65,6 +65,13 @@
     </section>
   </xsl:template>
 
+  <xsl:template match="vv:draadboekfragment">
+    <section class="tekst">
+      <xsl:apply-templates select="vv:tekst" />
+    </section>
+  </xsl:template>
+
+
   <xsl:template match="vv:activiteitdeel">
     <section class="activiteitdeel">
       <xsl:apply-templates select="vv:tekst|vv:activiteititem" />
@@ -79,7 +86,7 @@
 
   <xsl:template match="vv:woordvoerder">
     <section class="woordvoerder">
-      <xsl:apply-templates select="vv:tekst|vv:interrumpant" />
+      <xsl:apply-templates select="vv:tekst|vv:interrumpant|vv:draadboekfragment" />
     </section>
   </xsl:template>
 
