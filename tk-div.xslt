@@ -46,7 +46,7 @@
   </xsl:template>
 
   <xsl:template match="vv:draadboekfragment">
-    <section class="tekst">
+    <section class="motie">
       <xsl:apply-templates select="vv:tekst" />
     </section>
   </xsl:template>
