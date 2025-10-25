@@ -175,12 +175,14 @@ int main(int argc, char** argv)
   SQLiteWriter sqlw("tk.sqlite3");
 
   doSchriftelijkeVragen(sqlw);
+
+  // so this is unique on vergaderingId and not on verslagId - we only want one entry per vergadering!
   
   sqlw.queryT("create table if not exists VergaderingSpreker (vergaderingId TEXT, verslagId, persoonId TEXT)");
-  sqlw.queryT("create unique index if not exists uniidx on VergaderingSpreker(vergaderingId, verslagId, persoonId)");
+  sqlw.queryT("create unique index if not exists uniidx on VergaderingSpreker(vergaderingId, persoonId)");
 
   sqlw.queryT("create table if not exists VergaderingSprekerTekst (vergaderingId TEXT, verslagId, persoonId TEXT, beginTijd TEXT)");
-  sqlw.queryT("create unique index if not exists unisidx on VergaderingSprekerTekst(vergaderingId, verslagId, persoonId, beginTijd)");
+  sqlw.queryT("create unique index if not exists unisidx on VergaderingSprekerTekst(vergaderingId, persoonId, beginTijd)");
   
   string limit="2023-01-01";
 
