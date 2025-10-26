@@ -2025,6 +2025,20 @@ int main(int argc, char** argv)
     res.status = 500; 
   });
 
+  sws.d_svr.set_error_handler([](const auto& req, auto& res) {
+    inja::Environment e;
+    e.set_html_autoescape(true);
+    nlohmann::json data;
+    data["pagemeta"]["title"]="Error – OpenTK";
+    data["og"]["title"] = fmt::format("Error {} {} @ {}", res.status, httplib::status_message(res.status), time(0));
+    data["error"] = data["og"]["title"];
+      
+    data["og"]["description"] = "Een TKConv error: " + (string)data["error"];
+    data["og"]["imageurl"] = "";
+    cout<<"Error: "<<req.path<<" '"<< (string)data["error"] <<"'"<<endl;
+    res.set_content(e.render_file("./partials/error.html", data), "text/html");
+  });
+  
   TimeKeeper<httplib::Request> tk;
   
   sws.d_svr.set_pre_routing_handler([&tp, &tk](const auto& req, auto& res) {
