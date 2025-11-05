@@ -1427,7 +1427,7 @@ int main(int argc, char** argv)
 
     string today = getTodayDBFormat();
     
-    auto acts = packResultsJson(tp.getLease()->queryT("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp, voortouwAfkorting, voortouwNaam from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > ? order by datum asc", {dlim}));
+    auto acts = packResultsJson(tp.getLease()->queryT("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp, besloten, voortouwAfkorting, voortouwNaam from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > ? order by datum asc", {dlim}));
 
     bool noMarkerYet = true;
     for(auto& a : acts) {
