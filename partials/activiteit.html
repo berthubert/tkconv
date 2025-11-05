@@ -18,7 +18,10 @@ haveMonitor: false
 <hblock>
   <h4 x-text="activiteit['meta'].onderwerp"></h4>
   <h5 x-text="activiteit['meta'].soort"></h5>
-  <p><span x-text="activiteit['meta'].nummer"></span> <span x-html="makeBell($data, haveMonitor);"></span></p>
+  <p><span x-text="activiteit['meta'].nummer"></span> <span x-html="makeBell($data, haveMonitor);"></span>
+    <template x-if="activiteit['meta'].besloten == 'true'">
+      <span style="font-size: 150%;" data-tooltip="Besloten activiteit">🔒</span>
+    </template>
 </hblock>
 
 <h4><span x-text="activiteit['meta'].datum.replace('T', ' ')"></span> <span x-text="activiteit['zaal'].naam"></span></h4>

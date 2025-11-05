@@ -19,7 +19,7 @@
     {% for d in data %}
     <tr{%if d.marker != "" %} id="{{d.marker}}" {%endif%}>
       <td> {{d.datum }}</td>
-      <td> {{d.naam}}</td>
+      <td> {{d.naam}} {%if d.besloten =="true" %}<span data-tooltip="Besloten activiteit">🔒</span>{%endif%} </td>
       <td> <abbr title="{{d.voortouwNaam}}">{{d.voortouwAfkorting}}</abbr></td>
       <td><a href="activiteit.html?nummer={{d.nummer}}"> {{d.onderwerp}}</a></td>
       <td> {{d.noot}}</td>
