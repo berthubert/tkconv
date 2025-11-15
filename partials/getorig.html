@@ -4,7 +4,11 @@
 <hblock>
   <h2>{{meta.onderwerp}}</h2>
   <h4>{{meta.titel}}</h4>
-  <p><em>{{meta.soort}}</em></p>
+  <p><em>{{meta.soort}}</em>
+  {% if exists("kabinetsappreciatie") %}
+  (kabinetsappreciatie: <b>{{ kabinetsappreciatie }}</b>)
+    {% endif %}
+  </p>
 </hblock>
 
 <p>Nummer: <b>{{meta.nummer}}</b>, datum: <b>{{meta.datum}}</b>, bijgewerkt: <b>{{meta.bijgewerkt}}</b>, versie: {{meta.versienummer}} {% if length(versions)>0 %}({% for key, value in versions %}{% if not loop.is_first %}, {% endif %}<a href="getraw/{{meta.nummer}}?version={{value}}">versie {{ key }}</a>{% endfor %}){%endif%}
