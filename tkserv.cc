@@ -1653,8 +1653,11 @@ int main(int argc, char** argv)
       data["zaken"][znummer]["actors"] = zactors;
 
       if(!zactors.empty()) {
-	for(auto& z: zactors) 
+	for(auto& z: zactors) {
 	  znummers.insert((string)(z["nummer"]));
+	  if(data["meta"]["soort"]=="Motie")
+	    data["kabinetsappreciatie"] = z["kabinetsappreciatie"];
+	}
       }
 
       data["zaken"][znummer]["docs"] = packResultsJson(sqlw->queryT("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId}));
