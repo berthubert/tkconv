@@ -1753,9 +1753,9 @@ int main(int argc, char** argv)
     inja::Environment e;
     e.set_html_autoescape(false); // XX 
 
-    data["pagemeta"]["title"]=data["onderwerp"];
-    data["og"]["title"] = data["onderwerp"];
-    data["og"]["description"] = (string)data["titel"];
+    data["pagemeta"]["title"]=(string)data["titel"];
+    data["og"]["title"] = (string)data["titel"];
+    data["og"]["description"] = (string)data["updated"] + " " + (string)data["titel"];
     data["og"]["imageurl"] = "";
 
     bulkEscape(data); 
