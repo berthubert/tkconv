@@ -47,6 +47,36 @@ void storeDocument(const std::string& id, const std::string& content, const stri
   }
 }
 
+struct ThrottleDB
+{
+  ThrottleDB() : d_sqlw("meta.sqlite3")
+  {
+    d_sqlw.query("create table if not exists throttle (thing TEXT, reason TEXT, timestamp INT) STRICT");
+    time_t now = time(0);
+    d_sqlw.query("delete from throttle where timestamp < ?", {now - s_retention});
+  }
+
+  void report(const std::string& thing, const std::string& reason="")
+  {
+    d_sqlw.addValue({{"thing", thing}, {"reason", reason}, {"timestamp", time(nullptr)}}, "throttle");
+  }
+
+  bool shouldThrottle(const std::string& thing, int limitSeconds, int limit)
+  {
+    time_t lim = time(nullptr) - limitSeconds;
+    auto res = d_sqlw.queryT("select count(1) as c from throttle where thing=? and timestamp > ?",
+		 {thing, lim});
+    if(res.empty())
+      return false;
+    //    cout<<"Asked for '"<<thing<<"', limitSeconds "<<limitSeconds<<" limit "<<limit<<" lim "<<lim<<", count: "<<std::get<int64_t>(res[0]["c"])<<endl;
+    
+    return std::get<int64_t>(res[0]["c"]) >= limit;
+  }
+  
+  SQLiteWriter d_sqlw;
+  constexpr static unsigned int s_retention = 7*86400;
+};
+
 int main(int argc, char** argv)
 {
   SQLiteWriter sqlw("tk.sqlite3", SQLWFlag::ReadOnly);
@@ -97,12 +127,17 @@ int main(int argc, char** argv)
     }
   };
 
+  ThrottleDB tdb;
   
-  for(auto store : {&wantDocs, &wantVerslagen, &wantPhotos}) {
+  map<string, decltype(&wantDocs)> work = {
+    {"docs", &wantDocs},
+    {"verslagen", &wantVerslagen},
+    {"photos", &wantPhotos}};
+  for(auto& [name, store] : work) {
     int present=0;
     int toolarge=0, retrieved=0;
     int error=0;
-    cout<<"Starting from a store, got "<<store->size()<<" docs to go"<<endl;
+    cout<<"Starting from store '"<<name<<"', got "<<store->size()<<" docs to go"<<endl;
     set<RetStore> toRetrieve;
     string prefix = (store == &wantPhotos) ? "photos" : "docs";
     for(auto& d : *store) {
@@ -110,10 +145,15 @@ int main(int argc, char** argv)
 	present++;
       else {
 	auto contentLength = get_if<int64_t>(&d["contentLength"]);
+
 	toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]),
 	    contentLength ? *contentLength : 0});
-	if(isPresentNonEmpty(get<string>(d["id"]), prefix))
-	  fmt::print("Re-retrieving {}, has wrong size on disk, should be {}\n", get<string>(d["id"]), get<int64_t>(d["contentLength"]));
+	
+	size_t siz;
+	if(isPresentNonEmpty(get<string>(d["id"]), prefix, "", &siz)) {
+	  fmt::print("Re-retrieving {} {}, has wrong size on disk {}, should be {}\n",
+		     name, get<string>(d["id"]), siz, get<int64_t>(d["contentLength"]));
+	}
       }
     }
     fmt::print("We have {} files to retrieve, {} are already present\n", toRetrieve.size(), present);
@@ -125,7 +165,11 @@ int main(int argc, char** argv)
 		   need.id, need.contentLength);
 	continue;
       }
-      
+
+      if(tdb.shouldThrottle(need.enclosure, 86400, 2)) {
+	fmt::print("Not retrieving {}, throttled\n", need.enclosure);
+	continue;
+      }
       httplib::Client cli("https://gegevensmagazijn.tweedekamer.nl");
       cli.set_connection_timeout(10, 0); 
       cli.set_read_timeout(10, 0); 
@@ -154,6 +198,7 @@ int main(int argc, char** argv)
 	retrieved++;
       }
       else {
+	tdb.report(need.enclosure, "wrong size");
 	fmt::print("Unexpected size received, not storing document\n");
       }
     }
