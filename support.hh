@@ -73,7 +73,7 @@ std::string getSubdirForExternalID(const std::string& in);
 
 std::string makePathForExternalID(const std::string& id, const std::string& prefix="op", const std::string& suffix=".odt", bool makepath=false);
 
-bool isPresentNonEmpty(const std::string& id, const std::string& prefix="docs", const std::string& suffix="");
+bool isPresentNonEmpty(const std::string& id, const std::string& prefix="docs", const std::string& suffix="", size_t* siz =0);
 bool isPresentRightSize(const std::string& id, int64_t size, const std::string& prefix="docs");
 bool cacheIsNewer(const std::string& id, const std::string& cacheprefix, const std::string& suffix, const std::string& docprefix);
 bool isPDF(const std::string& fname);

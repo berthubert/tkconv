@@ -108,13 +108,15 @@ std::vector<std::string> getVersionsForId(const std::string& id)
   return ret;
 }
 
-bool isPresentNonEmpty(const std::string& id, const std::string& prefix, const std::string& suffix)
+bool isPresentNonEmpty(const std::string& id, const std::string& prefix, const std::string& suffix, size_t* siz)
 {
   struct stat sb;
   string fname = makePathForId(id, prefix, suffix);
   int ret = stat(fname.c_str(), &sb);
   if(ret < 0 || sb.st_size == 0)
     return false;
+  if(siz)
+    *siz = sb.st_size;
   return true;
 }
 
