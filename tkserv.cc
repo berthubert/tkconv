@@ -391,7 +391,9 @@ time_t g_starttime;
 
 int main(int argc, char** argv)
 {
+  setenv("TZ", "/usr/share/zoneinfo/Europe/Amsterdam", 1); // POSIX-specific
   g_starttime = time(0);
+  
   argparse::ArgumentParser args("tkserv", "0.0");
 
   args.add_argument("--rnd-admin-password").help("Create admin user if necessary, and set a random password").default_value(string(""));
@@ -897,9 +899,9 @@ int main(int argc, char** argv)
     }
     nlohmann::json r = nlohmann::json::object();
     r["meta"] = packResultsJson(ret)[0];
+
     string activiteitId = r["meta"]["id"];
 
-    
     auto persactors = sqlw->queryT("select ActiviteitActor.*, Persoon.nummer from ActiviteitActor left join Persoon on Persoon.id=ActiviteitActor.persoonId where activiteitId=? and activiteitactor.relatie='Deelnemer' order by volgorde", {activiteitId});
     auto comactors = sqlw->queryT("select ActiviteitActor.*, Commissie.id from ActiviteitActor left join Commissie on commissie.id=ActiviteitActor.commissieId where activiteitId=? and relatie like '%commissie%' order by volgorde", {activiteitId});
     
@@ -995,6 +997,9 @@ int main(int argc, char** argv)
 
       }
       r["videourl"]=videourl;
+      string datum = r["meta"]["datum"]; //  = 2026-01-26T09:45:00
+      time_t d = getTstamp(datum);
+      r["meta"]["datum"] = humanDutchTimestamp(d);
     }
     catch(exception& e) {
       fmt::print("Error getting debatdirect link: {}\n", e.what());

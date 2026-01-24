@@ -10,6 +10,7 @@
 #include <sclasses.hh>
 #include "base64.hpp"
 #include "peglib.h"
+#include <locale>
 using namespace std;
 
 static bool fileStartsWith(const std::string& fname, const std::string& start)
@@ -263,24 +264,36 @@ time_t getTstampRSSFormat(const std::string& str)
   return timegm(&tm);
 }
 
-
+// we feed this timestamps from the database, which is in "Dutch wallclock time"
 time_t getTstamp(const std::string& str)
 {
   //  2024-09-17T13:00:00
   //  2024-09-17T13:00:00+0200
   struct tm tm={};
-  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
   
-  return timelocal(&tm);
+  strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+  tm.tm_isdst = -1; // you figure out if this is DST
+  // make sure TZ is set to Dutch time...
+  return mktime(&tm); // this interprets tm as if it is in local time
 }
 
 time_t getTstampUTC(const std::string& str)
 {
   //  2024-09-17T13:00:00Z
   struct tm tm={};
+  
   strptime(str.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
   
   return timegm(&tm);
+}
+
+string humanDutchTimestamp(time_t w)
+{
+  auto loc = std::locale("nl_NL.UTF-8");
+  string ret = fmt::format(loc, "{:%A, %d %b %Y %H:%M}", fmt::localtime(w));
+  if(!ret.empty())
+    ret[0] = toupper(ret[0]);
+  return ret;
 }
 
 // do not put \r in in
