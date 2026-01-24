@@ -217,7 +217,6 @@ async function getActiviteitDetails(f)
         const data = await response2.json();
 	f.haveMonitor = data["have"] === 1;
 	f.monitorId = data["id"];
-	console.log(`data["have"] = ${data.have}`);
     }
     else {
 	console.log("Mis - no monitor or error");
