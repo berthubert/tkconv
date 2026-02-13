@@ -24,8 +24,23 @@ async function getGenKSD(orig, dest, f)
 	}
 	var config= {
 	    placeHolder: "Kamerstukdossier titel",
+	    threshold: 2,
 	    data: {
-		src: ksdnamen
+		src: async (query) => {
+		    try {
+			// Fetch Data from external Source
+			const searchParams = new URLSearchParams("");
+			searchParams.set("q", query);
+			const source = await fetch("./ksds?"+searchParams.toString());
+			const data = await source.json();
+			return data;
+		    } catch (error) {
+			console.log(error);
+			return error;
+		    }
+		}
+
+
 	    },
 	    diacritics: true,
 
@@ -40,9 +55,9 @@ async function getGenKSD(orig, dest, f)
 		element: (list, data) => {
 		    const info = document.createElement("p");
 		    if (data.results.length) {
-			info.innerHTML = `Displaying <strong>${data.results.length}</strong> out of <strong>${data.matches.length}</strong> results`;
+			info.innerHTML = `Toont <strong>${data.results.length}</strong> van de <strong>${data.matches.length}</strong> resultaten`;
 		    } else {
-			info.innerHTML = `Found <strong>${data.matches.length}</strong> matching results for <strong>"${data.query}"</strong>`;
+			info.innerHTML = `Vond <strong>${data.matches.length}</strong> documenten voor <strong>"${data.query}"</strong>`;
 		    }
 		    list.prepend(info);
 		    
