@@ -889,7 +889,6 @@ int main(int argc, char** argv)
   sws.d_svr.Get("/activiteit/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2024A02517
     auto sqlw = tp.getLease();
-    cout<<"/activiteit/:nummer: "<<nummer<<endl;
 
     auto ret=sqlw->queryT("select * from Activiteit where nummer=? order by rowid desc limit 1", {nummer});
     
@@ -1735,6 +1734,22 @@ int main(int argc, char** argv)
     }
     res.set_content(e.render_file("./partials/getorig.html", data), "text/html");
   });
+
+  sws.d_svr.Get("/ksds", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string q = req.get_param_value("q"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
+
+    auto ksds = tp.getLease()->queryT("select nummer,titel,toevoeging from Kamerstukdossier where (titel like '%' || ? || '%') or (nummer=?) order by nummer desc, toevoeging desc limit 100", {q, q});
+    cout<<"Got "<<ksds.size()<<" hits"<<endl;
+    nlohmann::json ret = nlohmann::json::array();
+    for(const auto& k : ksds)
+      ret.push_back(fmt::format("{}{}{} {}",
+				iget(k, "nummer"),
+				eget(k, "toevoeging").empty() ? "" : "-",
+				eget(k, "toevoeging"),
+				eget(k, "titel")));
+    res.set_content(ret.dump(), "application/json");
+  });
+
   
   sws.d_svr.Get("/verslag.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string id = req.get_param_value("vergaderingid"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
@@ -1786,7 +1801,7 @@ int main(int argc, char** argv)
   
   sws.d_svr.Get("/recent-kamerstukdossiers", [&tp](const httplib::Request &req, httplib::Response &res) {
     
-    auto docs = tp.getLease()->queryT("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,kamerstukdossier.toevoeging,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id and document.datum > '2020-01-01' group by kamerstukdossier.id,toevoeging order by 2 desc");
+    auto docs = tp.getLease()->queryT("select kamerstukdossier.nummer, max(document.datum) mdatum,kamerstukdossier.titel,kamerstukdossier.toevoeging,hoogsteVolgnummer from kamerstukdossier,document where document.kamerstukdossierid=kamerstukdossier.id  group by kamerstukdossier.id,toevoeging order by 2 desc limit 250");
     // XXX hardcoded date
     res.set_content(packResultsJsonStr(docs), "application/json");
     fmt::print("Returned {} kamerstukdossiers\n", docs.size());
@@ -1862,7 +1877,7 @@ int main(int argc, char** argv)
     string term = req.get_file_value("q").content;
     string twomonths = req.get_file_value("twomonths").content;
     string soorten = req.get_file_value("soorten").content;
-    string limit = "";
+    string limit = getDateDBFormat(time(0) - 12 * 30 * 86400); // "";
     if(twomonths=="true") {
       limit = getDateDBFormat(time(0) - 2 * 30 * 86400);
     }
