@@ -16,7 +16,7 @@ std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query,
       continue;
     categoriesstr+= "'" + c + "'";
   }
-  auto matches = d_sqw.queryT("SELECT uuid, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category, bm25(docsearch) as score FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category in ("+categoriesstr+")) order by rank"
+  auto matches = d_sqw.queryT("SELECT uuid, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category, bm25(docsearch) as score FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category in ("+categoriesstr+")) order by rowid desc"
 			      + (itemlimit ? " limit "+to_string(itemlimit) : ""),
 			      {query, cutoff, categories.empty()}, mseclimit);
 

@@ -1877,7 +1877,7 @@ int main(int argc, char** argv)
     string term = req.get_file_value("q").content;
     string twomonths = req.get_file_value("twomonths").content;
     string soorten = req.get_file_value("soorten").content;
-    string limit = getDateDBFormat(time(0) - 12 * 30 * 86400); // "";
+    string limit =  "";
     if(twomonths=="true") {
       limit = getDateDBFormat(time(0) - 2 * 30 * 86400);
     }
