@@ -886,6 +886,26 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/zaak.html", z), "text/html");
   });    
 
+  // these are internal tweedekamer links, which we catch here to make them work
+  sws.d_svr.Get("/kst-([0-9]{5})-([0-9]{1,4})", [&tp](const httplib::Request &req, httplib::Response &res) {
+    auto sqlw = tp.getLease();
+    auto kstnum = atoi(req.matches[1].str().c_str());
+    auto volgnummer = atoi(req.matches[2].str().c_str());
+
+    auto sqlret = sqlw->queryT("select document.nummer num from document,kamerstukdossier where kamerstukdossierid=kamerstukdossier.id and kamerstukdossier.nummer=? and volgnummer=? and toevoeging=?",
+			      {kstnum, volgnummer, ""});
+    if(sqlret.empty()) {
+      res.set_content("No such kst", "text/plain");
+      res.status = 404;
+      return;
+
+    }
+    res.status = 301;
+    res.set_header("Location", "../document.html?nummer="+eget(sqlret[0], "num"));
+    res.set_content("Redirecting..", "text/plain");
+  });
+
+  
   sws.d_svr.Get("/activiteit/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 2024A02517
     auto sqlw = tp.getLease();
