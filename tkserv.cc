@@ -901,7 +901,7 @@ int main(int argc, char** argv)
 
     }
     res.status = 301;
-    res.set_header("Location", "../document.html?nummer="+eget(sqlret[0], "num"));
+    res.set_header("Location", "./document.html?nummer="+eget(sqlret[0], "num"));
     res.set_content("Redirecting..", "text/plain");
   });
 
