@@ -34,7 +34,7 @@ kind: 'ksd'
   </thead>
   <tbody>
     {% for d in docs %}
-    <tr>
+    <tr id = "{{d.volgnummer}}">
       <td> {{d.datum }}</td>
       <td> {{d.volgnummer }}</td>
       <td><a href="document.html?nummer={{d.docnummer}}">{{d.docnummer}}</a></td>
