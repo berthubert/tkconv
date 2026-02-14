@@ -27,6 +27,13 @@ std::string enrichHTML(const std::string& html, SQLiteWriter& sqlw)
     m = *i;
     out = std::copy(m.prefix().first, m.prefix().second, out);
 
+    if(m.position() > 4 && rep.substr(m.position()-4,4)=="kst-") {
+      //      cout<<"Protecting kst-12345 link!"<<endl;
+      string blah = m[0].str();
+      out = std::copy(blah.begin(), blah.end(), out);
+      continue;
+    }
+    
     /*
     cout<<"Match: '"<<m.str()<<"'"<<endl;
     int counter=0;
