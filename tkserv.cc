@@ -997,8 +997,12 @@ int main(int argc, char** argv)
       }
       r["videourl"]=videourl;
       string datum = r["meta"]["datum"]; //  = 2026-01-26T09:45:00
-      time_t d = getTstamp(datum);
-      r["meta"]["datum"] = humanDutchTimestamp(d);
+      if(datum.empty())
+	r["meta"]["datum"] = "Geen datum / ongepland";
+      else {
+	time_t d = getTstamp(datum);
+	r["meta"]["datum"] = humanDutchTimestamp(d);
+      }
     }
     catch(exception& e) {
       fmt::print("Error getting debatdirect link: {}\n", e.what());
@@ -1685,9 +1689,14 @@ int main(int argc, char** argv)
       for(auto& actid : actids) {
 	auto activiteit = packResultsJson(sqlw->queryT("select * from Activiteit where id = ? order by rowid desc limit 1", {actid}));
 	for(auto&a : activiteit) {
-	  string d = ((string)a["datum"]).substr(0,16);
-	  d[10]= ' ';
-	  a["datum"] = d;
+	  if(((string)a["datum"]).empty()) {
+	    a["datum"] = "Geen datum";
+	  }
+	  else {
+	    string d = ((string)a["datum"]).substr(0,16);
+	    d[10]= ' ';
+	    a["datum"] = d;
+	  }
 	  activiteiten.push_back(a);
 	}
       }
