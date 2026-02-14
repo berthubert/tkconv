@@ -1725,7 +1725,9 @@ int main(int argc, char** argv)
     bulkEscape(data); 
 
     if(!externeid.empty() && haveExternalIdFile(externeid)) {
-      data["content"] = getBareHtmlFromExternal(externeid);
+      string content = getBareHtmlFromExternal(externeid);
+      content = enrichHTML(content, sqlw.get());
+      data["content"] = content;
     }
     else if(get<string>(ret[0]["contentType"])=="application/pdf") {
       string agent;
@@ -1738,7 +1740,10 @@ int main(int argc, char** argv)
 	data["meta"]["iframe"]="getraw";
     }
     else {
-      data["content"] = getHtmlForDocument(documentId, true); // bare!
+      string content = getHtmlForDocument(documentId, true); // bare!
+      content = enrichHTML(content, sqlw.get());
+      data["content"] = content;
+      
       data["meta"]["iframe"] = "getdoc";
     }
     res.set_content(e.render_file("./partials/getorig.html", data), "text/html");
