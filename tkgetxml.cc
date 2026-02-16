@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 
   
   for(const auto& category: categories) {
-    sqlw.query("create table if not exists "+category+" (skiptoken INT)");
+    sqlw.query("create table if not exists "+category+" (category TEXT, id TEXT, skiptoken INT, enclosure TEXT, updated TEXT, xml TEXT)");
     sqlw.query("create index if not exists "+category+"skipidx on "+category+"(skiptoken)");
     string next="https://gegevensmagazijn.tweedekamer.nl/SyncFeed/2.0/Feed?category=" + category;
     int skiptoken = -1;
