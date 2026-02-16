@@ -2142,6 +2142,8 @@ int main(int argc, char** argv)
 
     res.set_header("Content-Security-Policy", "frame-ancestors 'self';");
 
+    res.set_header("Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), camera=(), document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), publickey-credentials=(self), serial=(), usb=(), xr-spatial-tracking=()");
+
     if(endsWith(req.path, ".js") || endsWith(req.path, ".css"))
       res.set_header("Cache-Control", "max-age=3600");
 
