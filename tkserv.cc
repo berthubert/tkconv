@@ -1941,16 +1941,25 @@ int main(int argc, char** argv)
     }
 
     SearchHelper sh(idx);
-    auto sres = sh.search(term, {}, limit, mseclimit, 280);
+
+    set<string> categories;
+    if(soorten=="activiteiten")
+      categories.insert("Activiteit");
+
+    fmt::print("Categories: {}\n", categories);
+
+    auto sres = sh.search(term, categories, limit, mseclimit, 280);
     nlohmann::json results = nlohmann::json::array();
     for(const auto& r : sres) {
+      
       if(soorten=="moties" && r.soort != "Motie")
 	continue;
-      if(soorten=="vragenantwoorden" &&
+      else if(soorten=="vragenantwoorden" &&
 	 (r.soort != "Schriftelijke vragen" &&
 	  r.soort != "Antwoord schriftelijke vragen" &&
 	  r.soort != "Antwoord schriftelijke vragen (nader)"))
 	continue;
+
       results.push_back(nlohmann::json({
 	    {"nummer", r.nummer},
 	    {"datum", r.datum},
