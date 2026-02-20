@@ -1,10 +1,27 @@
 {% extends "base.html" %}
 
 {% block main %}
-<h4>Recente en toekomstige activiteiten</h4>
+<h4>Recente en toekomstige activiteiten
+  {%if meta.commissie != "" %}
+  van de {{ meta.commissienaam }}
+  {%endif%}
+</h4>
 <p>
   Activiteiten vanaf vier dagen geleden. Of <a href="#vandaag">spring ⏩ naar vandaag</a>.
 </p>
+<center>
+  {%if meta.commissie != "" %}
+  <a href="./activiteiten.html">Alles</a>
+  {%else%}
+  Alles
+  {%endif%}
+{% for d in meta.commies %}
+  <b>|</b> {% if d.afko != meta.commissie %}<a href="./activiteiten.html?commissie={{d.escafko}}">{%else%}<b>{%endif%}
+
+    <abbr title="{{d.naam}}">{{ d.afko }}</abbr>
+    {% if d.afko != meta.commissie %}</a>{%else%}</b>{%endif%}
+{% endfor %}
+</center>
 <table class="striped">
   <thead>
     <tr>
@@ -17,6 +34,7 @@
   </thead>
   <tbody>
     {% for d in data %}
+      {%if meta.commissie=="" or d.voortouwAfkorting == meta.commissie %}
     <tr{%if d.marker != "" %} id="{{d.marker}}" {%endif%}>
       <td> {{d.datum }}</td>
       <td> {{d.naam}} {%if d.besloten =="true" %}<span data-tooltip="Besloten activiteit">🔒</span>{%endif%} </td>
@@ -24,6 +42,7 @@
       <td><a href="activiteit.html?nummer={{d.nummer}}"> {{d.onderwerp}}</a></td>
       <td> {{d.noot}}</td>
     </tr>
+      {%endif%}
     {% endfor %}
   </tbody>
 </table>
