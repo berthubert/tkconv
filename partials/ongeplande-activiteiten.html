@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 
 {% block main %}
-<h4>Nog ongeplande activiteiten ({{length(data)}})</h4>
+<h4>Nog ongeplande activiteiten
+  {%if meta.commissie != "" %}
+  van de {{ meta.commissienaam }}
+  {%endif%}
+</h4>
 <center>
   {%if meta.commissie != "" %}
   <a href="./ongeplande-activiteiten.html">Alles</a>
