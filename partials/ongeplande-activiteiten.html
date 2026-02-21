@@ -2,6 +2,20 @@
 
 {% block main %}
 <h4>Nog ongeplande activiteiten ({{length(data)}})</h4>
+<center>
+  {%if meta.commissie != "" %}
+  <a href="./ongeplande-activiteiten.html">Alles</a>
+  {%else%}
+  Alles
+  {%endif%}
+{% for d in meta.commies %}
+  <b>|</b> {% if d.afko != meta.commissie %}<a href="./ongeplande-activiteiten.html?commissie={{d.escafko}}">{%else%}<b>{%endif%}
+
+    <abbr title="{{d.naam}}">{{ d.afko }}</abbr>
+    {% if d.afko != meta.commissie %}</a>{%else%}</b>{%endif%}
+{% endfor %}
+</center>
+
 <table class="striped">
   <thead>
     <tr>
@@ -13,12 +27,14 @@
   </thead>
   <tbody>
     {% for d in data %}
+    {%if meta.commissie=="" or d.voortouwAfkorting == meta.commissie %}
     <tr>
       <td> {{d.bijgewerkt}} </td>
       <td> <abbr title="{{d.voortouwNaam}}">{{d.voortouwAfkorting}}</abbr></td>
       <td><a href="activiteit.html?nummer={{d.nummer}}"> {{d.onderwerp}}</a></td>
-      <td> {{d.noot}} {{d.soort}}</td>
+      <td> {{d.noot}}</td>
     </tr>
+    {%endif%}
     {% endfor %}
   </tbody>
 </table>

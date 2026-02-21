@@ -1512,27 +1512,47 @@ int main(int argc, char** argv)
   });
 
   sws.d_svr.Get("/ongeplande-activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
-    auto acts = packResultsJson(tp.getLease()->queryT("select * from Activiteit where datum='' order by updated desc"));
+    auto acts = packResultsJson(tp.getLease()->queryT("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp, besloten, voortouwAfkorting, voortouwNaam from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum='' order by bijgewerkt desc"));
 
+    struct Commie
+    {
+      string afko;
+      string naam;
+      bool operator<(const Commie& b) const
+      {
+	return std::tie(afko, naam) < std::tie(b.afko, b.naam);
+      }
+      
+    };
+    set<Commie> commies;
     for(auto& a : acts) {
+      a["naam"] = htmlEscape(a["naam"]);
       a["onderwerp"] = htmlEscape(a["onderwerp"]);
-      a["soort"] = htmlEscape(a["soort"]);
-      string datum = a["bijgewerkt"];
-		       
-      datum=datum.substr(0,16);
-      replaceSubstring(datum, "T", "&nbsp;");
-      a["bijgewerkt"]=datum;
+      a["bijgewerkt"] = ((string)a["bijgewerkt"]).substr(0, 10);
+      commies.insert({a["voortouwAfkorting"], a["voortouwNaam"]});
     }
     nlohmann::json data = nlohmann::json::object();
     data["data"] = acts;
+    data["meta"]["commissie"] = req.get_param_value("commissie");
+    data["meta"]["commies"] = nlohmann::json::array();
+    for(const auto& c : commies) {
+      nlohmann::json commie = nlohmann::json::object();
+      commie["afko"] = c.afko;
+      commie["escafko"] = urlEscape(c.afko);
+      commie["naam"] = c.naam;
+      data["meta"]["commies"].push_back(commie);
+      if(c.afko == (string)data["meta"]["commissie"])
+	data["meta"]["commissienaam"] = c.naam;
+    }
+
     inja::Environment e;
     e.set_html_autoescape(false); // NOTE WELL!
 
-    data["pagemeta"]["title"]="Ongeplande Activiteiten – OpenTK";
-    data["og"]["title"] = "Nog ongeplande activiteiten";
+    data["pagemeta"]["title"]="Ongeplande activiteiten – OpenTK";
+    data["og"]["title"] = "Ongeplande activiteiten";
     data["og"]["description"] = "Ongeplande activiteiten Tweede Kamer";
     data["og"]["imageurl"] = "";
-    
+
     res.set_content(e.render_file("./partials/ongeplande-activiteiten.html", data), "text/html");
   });
 
