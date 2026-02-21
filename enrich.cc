@@ -9,6 +9,16 @@ std::string enrichHTML(const std::string& html, SQLiteWriter& sqlw)
   string rep= html;
   if(rep.find("\xc2\xa0") != string::npos) 
     rep = regex_replace(rep, regex("\xc2\xa0"), " ");
+
+
+  rep = regex_replace(rep,
+		      regex(R"((20\d{2}D\d{5}))"),
+		      R"(<a href="./document.html?nummer=$1">$1</a>)");
+
+  rep = regex_replace(rep,
+		      regex(R"((20\d{2}Z\d{5}))"),
+		      R"(<a href="./zaak.html?nummer=$1">$1</a>)");
+
   
   std::regex generic(R"((([1234][0-9]{4}|[1234][0-9]\s[0-9]{3}))([ -][0-9A-Z]{1,4})?[,nr\.\s-]{1,6}([1-9][0-9]{0,3}))");
 
