@@ -1857,7 +1857,7 @@ int main(int argc, char** argv)
     data["og"]["imageurl"] = "";
 
     bulkEscape(data); 
-    data["htmlverslag"]=getHtmlForDocument(data["id"], true);
+    data["htmlverslag"]=enrichHTML(getHtmlForDocument(data["id"], true), tp.getLease().get());
     res.set_content(e.render_file("./partials/verslag.html", data), "text/html");
   });
 
