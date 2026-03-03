@@ -20,7 +20,7 @@ std::string enrichHTML(const std::string& html, SQLiteWriter& sqlw)
 		      R"(<a href="./zaak.html?nummer=$1">$1</a>)");
 
   
-  std::regex generic(R"((([1234][0-9]{4}|[1234][0-9]\s[0-9]{3}))([ -][0-9A-Z]{1,4})?[,nr\.\s-]{1,6}([1-9][0-9]{0,3}))");
+  std::regex generic(R"((([1234][0-9]{4}|[1234][0-9]\s[0-9]{3}))([ -][0-9A-Z]{1,5})?[,nr\.\s-]{1,6}([1-9][0-9]{0,3}))");
 
   auto gen_begin = std::sregex_iterator(rep.begin(), rep.end(), generic);
   auto gen_end = std::sregex_iterator();
