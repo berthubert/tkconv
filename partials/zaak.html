@@ -51,7 +51,7 @@ kind: 'zaak'
 <ul>
   {% for a in docs %}
     <li>
-      {{a.datum}}:
+      <span style="font-variant-numeric: tabular-nums">{{a.datum}}</span>:
       <a href="document.html?nummer={{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}})
     </li>
     {% endfor %}
@@ -60,8 +60,9 @@ kind: 'zaak'
 <h4>Extra documenten volgens zoekmachine</h4>
 <ul>
   {% for a in adocs %}
-    <li>
-      {{a.datum}}:
+  <li>
+    <span style="font-variant-numeric: tabular-nums">{{a.datum}}</span>:
+
       <a href="document.html?nummer={{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}})
     </li>
     {% endfor %}
@@ -73,31 +74,33 @@ kind: 'zaak'
 <ul>
   {% for a in agendapunten %}
   <li>
-    {{a.activiteit.aanvangstijd}}: {{a.activiteit.onderwerp}} ({{a.activiteit.soort}}). <a href="activiteit.html?nummer={{a.activiteit.nummer}}">{{a.activiteit.nummer}}</a>
+    <span style="font-variant-numeric: tabular-nums">{{a.activiteit.aanvangstijd}}</span>: {{a.activiteit.onderwerp}} ({{a.activiteit.soort}}). <a href="activiteit.html?nummer={{a.activiteit.nummer}}">{{a.activiteit.nummer}}</a>
   </li>
   {% endfor %}
 </ul>
 
+{% if length(besluiten) > 0 %}
 <h4>Besluiten</h4>
 <ul>
   {% for b in besluiten %}
-    <li>
-      {{b.datum}} ⇒ {{b.tekst}} ({{b.status}})
-      	{% if existsIn(b, "voorstemmen") %}
-      <ul>
-
-	<li>Voor {{b.voorstemmen}}: 
-	  {{ join(b.voorpartij, " | ") }}
-	</li>
-	<li>Tegen {{b.tegenstemmen}}: {{join(b.tegenpartij, " | ")}}</li>
-	{% if b.nietdeelgenomenstemmen > 0 %}
-	<li>Niet deelgenomen: {{b.nietdeelgenomenstemmen}} {{ join(b.nietdeelgenomenpartij, " | ")}}</li>
-	{% endif %}
-
-      </ul>
-      	{% endif %} 
-    </li>
+  <li>
+    <span style="font-variant-numeric: tabular-nums">{{b.datum}}</span> ⇒ {{b.tekst}} ({{b.status}})
+    {% if existsIn(b, "voorstemmen") %}
+    <ul>
+      
+      <li>Voor {{b.voorstemmen}}: 
+	{{ join(b.voorpartij, " | ") }}
+      </li>
+      <li>Tegen {{b.tegenstemmen}}: {{join(b.tegenpartij, " | ")}}</li>
+      {% if b.nietdeelgenomenstemmen > 0 %}
+      <li>Niet deelgenomen {{b.nietdeelgenomenstemmen}}: {{ join(b.nietdeelgenomenpartij, " | ")}}</li>
+      {% endif %}
+      
+    </ul>
+    {% endif %} 
+  </li>
   {% endfor %}
 </ul>
+{% endif %}
 {% endblock %}
 	
