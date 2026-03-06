@@ -38,7 +38,7 @@ TEST_CASE("FTS5")
   CHECK(convertToSQLiteFTS5("NEAR(bert hubert)") == "NEAR ( bert hubert )");
   CHECK(convertToSQLiteFTS5("'s-Gravenhage") == "\"'s-Gravenhage\"");
   CHECK(convertToSQLiteFTS5("D'66") == "D'66"); // I know, I know
-
+  CHECK(convertToSQLiteFTS5("[SPOED E-MAILPROCEDURE]") == "\"[SPOED\" \"E-MAILPROCEDURE]\"");
   CHECK(convertToSQLiteFTS5("Geschenken, champagne") == "\"Geschenken,\" champagne"); 
 
   CHECK(convertToSQLiteFTS5("materiële F-35 \"problemen\"") == "materiële \"F-35\" \"problemen\"");
