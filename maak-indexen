@@ -30,5 +30,8 @@ CREATE INDEX IF NOT EXISTS ksdindex on document(kamerstukdossierid);
 CREATE INDEX IF NOT EXISTS brondocidx on document(bronDocument);
 CREATE INDEX IF NOT EXISTS FractieZetelPersoon_idx ON FractieZetelPersoon(persoonId, fractieZetelId, van DESC);
 CREATE INDEX IF NOT EXISTS toezact on Toezegging(activiteitId);
+create index IF NOT EXISTS ksdidx on kamerstukdossier(nummer);
+create index IF NOT EXISTS actidxreservering on reservering(activiteitId);
+create index IF NOT EXISTS doversdatidx on DocumentVersie(datum);
 analyze;
 
