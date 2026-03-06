@@ -54,6 +54,33 @@ Bijlagen:
   {% for za in zvalue.actors %}
   <li> {{za.relatie}}: {{za.naam}}{% if length(za.functie) > 0 %}, {{za.functie}} {% endif %}</li>
   {% endfor %}
+  {% if length(zvalue.stemmingen) > 0 %}
+  <li>Stemmingen en besluiten:
+  <ul>
+    {% for b in zvalue.stemmingen %}
+  <li>
+
+    <span style="font-variant-numeric: tabular-nums">{{b.datum}}</span> ⇒ <b>{{b.tekst}}</b> ({{b.status}})
+    {% if existsIn(b, "voorstemmen") %}
+    <ul>
+      
+      <li>Voor {{b.voorstemmen}}: 
+	{{ join(b.voorpartij, " | ") }}
+      </li>
+      <li>Tegen {{b.tegenstemmen}}: {{join(b.tegenpartij, " | ")}}</li>
+      {% if b.nietdeelgenomenstemmen > 0 %}
+      <li>Niet deelgenomen {{b.nietdeelgenomenstemmen}}: {{ join(b.nietdeelgenomenpartij, " | ")}}</li>
+      {% endif %}
+      
+    </ul>
+    {% endif %}
+
+  </li>
+  {% endfor %}
+  </ul></li>
+  {% endif %}
+
+  
 </ul>
 {% endfor %}
 {% endif %}
@@ -68,7 +95,7 @@ Bijlagen:
 Onderdeel van activiteiten:
 <ul>
 {% for a in activiteiten %}
-<li>{{a.datum}}: <a href="activiteit.html?nummer={{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}}), {{a.voortouwNaam}}</li>
+<li><span style="font-variant-numeric: tabular-nums">{{a.datum}}</span>: <a href="activiteit.html?nummer={{a.nummer}}">{{a.onderwerp}}</a> ({{a.soort}}), {{a.voortouwNaam}}</li>
 {% endfor %}
 </ul>
 {% endif %}

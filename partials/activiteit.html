@@ -83,10 +83,11 @@ haveMonitor: false
 	<template x-for="d in ac.zdocs">
 	  <li>
 	    <a x-bind:href="`document.html?nummer=${d.nummer}`"><span x-text="`${d.onderwerp}`"></span></a>
-	    <span x-text="'('+d.nummer+')'"></span>
+	    (<span x-text="d.nummer"></span><template x-if="d.kstnum != ''">
+	      <span x-text="', '+d.kstnum+ (d.toevoeging!= '' ? ('-'+d.toevoeging) : '') +'-'+d.volgnummer"></span>
+	    </template>)
 	  </li>
 	</template>
-
 	<p x-html="ac.noot"></p>
       </ul>
     </li>
