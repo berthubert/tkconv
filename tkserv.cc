@@ -283,6 +283,26 @@ bool getVoteDetail(SQLiteWriter& sqlw, const std::string& besluitId, VoteResult&
   return true;
 }
 
+auto getBesluitenFromZaak(auto& sqlw, const std::string& nummer)
+{
+  auto besluiten = packResultsJson(sqlw->queryT("select substr(datum,0,17) datum, besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid and besluit.status not in('Voorstel') and tekst != 'Ingediend' order by datum desc", {nummer}));
+  
+  for(auto& b : besluiten) {
+    string datum = b["datum"];
+    datum[10] = ' ';
+    b["datum"] = datum;
+    VoteResult vr;
+    if(getVoteDetail(sqlw.get(), b["id"], vr)) {
+      b["voorpartij"] = vr.voorpartij;
+      b["tegenpartij"] = vr.tegenpartij;
+      b["nietdeelgenomenpartij"] = vr.nietdeelgenomenpartij;
+      b["voorstemmen"] = vr.voorstemmen;
+      b["tegenstemmen"] = vr.tegenstemmen;
+      b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
+    }
+  }
+  return besluiten;
+};
 
 
 // this processes .odt from officielepublicaties and turns it into HTML
@@ -420,6 +440,7 @@ int main(int argc, char** argv)
 
   try {
     userdb.query("create index if not exists timsiidx on users(timsi)");
+    userdb.query("create index IF NOT EXISTS sentscanneridx on sentNotification(scannerId)");
   }
   catch(...){}
     
@@ -831,22 +852,7 @@ int main(int argc, char** argv)
     z["kamerstukdossier"]= packResultsJson(sqlw->queryT("select * from kamerstukdossier where id=?",
 							{(string)z["zaak"]["kamerstukdossierId"]}));
 
-    z["besluiten"] = packResultsJson(sqlw->queryT("select substr(datum,0,17) datum, besluit.id,besluit.status, stemmingsoort,tekst from zaak,besluit,agendapunt,activiteit where zaak.nummer=? and besluit.zaakid = zaak.id and agendapunt.id=agendapuntid and activiteit.id=agendapunt.activiteitid order by datum desc", {nummer}));
-    
-    for(auto& b : z["besluiten"]) {
-      string datum = b["datum"];
-      datum[10] = ' ';
-      b["datum"] = datum;
-      VoteResult vr;
-      if(getVoteDetail(sqlw.get(), b["id"], vr)) {
-	b["voorpartij"] = vr.voorpartij;
-	b["tegenpartij"] = vr.tegenpartij;
-	b["nietdeelgenomenpartij"] = vr.nietdeelgenomenpartij;
-	b["voorstemmen"] = vr.voorstemmen;
-	b["tegenstemmen"] = vr.tegenstemmen;
-	b["nietdeelgenomenstemmen"] = vr.nietdeelgenomen;
-      }
-    }
+    z["besluiten"] = getBesluitenFromZaak(sqlw, nummer);
 
     set<string> seendocs;
     for(auto& d : z["docs"])
@@ -944,9 +950,9 @@ int main(int argc, char** argv)
       std::regex style_re(" style=\"[^\"]*\"");
       ap["noot"] = std::regex_replace(noot, style_re, "");
       
-      ap["docs"] = packResultsJson(sqlw->queryT("select * from Document where agendapuntid=?",
+      ap["docs"] = packResultsJson(sqlw->queryT("select Document.*, Kamerstukdossier.nummer kstnum from Document left join kamerstukdossier on kamerstukdossier.id = kamerstukdossierid where agendapuntid=?",
 						{(string)ap["id"]}));
-      ap["zdocs"] = packResultsJson(sqlw->queryT("select Document.* from link,link link2,zaak,document where link.naar=? and zaak.id=link.van and link2.naar = zaak.id and document.id=link2.van",  {(string)ap["id"]}));
+      ap["zdocs"] = packResultsJson(sqlw->queryT("select Document.*, Kamerstukdossier.nummer kstnum, Kamerstukdossier.toevoeging toevoeging from link,link link2,zaak,document left join kamerstukdossier on document.kamerstukdossierid=kamerstukdossier.id where link.naar=? and zaak.id=link.van and link2.naar = zaak.id and document.id=link2.van",  {(string)ap["id"]}));
     }
 
     r["docs"] = packResultsJson(sqlw->queryT("select Document.* from link,Document where linkSoort='Activiteit' and link.naar=? and Document.id=link.van", {activiteitId}));
@@ -1734,6 +1740,7 @@ int main(int argc, char** argv)
 
       data["zaken"][znummer]["docs"] = packResultsJson(sqlw->queryT("select * from Document,Link where Link.naar=? and link.van=Document.id", {zaakId}));
 
+      data["zaken"][znummer]["stemmingen"] = getBesluitenFromZaak(sqlw, znummer);
       data["zaken"][znummer]["besluiten"] = packResultsJson(sqlw->queryT("select * from besluit where zaakid=? order by rowid", {zaakId}));
       set<string> agendapuntids;
       for(auto& b: data["zaken"][znummer]["besluiten"]) {
