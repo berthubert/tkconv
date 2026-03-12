@@ -18,6 +18,15 @@
   <a href="getraw/{{meta.nummer}}">Directe link naar document</a> ({{meta.extensie}}), <a href="{{ kamerurl }}">link naar pagina op de Tweede Kamer site</a>{% if exists("meta.externeidentifier") %}{% if length(meta.externeidentifier) > 0 %}, <a href="https://zoek.officielebekendmakingen.nl/{{meta.externeidentifier}}.html">officiële HTML versie</a>  ({{meta.externeidentifier}}){% endif %}{% endif %}.
 </p>
 
+{% if length(antwoorden) > 0 %}
+Antwoorden op deze schriftelijke vragen:
+<ul>
+  {% for a in antwoorden %}
+  <li>{{ a.onderwerp }} (<a href="./document.html?nummer={{a.nummer}}">{{a.nummer}}</a>)</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
 {% if length(docactors) > 0 %}
 Gerelateerde personen:
 <ul>
