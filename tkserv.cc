@@ -1640,6 +1640,13 @@ int main(int argc, char** argv)
       return;
     }
 
+    if(eget(ret[0], "soort") == "Schriftelijke vragen") {
+      auto antwoorden = sqlw->queryT("select document2.nummer,document2.onderwerp from Document,link, zaak, link as link2, document document2 where document.nummer=? and link.van=document.id and link.linkSoort='Zaak' and zaak.id=link.naar and link2.naar=zaak.id and document2.id = link2.van and document2.soort='Antwoord schriftelijke vragen'", {nummer});
+      data["antwoorden"] = packResultsJson(antwoorden);
+    }
+    else
+      data["antwoorden"] = nlohmann::json::array();
+    
     string externeid = eget(ret[0], "externeidentifier");
     data["meta"] = packResultsJson(ret)[0];
     data["meta"]["datum"] = ((string)data["meta"]["datum"]).substr(0, 10);
@@ -1727,7 +1734,7 @@ int main(int argc, char** argv)
     for(auto& zlink : zlinks) {
       string zaakId = get<string>(zlink["naar"]);
       string znummer = get<string>(zlink["znummer"]);
-      auto zactors = packResultsJson(sqlw->queryT("select * from Zaak,ZaakActor where zaak.id=?  and ZaakActor.zaakId = zaak.id order by relatie", {zaakId}));
+      auto zactors = packResultsJson(sqlw->queryT("select * from Zaak,ZaakActor where zaak.id=?  and ZaakActor.zaakId = zaak.id and relatie not like '%indiener%' order by relatie", {zaakId}));
       data["zaken"][znummer]["actors"] = zactors;
 
       if(!zactors.empty()) {
