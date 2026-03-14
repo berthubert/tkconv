@@ -43,4 +43,14 @@ struct SearchHelper
   
   SQLiteWriter& d_sqw;
 };
+
+struct RSSItem
+{
+  std::string title;
+  std::string description;
+  std::string link;
+  std::string guid;
+};
+RSSItem makeRSSItem(const SearchHelper::Result& r, const std::string& naam);
+
 std::set<std::pair<std::string, std::string>> getZakenFromDocument(const std::string& id);

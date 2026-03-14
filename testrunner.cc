@@ -90,7 +90,53 @@ TEST_CASE("Test timestamps")
   CHECK(then == 1737094027);  
 }
 
+TEST_CASE("makeRSSItem for Document 2026D10396")
+{
+  SearchHelper::Result r;
+  r.nummer = "2026D10396";
+  r.categorie = "Document";
+  r.onderwerp = "Minimum vermogensbelasting van 2% voor zeer vermogende personen";
+  r.titel = "Herziening Belastingstelsel";
+  r.soort = "Brief regering";
 
+  auto item = makeRSSItem(r, "vaste commissie voor Financiën");
+  CHECK(item.title == "Minimum vermogensbelasting van 2% voor zeer vermogende personen");
+  CHECK(item.description == "vaste commissie voor Financiën | Herziening Belastingstelsel Minimum vermogensbelasting van 2% voor zeer vermogende personen");
+  CHECK(item.link == "https://berthub.eu/tkconv/document.html?nummer=2026D10396");
+  CHECK(item.guid == "tkconv_2026D10396");
+}
+
+TEST_CASE("makeRSSItem for Motie 2026D05246")
+{
+  SearchHelper::Result r;
+  r.nummer = "2026D05246";
+  r.categorie = "Document";
+  r.onderwerp = "Motie van het lid Vermeer";
+  r.titel = "Wijziging van de Wet inkomstenbelasting 2001 om werkelijke inkomsten uit bezittingen en schulden in box 3 te belasten (Wet werkelijk rendement box 3)";
+  r.soort = "Motie";
+
+  auto item = makeRSSItem(r, "vaste commissie voor Financiën");
+  CHECK(item.title == "Motie van het lid Vermeer");
+  CHECK(item.description == "vaste commissie voor Financiën | Wijziging van de Wet inkomstenbelasting 2001 om werkelijke inkomsten uit bezittingen en schulden in box 3 te belasten (Wet werkelijk rendement box 3) Motie van het lid Vermeer");
+  CHECK(item.link == "https://berthub.eu/tkconv/document.html?nummer=2026D05246");
+  CHECK(item.guid == "tkconv_2026D05246");
+}
+
+TEST_CASE("makeRSSItem for Schriftelijke vragen 2026D10272")
+{
+  SearchHelper::Result r;
+  r.nummer = "2026D10272";
+  r.categorie = "Document";
+  r.onderwerp = "Het terugkrijgen van belastingrente door belastingplichtigen die te veel hebben betaald in box 3";
+  r.titel = "";
+  r.soort = "Schriftelijke vragen";
+
+  auto item = makeRSSItem(r, "");
+  CHECK(item.title == "Het terugkrijgen van belastingrente door belastingplichtigen die te veel hebben betaald in box 3");
+  CHECK(item.description == " |  Het terugkrijgen van belastingrente door belastingplichtigen die te veel hebben betaald in box 3");
+  CHECK(item.link == "https://berthub.eu/tkconv/document.html?nummer=2026D10272");
+  CHECK(item.guid == "tkconv_2026D10272");
+}
 
 TEST_CASE("Send email" * doctest::skip())
 {

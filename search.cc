@@ -1,6 +1,17 @@
 #include "search.hh"
 #include "support.hh"
+#include <fmt/format.h>
 using namespace std;
+
+RSSItem makeRSSItem(const SearchHelper::Result& r, const std::string& naam)
+{
+  RSSItem item;
+  item.title = r.onderwerp;
+  item.description = naam + " | " + r.titel + " " + r.onderwerp;
+  item.link = fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", r.nummer);
+  item.guid = "tkconv_" + r.nummer;
+  return item;
+}
 
 
 std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query, const std::set<string>& categories, const std::string& cutoff, unsigned int mseclimit, unsigned int itemlimit)

@@ -379,15 +379,13 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       }
       auto& r = docs[0];
       pugi::xml_node item = channel.append_child("item");
-      string onderwerp = eget(r, "onderwerp");
-      item.append_child("title").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
-      onderwerp = eget(r, "naam")+" | " + eget(r, "titel") + " " + onderwerp;
-      item.append_child("description").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
+      auto rssItem = makeRSSItem(m, eget(r, "naam"));
+      item.append_child("title").append_child(pugi::node_pcdata).set_value(rssItem.title.c_str());
+      item.append_child("description").append_child(pugi::node_pcdata).set_value(rssItem.description.c_str());
 
       
-      item.append_child("link").append_child(pugi::node_pcdata).set_value(
-									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
-	item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
+      item.append_child("link").append_child(pugi::node_pcdata).set_value(rssItem.link.c_str());
+	item.append_child("guid").append_child(pugi::node_pcdata).set_value(rssItem.guid.c_str());
 
       // 2024-12-06T06:01:10.2530000
       string pubDate = eget(r, "bijgewerkt");
