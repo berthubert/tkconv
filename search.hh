@@ -53,4 +53,6 @@ struct RSSItem
 };
 RSSItem makeRSSItem(const SearchHelper::Result& r, const std::string& naam);
 
+bool searchResultMatchesSoorten(const SearchHelper::Result& r, const std::string& soorten);
+
 std::set<std::pair<std::string, std::string>> getZakenFromDocument(const std::string& id);

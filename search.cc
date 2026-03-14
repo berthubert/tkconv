@@ -13,6 +13,20 @@ RSSItem makeRSSItem(const SearchHelper::Result& r, const std::string& naam)
   return item;
 }
 
+bool searchResultMatchesSoorten(const SearchHelper::Result& r, const std::string& soorten)
+{
+  if(soorten == "documenten")
+    return r.categorie == "Document";
+  if(soorten == "moties")
+    return r.soort == "Motie";
+  if(soorten == "vragenantwoorden") {
+    return r.soort == "Schriftelijke vragen" ||
+      r.soort == "Antwoord schriftelijke vragen" ||
+      r.soort == "Antwoord schriftelijke vragen (nader)";
+  }
+  return true;
+}
+
 
 std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query, const std::set<string>& categories, const std::string& cutoff, unsigned int mseclimit, unsigned int itemlimit)
 {

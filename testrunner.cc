@@ -138,6 +138,27 @@ TEST_CASE("makeRSSItem for Schriftelijke vragen 2026D10272")
   CHECK(item.guid == "tkconv_2026D10272");
 }
 
+TEST_CASE("searchResultMatchesSoorten")
+{
+  SearchHelper::Result activiteit;
+  activiteit.categorie = "Activiteit";
+
+  SearchHelper::Result motie;
+  motie.categorie = "Document";
+  motie.soort = "Motie";
+
+  SearchHelper::Result antwoord;
+  antwoord.categorie = "Document";
+  antwoord.soort = "Antwoord schriftelijke vragen";
+
+  CHECK(searchResultMatchesSoorten(motie, "moties"));
+  CHECK_FALSE(searchResultMatchesSoorten(antwoord, "moties"));
+  CHECK(searchResultMatchesSoorten(antwoord, "vragenantwoorden"));
+  CHECK_FALSE(searchResultMatchesSoorten(activiteit, "vragenantwoorden"));
+  CHECK(searchResultMatchesSoorten(motie, "documenten"));
+  CHECK_FALSE(searchResultMatchesSoorten(activiteit, "documenten"));
+}
+
 TEST_CASE("Send email" * doctest::skip())
 {
   string text("* Zoekopdracht motie paulusma:\nhttp://berthub.eu/tkconv/get/2024D49539: Voortgangsbrief beschikbaarheid geneesmiddelen\n\nDit was een bericht van https://berthub.eu/tkconv, ook bekend als OpenTK");
