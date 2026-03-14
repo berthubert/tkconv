@@ -371,15 +371,13 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     
     
     for(auto& m : matches) {
-      auto docs = own.queryT("select Document.onderwerp, Document.titel titel, Document.nummer nummer, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie'  where Document.nummer=?", {m.nummer});
+      string naam;
+      auto docs = own.queryT("select ZaakActor.naam from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where Document.nummer=?", {m.nummer});
+      if(!docs.empty())
+	naam = eget(docs[0], "naam");
 
-      if(docs.empty()) {
-	cout<<"No hits for "<< m.nummer<<endl;
-	continue;
-      }
-      auto& r = docs[0];
       pugi::xml_node item = channel.append_child("item");
-      auto rssItem = makeRSSItem(m, eget(r, "naam"));
+      auto rssItem = makeRSSItem(m, naam);
       item.append_child("title").append_child(pugi::node_pcdata).set_value(rssItem.title.c_str());
       item.append_child("description").append_child(pugi::node_pcdata).set_value(rssItem.description.c_str());
 
@@ -388,7 +386,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
 	item.append_child("guid").append_child(pugi::node_pcdata).set_value(rssItem.guid.c_str());
 
       // 2024-12-06T06:01:10.2530000
-      string pubDate = eget(r, "bijgewerkt");
+      string pubDate = m.bijgewerkt;
       time_t then = getTstamp(pubDate);
      
       //      <pubDate>Fri, 13 Dec 2024 14:13:41 +0000</pubDate>
