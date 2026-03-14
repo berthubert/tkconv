@@ -1,6 +1,40 @@
 #include "search.hh"
 #include "support.hh"
+#include <fmt/format.h>
 using namespace std;
+
+RSSItem makeRSSItem(const SearchHelper::Result& r, const std::string& naam)
+{
+  RSSItem item;
+  item.title = r.onderwerp;
+
+  if(r.categorie == "Document") {
+    item.description = naam + " | " + r.titel + " " + r.onderwerp;
+    item.link = fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", r.nummer);
+    item.guid = "tkconv_" + r.nummer;
+  } else {
+    item.description = r.onderwerp;
+    if(!r.soort.empty())
+      item.description = r.soort + " | " + item.description;
+    item.link = fmt::format("https://berthub.eu/tkconv/{}", r.relurl);
+    item.guid = "tkconv_" + r.relurl;
+  }
+  return item;
+}
+
+bool searchResultMatchesSoorten(const SearchHelper::Result& r, const std::string& soorten)
+{
+  if(soorten == "documenten")
+    return r.categorie == "Document";
+  if(soorten == "moties")
+    return r.soort == "Motie";
+  if(soorten == "vragenantwoorden") {
+    return r.soort == "Schriftelijke vragen" ||
+      r.soort == "Antwoord schriftelijke vragen" ||
+      r.soort == "Antwoord schriftelijke vragen (nader)";
+  }
+  return true;
+}
 
 
 std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query, const std::set<string>& categories, const std::string& cutoff, unsigned int mseclimit, unsigned int itemlimit)

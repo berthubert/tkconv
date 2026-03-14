@@ -355,42 +355,53 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
   // https://berthub.eu/tkconv/search.html?q=bert+hubert&twomonths=false&soorten=alles
   sws.wrapGet({}, "/search/index.xml", [](auto& cr) {
     string q = convertToSQLiteFTS5(cr.req.get_param_value("q"));
-    string categorie;
+    string soorten = cr.req.get_param_value("soorten");
+
+    // Backward compatibility: existing RSS URLs have no soorten parameter
+    // and historically only returned Documents.  Treat absent soorten the
+    // same as the explicit "documenten" filter so new Activiteit items
+    // don't suddenly appear in existing subscribers' feeds.
+    if(soorten.empty())
+      soorten = "documenten";
 
     SQLiteWriter own("tkindex-small.sqlite3", SQLWFlag::ReadOnly);
     own.query("ATTACH database 'tk.sqlite3' as meta");
     SearchHelper sh(own);
 
-    // for now we can't do the rest, only Document XXX
-    auto matches = sh.search(q, {"Document"});
+    set<string> categories;
+    if(soorten=="activiteiten")
+      categories.insert("Activiteit");
+
+    auto matches = sh.search(q, categories);
     cout<<"Have "<<matches.size()<<" matches\n";
     pugi::xml_document doc;
-    pugi::xml_node channel = prepRSS(doc, "Zoek RSS naar " +q, "Documenten gematched door zoekstring "+q);
+    pugi::xml_node channel = prepRSS(doc, "Zoek RSS naar " +q, "Resultaten gematched door zoekstring "+q);
     
     bool first = true;
     
     
     for(auto& m : matches) {
-      auto docs = own.queryT("select Document.onderwerp, Document.titel titel, Document.nummer nummer, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie'  where Document.nummer=?", {m.nummer});
-
-      if(docs.empty()) {
-	cout<<"No hits for "<< m.nummer<<endl;
+      if(!searchResultMatchesSoorten(m, soorten))
 	continue;
+
+      string naam;
+      if(m.categorie == "Document") {
+	auto docs = own.queryT("select ZaakActor.naam from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where Document.nummer=?", {m.nummer});
+	if(!docs.empty())
+	  naam = eget(docs[0], "naam");
       }
-      auto& r = docs[0];
+
       pugi::xml_node item = channel.append_child("item");
-      string onderwerp = eget(r, "onderwerp");
-      item.append_child("title").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
-      onderwerp = eget(r, "naam")+" | " + eget(r, "titel") + " " + onderwerp;
-      item.append_child("description").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
+      auto rssItem = makeRSSItem(m, naam);
+      item.append_child("title").append_child(pugi::node_pcdata).set_value(rssItem.title.c_str());
+      item.append_child("description").append_child(pugi::node_pcdata).set_value(rssItem.description.c_str());
 
       
-      item.append_child("link").append_child(pugi::node_pcdata).set_value(
-									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
-	item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
+      item.append_child("link").append_child(pugi::node_pcdata).set_value(rssItem.link.c_str());
+	item.append_child("guid").append_child(pugi::node_pcdata).set_value(rssItem.guid.c_str());
 
       // 2024-12-06T06:01:10.2530000
-      string pubDate = eget(r, "bijgewerkt");
+      string pubDate = m.bijgewerkt;
       time_t then = getTstamp(pubDate);
      
       //      <pubDate>Fri, 13 Dec 2024 14:13:41 +0000</pubDate>
