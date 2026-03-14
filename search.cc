@@ -7,9 +7,18 @@ RSSItem makeRSSItem(const SearchHelper::Result& r, const std::string& naam)
 {
   RSSItem item;
   item.title = r.onderwerp;
-  item.description = naam + " | " + r.titel + " " + r.onderwerp;
-  item.link = fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", r.nummer);
-  item.guid = "tkconv_" + r.nummer;
+
+  if(r.categorie == "Document") {
+    item.description = naam + " | " + r.titel + " " + r.onderwerp;
+    item.link = fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", r.nummer);
+    item.guid = "tkconv_" + r.nummer;
+  } else {
+    item.description = r.onderwerp;
+    if(!r.soort.empty())
+      item.description = r.soort + " | " + item.description;
+    item.link = fmt::format("https://berthub.eu/tkconv/{}", r.relurl);
+    item.guid = "tkconv_" + r.relurl;
+  }
   return item;
 }
 

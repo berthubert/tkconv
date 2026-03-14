@@ -159,6 +159,22 @@ TEST_CASE("searchResultMatchesSoorten")
   CHECK_FALSE(searchResultMatchesSoorten(activiteit, "documenten"));
 }
 
+TEST_CASE("makeRSSItem for Activiteit 2026A01281")
+{
+  SearchHelper::Result r;
+  r.nummer = "2026A01281";
+  r.categorie = "Activiteit";
+  r.relurl = "activiteit.html?nummer=2026A01281";
+  r.onderwerp = "Aanvang middagvergadering: STEMMINGEN (over de Wet werkelijk rendement box 3) en over moties ingediend bij het Tweeminutendebat Voorhang wijziging Postbesluit 2009)";
+  r.soort = "Stemmingen";
+
+  auto item = makeRSSItem(r, "");
+  CHECK(item.title == r.onderwerp);
+  CHECK(item.description == "Stemmingen | " + r.onderwerp);
+  CHECK(item.link == "https://berthub.eu/tkconv/activiteit.html?nummer=2026A01281");
+  CHECK(item.guid == "tkconv_activiteit.html?nummer=2026A01281");
+}
+
 TEST_CASE("Send email" * doctest::skip())
 {
   string text("* Zoekopdracht motie paulusma:\nhttp://berthub.eu/tkconv/get/2024D49539: Voortgangsbrief beschikbaarheid geneesmiddelen\n\nDit was een bericht van https://berthub.eu/tkconv, ook bekend als OpenTK");

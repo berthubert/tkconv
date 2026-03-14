@@ -733,12 +733,14 @@ int main(int argc, char** argv)
 
   sws.wrapGet({}, "/search.html", [&tp](auto& cr) {
     string q = cr.req.get_param_value("q");
+    string soorten = cr.req.get_param_value("soorten");
     nlohmann::json data;
     data["pagemeta"]["title"]="Zoek naar "+htmlEscape(q);
     data["og"]["title"] = "Zoek naar "+htmlEscape(q);
     data["og"]["description"] = "Zoek naar "+htmlEscape(q);
     data["og"]["imageurl"] = "";
     data["q"] = urlEscape(q);
+    data["soorten"] = soorten.empty() ? "alles" : urlEscape(soorten);
     inja::Environment e;
     e.set_html_autoescape(false); // !!
       
