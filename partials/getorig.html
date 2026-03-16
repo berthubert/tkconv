@@ -1,5 +1,21 @@
 {% extends "base.html" %}
 
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
+{% endblock %}
+
+{% block div %}
+x-data="{
+haveMonitor: false,
+monitorId: '',
+nummer: '{{meta.nummer}}',
+zaaknummer: '{{meta.zaaknummer}}',
+kind: 'document'
+}" x-init="checkMonitor($data, true)"
+{% endblock %}
+
 {% block main %}
 <hblock>
   <h2>{{meta.onderwerp}}</h2>
@@ -25,6 +41,10 @@ Antwoorden op deze schriftelijke vragen:
   <li>{{ a.onderwerp }} (<a href="./document.html?nummer={{a.nummer}}">{{a.nummer}}</a>)</li>
   {% endfor %}
 </ul>
+{% else if meta.soort=="Schriftelijke vragen" %}
+<p>
+  Krijg melding als deze vragen beantwoord worden: <span x-html="makeBell($data, haveMonitor, '{{meta.zaaknummer}}');"></span>
+</p>
 {% endif %}
 
 {% if length(docactors) > 0 %}

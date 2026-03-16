@@ -182,18 +182,23 @@ async function removeMonitor(f)
     }
 }
 
-
-async function checkMonitor(f)
+// if zaakFromDocument is passed and true, this will override the 'document' kind & add the zaaknummer
+async function checkMonitor(f, zaakFromDocument) 
 {
     const response = await fetch('status');
     if (response.ok === true) {
         const data = await response.json();
 	if(data.login === true ) {
-	    const response2 = await fetch(`have-monitor/${f.kind}/${f.nummer}`);
+	    let url = 'have-monitor/';
+	    if(zaakFromDocument == true)
+		url += `zaak/${f.zaaknummer}`;
+	    else
+		url += `${f.kind}/${f.nummer}`;
+
+	    const response2 = await fetch(url);
 	    if (response2.ok === true) {
 		const data = await response2.json();
 		console.log("have-monitor: ")
-		console.log(data);
 		f.haveMonitor=  data["have"] === 1;
 		f.monitorId = data["id"];
 	    }
@@ -206,14 +211,18 @@ async function checkMonitor(f)
    
 }
 
-async function makeBell(f)
+// this 'ign' is so we can pass haveMonitor as a parameter, causing alpine.js to call this function
+// when haveMonitor changes!
+
+// this is the main entry function to draw the bell, it will chooose the color and if it is active
+// if the user is not logged in, it sends the user to the login page
+async function makeBell(f, ign, zaaknummer)
 {
     const response = await fetch('status');
     if (response.ok === true) {
         const data = await response.json();
-	console.log(data);
 	if(data.login === true) {
-	    return doMakeBell(f)
+	    return doMakeBell(f, zaaknummer)
 	}
 	
     }
@@ -221,6 +230,7 @@ async function makeBell(f)
 	console.log("error");
     }
 
+    // this is the bell we show to someone not logged in
     let func = "window.location='mijn.html';";
     f.haveMonitor = false;
     return `<svg @click="${func}" id="belletje" fill="#999999" height="48px" width="48px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -238,9 +248,10 @@ async function makeBell(f)
 </svg>`;
 }
 
-function doMakeBell(f)
+// this is the active bell, for someone who is logged in
+function doMakeBell(f, zaaknummer)
 {
-    console.log(`Makebell called ${f.haveMonitor}, ${f.monitorId}`);
+    console.log(`Makebell called haveMonitor: "${f.haveMonitor}", monitorID: "${f.monitorId}"`);
     let color="";
     let func="";
     if(f.haveMonitor) {
@@ -260,11 +271,12 @@ function doMakeBell(f)
 	    func = "addZoekMonitor($data)";
 	else if(f.kind == "zaak")
 	    func = "addZaakMonitor($data)";
+	else if(f.kind == "document")
+	    func = `addZaakMonitor($data, '${zaaknummer}')`; // this passes in the right zaaknummer from the document page
 	else if(f.kind == "ksd")
 	    func = "addKsdMonitor($data)";
 	else if(f.kind == "toezeggingen")
 	    func = "addToezeggingenMonitor($data)";
-
     }
     
     return `<svg @click="${func}" id="belletje" fill="${color}" height="48px" width="48px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -281,6 +293,7 @@ function doMakeBell(f)
 </g>
 </svg>`;
 }
+
 
 async function addKsdMonitor(f)
 {
@@ -382,9 +395,13 @@ async function addActiviteitMonitor(f)
 {
     return addXMonitor(f, "activiteit", f.nummer);
 }
-async function addZaakMonitor(f)
+async function addZaakMonitor(f, zaaknummer)
 {
-    return addXMonitor(f, "zaak", f.nummer);
+    console.log(zaaknummer);
+    if(zaaknummer == undefined)
+	return addXMonitor(f, "zaak", f.nummer);
+    else
+	return addXMonitor(f, "zaak", zaaknummer);
 }
 
 async function addPersoonMonitor(f)
