@@ -1707,13 +1707,22 @@ int main(int argc, char** argv)
     }
 
     data["bijlagen"] = packResultsJson(sqlw->queryT("select * from document where bronDocument=?", {documentId}));
-
+    
     auto zlinks = sqlw->queryT("select distinct(naar) as naar, zaak.nummer znummer from Link,Zaak where van=? and naar=zaak.id and category='Document' and linkSoort='Zaak'", {documentId});
 
     set<string> zids;
     for(auto& zlink : zlinks) {
       zids.insert(eget(zlink, "naar"));
     }
+
+    if(zids.size() == 1 && data["antwoorden"].empty() && data["meta"]["soort"]=="Schriftelijke vragen") {
+      cout<<"Onbeantwoordde vraag, zaaknummer: "<< eget(zlinks[0], "znummer") << endl;
+      data["meta"]["zaaknummer"] = eget(zlinks[0], "znummer");
+    }
+    else {
+      data["meta"]["zaaknummer"]="";
+    }
+    
     if(zids.empty()) {
       try {
 	auto harvestzaken = getZakenFromDocument(documentId);
