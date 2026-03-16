@@ -1474,6 +1474,10 @@ int main(int argc, char** argv)
       }
       
     };
+
+    // if set, this means the page will filter on this
+    string commissie = req.get_param_value("commissie");
+    
     set<Commie> commies;
     for(auto& a : acts) {
       a["naam"] = htmlEscape(a["naam"]);
@@ -1484,7 +1488,7 @@ int main(int argc, char** argv)
       replaceSubstring(datum, "T", "&nbsp;");
       a["datum"]=datum;
 
-      if(noMarkerYet == true && datum >= today) {
+      if(noMarkerYet == true && datum >= today && (commissie.empty() || commissie == (string)a["voortouwAfkorting"])) {
 	a["marker"]="vandaag";
 	noMarkerYet = false;
       }
@@ -1493,7 +1497,7 @@ int main(int argc, char** argv)
     }
     nlohmann::json data = nlohmann::json::object();
     data["data"] = acts;
-    data["meta"]["commissie"] = req.get_param_value("commissie");
+    data["meta"]["commissie"] = commissie; 
     data["meta"]["commies"] = nlohmann::json::array();
     for(const auto& c : commies) {
       nlohmann::json commie = nlohmann::json::object();
