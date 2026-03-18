@@ -733,12 +733,14 @@ int main(int argc, char** argv)
 
   sws.wrapGet({}, "/search.html", [&tp](auto& cr) {
     string q = cr.req.get_param_value("q");
+    string soorten = cr.req.get_param_value("soorten");
     nlohmann::json data;
     data["pagemeta"]["title"]="Zoek naar "+htmlEscape(q);
     data["og"]["title"] = "Zoek naar "+htmlEscape(q);
     data["og"]["description"] = "Zoek naar "+htmlEscape(q);
     data["og"]["imageurl"] = "";
     data["q"] = urlEscape(q);
+    data["soorten"] = soorten.empty() ? "alles" : urlEscape(soorten);
     inja::Environment e;
     e.set_html_autoescape(false); // !!
       
@@ -2022,13 +2024,7 @@ int main(int argc, char** argv)
     auto sres = sh.search(term, categories, limit, mseclimit, 280);
     nlohmann::json results = nlohmann::json::array();
     for(const auto& r : sres) {
-      
-      if(soorten=="moties" && r.soort != "Motie")
-	continue;
-      else if(soorten=="vragenantwoorden" &&
-	 (r.soort != "Schriftelijke vragen" &&
-	  r.soort != "Antwoord schriftelijke vragen" &&
-	  r.soort != "Antwoord schriftelijke vragen (nader)"))
+      if(!searchResultMatchesSoorten(r, soorten))
 	continue;
 
       results.push_back(nlohmann::json({
