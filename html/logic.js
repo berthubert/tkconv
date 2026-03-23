@@ -302,7 +302,7 @@ async function getSearchResults(f)
     if (response.ok === true) {
         const data = await response.json();
         f.foundDocs = data["results"];
-	const rssurl = new URL("https://berthub.eu/tkconv/search/index.xml");
+	const rssurl = new URL(f.siteRoot + "/search/index.xml");
 	rssurl.searchParams.set("q", f.searchQuery);
 	f.rssurl = rssurl.href
 
@@ -316,5 +316,3 @@ async function getSearchResults(f)
 	f.busy=false;
     }
 }
-
-

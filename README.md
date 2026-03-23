@@ -118,7 +118,7 @@ builden en de gecompileerde bestanden uit te voeren:
 docker build --tag tkconv .
 docker run -it -v $PWD:/app --rm tkconv:latest tkgetxml
 docker run -it -v $PWD:/app --rm tkconv:latest tkconv
-docker run -it -v $PWD:/app -p 8089:8089 --rm tkconv:latest tkserv
+docker run -it -e SITE_ROOT=http://127.0.0.1:8089 -v $PWD:/app -p 8089:8089 --rm tkconv:latest tkserv
 ```
 
 ## via docker compose

@@ -5,6 +5,7 @@
 #include <fmt/os.h>
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include "httplib.h"
@@ -50,11 +51,24 @@ void bulkEscape(nlohmann::json& j)
   });
 }
 
+static string getSiteRoot()
+{
+  static const string siteRoot = []() {
+    if(const char* env = getenv("SITE_ROOT"); env && *env)
+      return string(env);
+    throw runtime_error("SITE_ROOT must be set");
+  }();
+
+  return siteRoot;
+}
+
 class InjaData : public inja::json
 {
 public:
   explicit InjaData(inja::json data = inja::json::object()) : inja::json(std::move(data))
-  {}
+  {
+    (*this)["site_root"] = getSiteRoot();
+  }
 };
 
 static string getReasonableJPEG(const std::string& id)
@@ -459,8 +473,7 @@ int main(int argc, char** argv)
   sws.d_svr.set_keep_alive_max_count(1); 
   sws.d_svr.set_keep_alive_timeout(1);
   sws.standardFunctions();
-  addTkUserManagement(sws, "10.0.0.2", "opentk@hubertnet.nl", "https://berthub.eu/tkconv");
-  //  addTkUserManagement(sws, "10.0.0.2", "opentk@hubertnet.nl", "http://127.0.0.1:8089");
+  addTkUserManagement(sws, "10.0.0.2", "opentk@hubertnet.nl", getSiteRoot());
   
   
   if(args.is_used("--rnd-admin-password")) {
@@ -558,11 +571,11 @@ int main(int argc, char** argv)
     auto nums=sqlw->queryT("select nummer from Document where datum like ?", {year});
     string resp;
     for(auto& n : nums) {
-      resp += fmt::format("https://berthub.eu/tkconv/document.html?nummer={}\n", get<string>(n["nummer"]));
+      resp += fmt::format("{}/document.html?nummer={}\n", getSiteRoot(), get<string>(n["nummer"]));
     }
     nums=sqlw->queryT("select vergadering.id from vergadering,verslag where vergaderingid=vergadering.id and status != 'Casco' and datum like ? group by vergadering.id", {year});
     for(auto& n : nums) {
-      resp += fmt::format("https://berthub.eu/tkconv/verslag.html?vergaderingid={}\n", get<string>(n["id"]));
+      resp += fmt::format("{}/verslag.html?vergaderingid={}\n", getSiteRoot(), get<string>(n["id"]));
     }
     
     res.set_content(resp, "text/plain");
@@ -587,11 +600,11 @@ int main(int argc, char** argv)
     auto nums=sqlw->queryT("select nummer from Document where datum >= ? and datum <= ?", {fromDate, toDate});
     string resp;
     for(auto& n : nums) {
-      resp += fmt::format("https://berthub.eu/tkconv/document.html?nummer={}\n", get<string>(n["nummer"]));
+      resp += fmt::format("{}/document.html?nummer={}\n", getSiteRoot(), get<string>(n["nummer"]));
     }
     nums=sqlw->queryT("select vergadering.id from vergadering,verslag where vergaderingid=vergadering.id and status != 'Casco' and datum >= ? and datum <= ? group by vergadering.id", {fromDate, toDate});
     for(auto& n : nums) {
-      resp += fmt::format("https://berthub.eu/tkconv/verslag.html?vergaderingid={}\n", get<string>(n["id"]));
+      resp += fmt::format("{}/verslag.html?vergaderingid={}\n", getSiteRoot(), get<string>(n["id"]));
     }
     
     res.set_content(resp, "text/plain");
@@ -620,11 +633,11 @@ int main(int argc, char** argv)
     auto nums=sqlw->queryT("select nummer from Document where datum like ?", {year});
     string resp;
     for(auto& n : nums) {
-      resp += fmt::format("https://berthub.eu/tkconv/document.html?nummer={}\n", get<string>(n["nummer"]));
+      resp += fmt::format("{}/document.html?nummer={}\n", getSiteRoot(), get<string>(n["nummer"]));
     }
     nums = sqlw->queryT("select vergadering.id from vergadering,verslag where vergaderingid=vergadering.id and status != 'Casco' and datum like ? group by vergadering.id", {year});
     for(auto& n : nums) {
-      resp += fmt::format("https://berthub.eu/tkconv/verslag.html?vergaderingid={}\n", get<string>(n["id"]));
+      resp += fmt::format("{}/verslag.html?vergaderingid={}\n", getSiteRoot(), get<string>(n["id"]));
     }
     res.set_content(resp, "text/plain");
   });
@@ -711,7 +724,7 @@ int main(int argc, char** argv)
     
     j["og"]["title"] = (string)lid[0]["roepnaam"] + " "+tv + (string)lid[0]["achternaam"];
     j["og"]["description"] = (string)lid[0]["functie"];
-    j["og"]["imageurl"] = "https://berthub.eu/tkconv/personphoto/"+to_string(nummer);
+    j["og"]["imageurl"] = getSiteRoot()+"/personphoto/"+to_string(nummer);
 
     inja::Environment e;
     e.set_html_autoescape(true);

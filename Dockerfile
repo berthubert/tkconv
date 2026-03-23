@@ -3,6 +3,7 @@ FROM ubuntu:24.04
 
 # Set the environment variables to prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
+ENV SITE_ROOT=https://berthub.eu/tkconv
 
 # Install dependencies
 RUN apt-get update && \

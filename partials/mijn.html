@@ -15,7 +15,7 @@ selected: '1 dag'
 
 {% block extrameta %}
 {% if exists("timsi") %}
-<link rel="alternate" type="application/rss+xml" href="https://berthub.eu/tkconv/{{timsi}}/index.xml" title="OpenTK Jouw monitors RSS" />
+<link rel="alternate" type="application/rss+xml" href="{{site_root}}/{{timsi}}/index.xml" title="OpenTK Jouw monitors RSS" />
 {% endif %}
 {% endblock %}
 
@@ -29,7 +29,7 @@ selected: '1 dag'
 {% block customheader %}
 <h1>Mijn OpenTK 
 {% if exists("timsi") %}
-<a href="https://berthub.eu/tkconv/{{timsi}}/index.xml"><img src="Generic_Feed-icon.svg"></a>
+<a href="{{site_root}}/{{timsi}}/index.xml"><img src="Generic_Feed-icon.svg"></a>
 {% endif %}
 </h1>
 {% endblock %}

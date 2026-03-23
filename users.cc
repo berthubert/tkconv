@@ -7,7 +7,8 @@
 #include <fmt/chrono.h>
 using namespace std;
 
-static auto prepRSS(auto& doc, const std::string& title, const std::string& desc)
+static auto prepRSS(auto& doc, const std::string& title, const std::string& desc,
+		    const std::string& baseUrl)
 {
   doc.append_attribute("standalone") = "yes";
   doc.append_attribute("version") = "1.0";
@@ -20,7 +21,7 @@ static auto prepRSS(auto& doc, const std::string& title, const std::string& desc
   pugi::xml_node channel = rss.append_child("channel");
   channel.append_child("title").append_child(pugi::node_pcdata).set_value(title.c_str());
   channel.append_child("description").append_child(pugi::node_pcdata).set_value(desc.c_str());
-  channel.append_child("link").append_child(pugi::node_pcdata).set_value("https://berthub.eu/tkconv/");
+  channel.append_child("link").append_child(pugi::node_pcdata).set_value((baseUrl + "/").c_str());
   channel.append_child("generator").append_child(pugi::node_pcdata).set_value("OpenTK");
   return channel;
 }
@@ -300,7 +301,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
   */
   
 
-  sws.wrapGet({}, "/index.xml", [](auto& cr) {
+  sws.wrapGet({}, "/index.xml", [baseUrl](auto& cr) {
     pugi::xml_document doc;
 
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
@@ -318,7 +319,8 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       latest = getTstamp(maxbw);
     }
     string date = fmt::format("{:%a, %d %b %Y %H:%M:%S %z}", fmt::localtime(latest));
-    pugi::xml_node channel = prepRSS(doc, "Hoofd OpenTK feed", "Meest recente kamerdocumenten");
+    pugi::xml_node channel = prepRSS(doc, "Hoofd OpenTK feed",
+				     "Meest recente kamerdocumenten", baseUrl);
     channel.append_child("lastBuildDate").append_child(pugi::node_pcdata).set_value(date.c_str());
 
     for(const auto& r : rows) {
@@ -332,7 +334,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
 
       
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
-									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
+									  fmt::format("{}/document.html?nummer={}", baseUrl, eget(r,"nummer")).c_str());
       item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
 
 
@@ -353,7 +355,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
   });
 
   // https://berthub.eu/tkconv/search.html?q=bert+hubert&twomonths=false&soorten=alles
-  sws.wrapGet({}, "/search/index.xml", [](auto& cr) {
+  sws.wrapGet({}, "/search/index.xml", [baseUrl](auto& cr) {
     string q = convertToSQLiteFTS5(cr.req.get_param_value("q"));
     string categorie;
 
@@ -365,7 +367,9 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     auto matches = sh.search(q, {"Document"});
     cout<<"Have "<<matches.size()<<" matches\n";
     pugi::xml_document doc;
-    pugi::xml_node channel = prepRSS(doc, "Zoek RSS naar " +q, "Documenten gematched door zoekstring "+q);
+    pugi::xml_node channel = prepRSS(doc, "Zoek RSS naar " +q,
+				     "Documenten gematched door zoekstring "+q,
+				     baseUrl);
     
     bool first = true;
     
@@ -386,7 +390,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
 
       
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
-									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
+									  fmt::format("{}/document.html?nummer={}", baseUrl, eget(r,"nummer")).c_str());
 	item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
 
       // 2024-12-06T06:01:10.2530000
@@ -414,7 +418,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     return make_pair<string,string>(str.str(), "application/xml");
   });
   
-  sws.wrapGet({}, "/:timsi/index.xml", [](auto& cr) {
+  sws.wrapGet({}, "/:timsi/index.xml", [baseUrl](auto& cr) {
     string timsi = cr.req.path_params.at("timsi");
     cout<<"Called for timsi "<< timsi <<endl;
 
@@ -423,7 +427,9 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     cout<<"Got "<<docids.size()<<" docids\n";
     
     pugi::xml_document doc;
-    pugi::xml_node channel = prepRSS(doc, "Monitor RSS", "Documenten gematched door jouw monitors");
+    pugi::xml_node channel = prepRSS(doc, "Monitor RSS",
+				     "Documenten gematched door jouw monitors",
+				     baseUrl);
     
     bool first = true;
 
@@ -445,7 +451,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
 
       
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
-									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
+									  fmt::format("{}/document.html?nummer={}", baseUrl, eget(r,"nummer")).c_str());
       item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
 
       // 2024-12-06T06:01:10.2530000
@@ -473,7 +479,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     return make_pair<string,string>(str.str(), "application/xml");
   });
 
-  sws.wrapGet({}, "/commissie/:commissieid/index.xml", [](auto& cr) {
+  sws.wrapGet({}, "/commissie/:commissieid/index.xml", [baseUrl](auto& cr) {
     string commissieid = cr.req.path_params.at("commissieid");
     cout<<"Called for commissieid "<<commissieid<<endl;
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 100*86400));
@@ -487,7 +493,8 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
     string naam = eget(comm[0], "naam");
     
     pugi::xml_document doc;
-    pugi::xml_node channel = prepRSS(doc, "OpenTK: "+ naam + " RSS", "Documenten voor " + naam);
+    pugi::xml_node channel = prepRSS(doc, "OpenTK: "+ naam + " RSS",
+				     "Documenten voor " + naam, baseUrl);
     
     bool first = true;
 
@@ -501,7 +508,7 @@ Goed inzicht in ons parlement is belangrijk, soms omdat er dingen in het nieuws 
       
       item.append_child("description").append_child(pugi::node_pcdata).set_value(onderwerp.c_str());
       item.append_child("link").append_child(pugi::node_pcdata).set_value(
-									  fmt::format("https://berthub.eu/tkconv/document.html?nummer={}", eget(r,"nummer")).c_str());
+									  fmt::format("{}/document.html?nummer={}", baseUrl, eget(r,"nummer")).c_str());
       item.append_child("guid").append_child(pugi::node_pcdata).set_value(("tkconv_"+eget(r, "nummer")).c_str());
       // 2024-12-06T06:01:10.2530000
       string pubDate = eget(r, "bijgewerkt");
