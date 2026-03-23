@@ -50,6 +50,13 @@ void bulkEscape(nlohmann::json& j)
   });
 }
 
+class InjaData : public inja::json
+{
+public:
+  explicit InjaData(inja::json data = inja::json::object()) : inja::json(std::move(data))
+  {}
+};
+
 static string getReasonableJPEG(const std::string& id)
 {
   if(isPresentNonEmpty(id, "photoscache", ".jpg") && cacheIsNewer(id, "photoscache", ".jpg", "photos")) {
@@ -663,7 +670,7 @@ int main(int argc, char** argv)
 
     lid[0]["afkorting"] = getPartyFromNumber(sqlw.get(), nummer);
     string persoonId = lid[0]["id"];
-    nlohmann::json j = nlohmann::json::object();
+    InjaData j;
     j["meta"] = lid[0];
 
     auto zaken = packResultsJson(sqlw->queryT("select substr(zaak.gestartOp,0,11) gestartOp, zaak.onderwerp, zaak.nummer, zaak.id from zaakactor,zaak where persoonid=? and relatie='Indiener' and zaak.id=zaakid order by gestartop desc, nummer desc", {persoonId}));
@@ -714,7 +721,7 @@ int main(int argc, char** argv)
   });
 
   sws.wrapGet({}, "/mijn.html", [&tp](auto& cr) {
-    nlohmann::json data;
+    InjaData data;
     data["pagemeta"]["title"]="Mijn";
     data["og"]["title"] = "Mijn";
     data["og"]["description"] = "Mijn";
@@ -733,7 +740,7 @@ int main(int argc, char** argv)
 
   sws.wrapGet({}, "/search.html", [&tp](auto& cr) {
     string q = cr.req.get_param_value("q");
-    nlohmann::json data;
+    InjaData data;
     data["pagemeta"]["title"]="Zoek naar "+htmlEscape(q);
     data["og"]["title"] = "Zoek naar "+htmlEscape(q);
     data["og"]["description"] = "Zoek naar "+htmlEscape(q);
@@ -747,7 +754,7 @@ int main(int argc, char** argv)
 
 
   sws.wrapGet({}, "/personen.html", [&tp](auto& cr) {
-    nlohmann::json data;
+    InjaData data;
     data["pagemeta"]["title"]="Alle personen";
     data["og"]["title"] = "Alle personen";
     data["og"]["description"] = "Alle personen";
@@ -792,7 +799,7 @@ int main(int argc, char** argv)
       res.status = 404;
       return;
     }
-    nlohmann::json data; 
+    InjaData data;
     inja::Environment e;
     e.set_html_autoescape(true);
     
@@ -810,7 +817,7 @@ int main(int argc, char** argv)
   
   sws.d_svr.Get("/zaak.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer = req.get_param_value("nummer");
-    nlohmann::json z = nlohmann::json::object();
+    InjaData z;
     auto sqlw = tp.getLease();
     auto zaken = sqlw->queryT("select *, substr(gestartOp, 0, 11) gestartOp from zaak where nummer=?", {nummer});
     if(zaken.empty()) {
@@ -1041,7 +1048,7 @@ int main(int argc, char** argv)
     sws.d_svr.Get("/"+name+"(/?.*)", [&tp, name, file, q](const httplib::Request &req, httplib::Response &res) {
       inja::Environment e;
       e.set_html_autoescape(true);
-      nlohmann::json data;
+      InjaData data;
       if(!q.empty())
 	data["data"] = packResultsJson(tp.getLease()->queryT(q));
       
@@ -1081,7 +1088,7 @@ int main(int argc, char** argv)
     bool onlyRegeringsstukken = req.has_param("onlyRegeringsstukken") && req.get_param_value("onlyRegeringsstukken") != "0";
 
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
-    nlohmann::json data;
+    InjaData data;
     auto recentDocs = packResultsJson(sqlw->queryT("select Document.datum datum, Document.nummer nummer, Document.onderwerp onderwerp, Document.titel titel, Document.soort soort, Document.bijgewerkt bijgewerkt, ZaakActor.naam naam, ZaakActor.afkorting afkorting from Document left join Link on link.van = document.id left join zaak on zaak.id = link.naar left join  ZaakActor on ZaakActor.zaakId = zaak.id and relatie = 'Voortouwcommissie' where  Document.soort != 'Sprekerslijst' and datum > ? and (? or Document.soort in ('Brief regering', 'Antwoord schriftelijke vragen', 'Voorstel van wet', 'Memorie van toelichting', 'Antwoord schriftelijke vragen (nader)')) and +bronDocument='' order by datum desc, bijgewerkt desc",
 						  {dlim, !onlyRegeringsstukken}));
 
@@ -1210,7 +1217,7 @@ int main(int argc, char** argv)
     
     inja::Environment e;
     e.set_html_autoescape(true);
-    nlohmann::json data;
+    InjaData data;
     data["pagemeta"]["title"]="OpenTK - Toezeggingen";
     data["og"]["title"] = "OpenTK - Toezeggingen";
     data["og"]["description"] = "Toezeggingen van het kabinet";
@@ -1229,7 +1236,7 @@ int main(int argc, char** argv)
     string fractie=req.get_param_value("fractie");
     string ministerie=req.get_param_value("ministerie");
     
-    nlohmann::json data;
+    InjaData data;
     auto lease = tp.getLease();
 
     auto ovragen =  packResultsJson(lease->queryT("select openvragen.*, zaak.gestartOp, aantal, json_group_array(naam) as namen, max(naam) filter (where relatie='Indiener') as indiener, json_group_array(relatie) as relaties, json_group_array(zaakactor.functie) as functies, max(persoon.nummer) filter (where relatie='Indiener') as indiennummer from openvragen,zaakactor,zaak left join persoon on persoon.id=persoonid left join SchriftelijkeVraagStat on SchriftelijkeVraagStat.documentNummer = openvragen.docunummer where zaakactor.zaakid = openvragen.id and zaak.nummer=openvragen.nummer group by openvragen.id order by gestartOp desc"));
@@ -1413,7 +1420,7 @@ int main(int argc, char** argv)
 
 
   sws.d_svr.Get("/besluiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
-    nlohmann::json data;
+    InjaData data;
     string dlim = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - 8*86400));
     auto besluiten =  packResultsJson(tp.getLease()->queryT("select activiteit.datum, activiteit.nummer anummer, zaak.nummer znummer, agendapuntZaakBesluitVolgorde volg, besluit.status,agendapunt.onderwerp aonderwerp, zaak.onderwerp zonderwerp, naam indiener, besluit.tekst from besluit,agendapunt,activiteit,zaak left join zaakactor on zaakactor.zaakid = zaak.id and relatie='Indiener' where besluit.agendapuntid = agendapunt.id and activiteit.id = agendapunt.activiteitid and zaak.id = besluit.zaakid and datum > ? order by datum asc,agendapuntZaakBesluitVolgorde asc", {dlim}));
 
@@ -1436,7 +1443,7 @@ int main(int argc, char** argv)
   // this is still alpine.js based though somehow!
   sws.d_svr.Get("/activiteit.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.get_param_value("nummer");
-    nlohmann::json data;
+    InjaData data;
     auto act = packResultsJson(tp.getLease()->queryT("select * from Activiteit where nummer=?", {nummer}));
 
     if(act.empty()) {
@@ -1495,7 +1502,7 @@ int main(int argc, char** argv)
       else
 	a["marker"] = "";
     }
-    nlohmann::json data = nlohmann::json::object();
+    InjaData data;
     data["data"] = acts;
     data["meta"]["commissie"] = commissie; 
     data["meta"]["commies"] = nlohmann::json::array();
@@ -1541,7 +1548,7 @@ int main(int argc, char** argv)
       a["bijgewerkt"] = ((string)a["bijgewerkt"]).substr(0, 10);
       commies.insert({a["voortouwAfkorting"], a["voortouwNaam"]});
     }
-    nlohmann::json data = nlohmann::json::object();
+    InjaData data;
     data["data"] = acts;
     data["meta"]["commissie"] = req.get_param_value("commissie");
     data["meta"]["commies"] = nlohmann::json::array();
@@ -1578,7 +1585,7 @@ int main(int argc, char** argv)
     
     inja::Environment e;
     e.set_html_autoescape(true);
-    nlohmann::json data;
+    InjaData data;
     data["pagemeta"]["title"]= eget(deets[0], "naam");
     data["og"]["title"] = eget(deets[0], "naam");
     data["og"]["description"] = eget(deets[0], "naam");
@@ -1595,7 +1602,7 @@ int main(int argc, char** argv)
     string toevoeging=req.get_param_value("toevoeging").c_str();
     auto sqlw = tp.getLease();
     auto docs = packResultsJson(sqlw->queryT("select document.nummer docnummer,* from Document,Kamerstukdossier where kamerstukdossier.nummer=? and kamerstukdossier.toevoeging=? and Document.kamerstukdossierid = kamerstukdossier.id order by volgnummer desc", {nummer, toevoeging}));
-    nlohmann::json data = nlohmann::json::object();
+    InjaData data;
     for(auto& d : docs) {
       d["datum"] = ((string)d["datum"]).substr(0, 10);
     }
@@ -1636,7 +1643,7 @@ int main(int argc, char** argv)
       return;
     }
 
-    nlohmann::json data = nlohmann::json::object();
+    InjaData data;
     auto ret=sqlw->queryT("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document left join DocumentVersie on DocumentVersie.documentId = Document.id where nummer=? limit 1", {nummer});
     if(ret.empty()) {
       res.set_content("Found nothing in document.html!!", "text/plain");
@@ -1865,7 +1872,7 @@ int main(int argc, char** argv)
       return;
     }
 
-    nlohmann::json data = verslagen[0];
+    InjaData data(verslagen[0]);
     
     // 2024-09-19T12:19:10.3141655Z
     string updated = data["updated"];
@@ -1893,7 +1900,7 @@ int main(int argc, char** argv)
     auto tmp = getVerslagen(tp.getLease().get(), 2*365);
     inja::Environment e;
     e.set_html_autoescape(true);
-    nlohmann::json data;
+    InjaData data;
     data["recenteVerslagen"] = packResultsJson(tmp);
     data["pagemeta"]["title"]="Verslagen – OpenTK";
     data["og"]["title"] = "Recente verslagen";
@@ -1964,7 +1971,7 @@ int main(int argc, char** argv)
       }
       break;
     }
-    nlohmann::json data;
+    InjaData data;
     data["stemmingen"] = stemmingen;
     data["weken"] = weeks;
     inja::Environment e;
@@ -2165,7 +2172,7 @@ int main(int argc, char** argv)
   sws.d_svr.set_error_handler([](const auto& req, auto& res) {
     inja::Environment e;
     e.set_html_autoescape(true);
-    nlohmann::json data;
+    InjaData data;
     data["pagemeta"]["title"]="Error – OpenTK";
     data["og"]["title"] = fmt::format("Error {} {} @ {}", res.status, httplib::status_message(res.status), time(0));
     data["error"] = data["og"]["title"];
