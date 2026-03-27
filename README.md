@@ -222,6 +222,8 @@ Tegelijk is er gekozen voor een vrij specifieke architectuur. Als je graag
 had gewild dat tkconv veel ingewikkelder was, maar wel met meer gangbare
 tools, dan is dit mogelijk niet het project voor jou.
 
+Bijdragen mogen niet met behulp van AI's of LLMs gemaakt zijn, sorry.
+
 # Hoe het samenhangt
 Er zijn nogal wat 'categories' aan informatie, en ze kunnen ook op allemaal
 manieren samenhangen.
