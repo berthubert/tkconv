@@ -22,3 +22,89 @@ span.jarig::before { content: '🎈'; }
 .stemming.meertegen .besluittekst {
     background-color: var(--pico-form-element-invalid-border-color);
 }
+
+
+
+.navigatie, .navigatie * {
+    all: revert;
+}
+
+.navigatie {
+    position: sticky;
+    top: 0;
+    display: block;
+    margin-bottom: 2rem;
+    padding: .4rem 1rem;
+    background-color: var(--pico-header-background);
+    backdrop-filter: blur(1rem);
+    box-shadow: var(--pico-card-box-shadow);
+}
+
+.navigatie-secondary {
+    display: flex;
+}
+
+.navigatie .home {
+    flex-grow: 1;
+    margin: .4rem 0;
+    font-size: 1.2rem;
+}
+
+.navigatie .home a {
+    border-radius: var(--pico-border-radius);
+    padding: .2rem .5rem;
+    color: var(--pico-color);
+    text-decoration: none;
+}
+.navigatie .home a:focus-visible {
+    outline: none;
+    transition-duration: 0.05s;
+    color: var(--pico-primary-inverse);
+    background: var(--pico-primary-focus);
+}
+.navigatie nav {
+    display: flex;
+    flex-direction: column;
+}
+
+.navigatie[class] ul {
+    display: inline-flex;
+    flex-wrap: wrap;
+    margin: .3rem 0;
+    padding: 0;
+    font-size: 0.9rem;
+}
+.navigatie ul.navigatie--about {
+    font-size: 0.8rem;
+}
+
+.navigatie li {
+    display: inline-block;
+    margin: .2rem .1rem;
+    padding: 0;
+}
+.navigatie li:first-child {
+    margin-left: 0;
+}
+.navigatie li:last-child {
+    margin-right: 0;
+}
+
+.navigatie ul a {
+    padding: .2rem .5rem;
+    border-radius: var(--pico-border-radius);
+    color: var(--pico-color);
+    text-decoration: none;
+    transition: var(--pico-transition);
+}
+.navigatie ul a:hover {
+    color: var(--pico-primary-inverse);
+    background: var(--pico-color);
+    transition-duration: 0.05s;
+}
+.navigatie ul a:focus-visible {
+    outline: none;
+    transition-duration: 0.05s;
+    color: var(--pico-primary-inverse);
+    background: var(--pico-primary-focus);
+}
