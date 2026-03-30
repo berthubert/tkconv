@@ -243,7 +243,14 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	fmt::print("We miss document enclosure for indexed document with id {}\n", si.first);
 	dropids.insert(si.first); 
       }
-      else if(!isPresentRightSize(si.first, si.second.contentLength)) {
+      else if(isPresentNonEmpty(si.first, "improvdocs")) { // this is an improved document
+	if(!isPresentRightSize(si.first, si.second.contentLength, "improvdocs")) {
+	  fmt::print("Document {} IMPROVED enclosure for indexed document with id {} is wrong size (!= {}), reindexing\n", si.second.category, si.first, si.second.contentLength);
+	  // this also catches documents that were previously not improved, since they almost certainly changed size
+	  reindex.insert(si.first);
+	}
+      }
+      else if(!isPresentRightSize(si.first, si.second.contentLength)) { // normal doc that changed size somehow
 	fmt::print("Document {} enclosure for indexed document with id {} is wrong size (!= {}), reindexing\n", si.second.category, si.first, si.second.contentLength);
 	reindex.insert(si.first); 
       }
@@ -357,6 +364,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
     indexed++;
   }
 
+  sort(wantAll.begin(), wantAll.end(), [](const auto& a, const auto& b) {
+    return eget(a, "datum") < eget(b, "datum");
+  });
+  cout<<"wantAll.size(): "<<wantAll.size()<<endl;
+  
   atomic<size_t> ctr = 0;
   std::mutex m;
 
@@ -374,28 +386,36 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	notpresent++;
 	continue;
       }
-      string text = textFromFile(fname);
-      
-      if(text.empty()) {
-	if(isPresentNonEmpty(id, "improvdocs")) {
-	  string impfname = makePathForId(id, "improvdocs");
-	  
-	  text = textFromFile(impfname);
-	  if(!text.empty()) {
-	    fmt::print("{} did work using improvdocs overlay!\n", id);
-	  }
-	  else {
-	    fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(impfname) ? "PDF" : "");
-	    wrong++;
-	    continue;
-	  }
+      string text;
+
+
+      size_t fsiz;
+      // if we have an improved version, always use that!
+      if(isPresentNonEmpty(id, "improvdocs", "", &fsiz)) {
+	string impfname = makePathForId(id, "improvdocs");
+	
+	text = textFromFile(impfname);
+	if(!text.empty()) {
+	  fmt::print("{} did work using improvdocs overlay!\n", id);
+
+	  // put in the improved file length, so that later when rescanning we don't reindex
+	  wantAll[n]["contentLength"] = (int64_t)fsiz;
 	}
 	else {
+	  fmt::print("{} is not a file we can deal with {}, despite improvement\n", fname, isPDF(impfname) ? "PDF" : "");
+	  wrong++;
+	  continue;
+	}
+      }
+      else {
+	text = textFromFile(fname);
+	if(text.empty()) {
 	  fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(fname) ? "PDF" : "");
 	  wrong++;
 	  continue;
 	}
       }
+    
 
       lock_guard<mutex> p(m);
       string titel;
