@@ -66,7 +66,11 @@ std::string makePathForId(const std::string& id, const std::string& prefix="docs
 std::vector<std::string> getVersionsForId(const std::string& id);
 
 // for external ids
-bool haveExternalIdFile(const std::string& id, const std::string& prefix="op", const std::string& suffix=".odt");
+bool haveExternalIdFile(const std::string& id, const std::string& prefix="op", const std::string& suffix=".odt", size_t* siz =0);
+
+// for external ids
+bool haveExternalIdFileRightSize(const std::string& id, int64_t siz, const std::string& prefix, const std::string& suffix);
+
 
 // returns "f3/12" 
 std::string getSubdirForExternalID(const std::string& in);
@@ -89,6 +93,12 @@ bool endsWith(const std::string& str, const std::string& suffix);
 time_t getTstampRSSFormat(const std::string& str);
 time_t getTstamp(const std::string& str);
 time_t getTstampUTC(const std::string& str);
+//  2024-09-17
+time_t getDateTimestamp(const std::string& str);
+//
+// 2026-02-13T13:31:56.442737079Z
+std::string getDBDateTimeString(time_t w);
+
 std::string humanDutchTimestamp(time_t w);
 void sendEmail(const std::string& server, const std::string& from, const std::string& to, const std::string& subject, const std::string& textBody, const std::string& htmlBody="", const std::string& bcc="");
 void replaceSubstring(std::string &originalString, const std::string &searchString, const std::string &replaceString);
@@ -127,3 +137,4 @@ int64_t iget(const T& cont, const std::string& fname)
 
 std::string convertToSQLiteFTS5(const std::string& in);
 std::string enrichHTML(const std::string& html, SQLiteWriter& sqlw);
+std::string getContentsOfFile(const std::string& fname);

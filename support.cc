@@ -50,6 +50,28 @@ bool isRtf(const std::string& fname)
   return fileStartsWith(fname, "{\\rtf1");
 }
 
+string getContentsOfFile(const std::string& fname)
+{
+  FILE* pfp = fopen(fname.c_str(), "r");
+  if(!pfp)
+    throw runtime_error("Unable to get document "+fname+": "+string(strerror(errno)));
+  
+  shared_ptr<FILE> fp(pfp, fclose);
+  char buffer[4096];
+  string ret;
+  for(;;) {
+    int len = fread(buffer, 1, sizeof(buffer), fp.get());
+    if(!len)
+      break;
+    ret.append(buffer, len);
+  }
+  if(!ferror(fp.get())) {
+    return ret;
+  }
+  return "";
+}
+
+
 // we add the slash to prefix for you, you need to put the . in the suffix (if you want one)
 string makePathForId(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
 {
@@ -264,6 +286,18 @@ time_t getTstampRSSFormat(const std::string& str)
   return timegm(&tm);
 }
 
+//  2024-09-17
+time_t getDateTimestamp(const std::string& str)
+{
+  struct tm tm={};
+  
+  strptime(str.c_str(), "%Y-%m-%d", &tm);
+  tm.tm_isdst = -1; // you figure out if this is DST
+  // make sure TZ is set to Dutch time...
+  return mktime(&tm); // this interprets tm as if it is in local time
+  
+}
+
 // we feed this timestamps from the database, which is in "Dutch wallclock time"
 time_t getTstamp(const std::string& str)
 {
@@ -294,6 +328,12 @@ string humanDutchTimestamp(time_t w)
   if(!ret.empty())
     ret[0] = toupper(ret[0]);
   return ret;
+}
+
+// 2026-02-13T13:31:56.442737079Z
+std::string getDBDateTimeString(time_t w)
+{
+  return fmt::format("{:%Y-%M-%DT%H:%M:%S}", fmt::localtime(w));
 }
 
 // do not put \r in in

@@ -107,26 +107,6 @@ static string getReasonableJPEG(const std::string& id)
   return ret;
 }
 
-static string getContentsOfFile(const std::string& fname)
-{
-  FILE* pfp = fopen(fname.c_str(), "r");
-  if(!pfp)
-    throw runtime_error("Unable to get document "+fname+": "+string(strerror(errno)));
-  
-  shared_ptr<FILE> fp(pfp, fclose);
-  char buffer[4096];
-  string ret;
-  for(;;) {
-    int len = fread(buffer, 1, sizeof(buffer), fp.get());
-    if(!len)
-      break;
-    ret.append(buffer, len);
-  }
-  if(!ferror(fp.get())) {
-    return ret;
-  }
-  return "";
-}
 
 // for verslag XML, this makes html w/o <html> etc, for use in a .div
 static string getHtmlForDocument(const std::string& id, bool bare=false)
@@ -1869,7 +1849,7 @@ int main(int argc, char** argv)
     
     // 2024-09-19T12:19:10.3141655Z
     string updated = data["updated"];
-    struct tm tm;
+    struct tm tm={};
     strptime(updated.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
     time_t then = timegm(&tm);
     data["updated"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
@@ -2038,6 +2018,7 @@ int main(int argc, char** argv)
 	    {"category", r.categorie},
 	    {"onderwerp", r.onderwerp},
 	    {"snip", r.snippet},
+	    {"relurl", r.relurl},
 	    {"bijgewerkt", r.bijgewerkt},
 	    {"persoonnummer", r.persoonnummer}
 	  }));
