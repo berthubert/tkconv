@@ -304,7 +304,7 @@ async function getSearchResults(f)
         f.foundDocs = data["results"];
 	const rssurl = new URL("https://berthub.eu/tkconv/search/index.xml");
 	rssurl.searchParams.set("q", f.searchQuery);
-	f.rssurl = rssurl.href
+	f.rssurl = rssurl.href;
 
 	f.message = `${data["milliseconds"]} milliseconden`;
 	f.busy=false;
