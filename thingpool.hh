@@ -155,11 +155,20 @@ struct ThingPool
     T* d_thing;
   };
 
+  std::function<void(T&)> d_init;
+  // sets a function to be called after call to d_maker
+  void setInit(std::function<void(T&)> init)
+  {
+    d_init = init;
+  }
+  
   Lease getLease()
   {
     std::lock_guard<std::mutex> lck(d_lock);
     if(d_pool.empty()) {
       d_pool.push_back(d_maker());
+      if(d_init)
+	d_init(**d_pool.rbegin());
       // cout<<"Created new thing "<<(void*)d_pool.front()<<endl;
     }
     Lease l(this, d_pool.front());
