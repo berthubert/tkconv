@@ -92,6 +92,10 @@ kind: 'zoek'
 	<template x-if="d.category=='Toezegging'">
 	  <td><a x-text="d.nummer" x-bind:href="'toezegging.html?nummer='+d.nummer"></a></td>
 	</template>
+	<template x-if="d.category=='OODocument'">
+	  <td><a x-text="d.nummer.substr(0,8)" x-bind:href="d.relurl"></a></td>
+	</template>
+	
 	<template x-if="d.category=='PersoonGeschenk'">
 	  <td><a x-text="d.nummer.substr(0,8)" x-bind:href="'persoon.html?nummer='+d.persoonnummer+'#'+d.nummer"></a></td>
 	</template>
