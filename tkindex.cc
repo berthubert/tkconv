@@ -98,7 +98,8 @@ int main(int argc, char** argv)
   }
   cout<<"Limit for documents: "<<limit<<endl;
   SQLiteWriter todo("tk.sqlite3", SQLWFlag::ReadOnly);
-
+  todo.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+  
   std::regex dregex(R"(\d{4}-\d{2}-\d{2})");
   if(!regex_match(limit, dregex)) {
     fmt::print("The configured begin limit does not look like a date: '{}' (should be 2024-12-25)\n", limit);
@@ -128,6 +129,9 @@ int main(int argc, char** argv)
   auto wantPersoonGeschenk = todo.queryT("select persoongeschenk.id id, omschrijving, datum, roepnaam, tussenvoegsel, achternaam,persoongeschenk.bijgewerkt from PersoonGeschenk,Persoon where persoon.id = persoonId");
   fmt::print("There are {} persoongeschenken in the tk database that need to be in the index\n", wantPersoonGeschenk.size());
 
+  auto wantOO = todo.queryT("select id, titel, openbaarmakingsdatum datum, verantwoordelijke, grootte contentLength, mutatiedatumtijd bijgewerkt, 'OODocument' category, omschrijvingen as onderwerp from OODocument where datum > ? and verantwoordelijke != 'Tweede Kamer' and documentsoorten not like '%Kamerbrief%' and contentType != 'application/x-zip-compressed'", {limit});
+  fmt::print("There are {} OODocuments in the tk database that need to be in the index\n", wantOO.size());
+  
   
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
@@ -197,6 +201,9 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   for(auto& e : wantPersoonGeschenk) {
     exists.insert(eget(e, "id"));
   }
+  for(auto& e : wantOO) {
+    exists.insert(eget(e, "id"));
+  }
 
   
   // we build up a to-delete table
@@ -204,7 +211,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   bool workToDo=false;
   for(const auto& si : skipids) {
     if(!exists.count(si.first)) {
-      cout<<si.first<<" is in indexed, but no longer in Document, Verslag or Activiteit or Toezegging table, will be removed\n";
+      cout<<si.first<<" is in indexed, but no longer in Document, Verslag, OODocument, or Activiteit or Toezegging table, will be removed\n";
       sqlw.addValue({{"id", si.first}}, "aux1.todel");
       workToDo = true;
     }
@@ -236,6 +243,25 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	  reindex.insert(si.first);
 	}
 
+      }
+    }
+    else if(si.second.category=="OODocument") {
+      //      cout<<"Checking OODocument "<<si.first<<": "<<haveExternalIdFile(si.first, "oo", ".pdf")<<", improved: "<< haveExternalIdFile(si.first, "improvoo", ".pdf") << endl;
+      if(!haveExternalIdFile(si.first, "oo", ".pdf")) {
+	fmt::print("We miss OODocument enclosure for indexed document with id {}\n", si.first);
+	dropids.insert(si.first);
+      }
+      else if(haveExternalIdFile(si.first, "improvoo", ".pdf")) {
+	//	cerr<<"We do have an improved version!"<<endl;
+	if(!haveExternalIdFileRightSize(si.first, si.second.contentLength, "improvoo", ".pdf")) {
+	  fmt::print("Document {} IMPROVED enclosure for indexed OOdocument with id {} is wrong size (!= {}), reindexing\n", si.second.category, si.first, si.second.contentLength);
+	  // this also catches documents that were previously not improved, since they almost certainly changed size
+	  reindex.insert(si.first);
+	}
+      }
+      else if(!haveExternalIdFileRightSize(si.first, si.second.contentLength, "oo", ".pdf")) {
+	fmt::print("Document {} enclosure for indexed document with id {} is wrong size (!= {}), reindexing\n", si.second.category, si.first, si.second.contentLength);
+	reindex.insert(si.first); 
       }
     }
     else { // this is a document
@@ -288,6 +314,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   for(const auto& wv : wantVerslagen)
     wantAll.push_back(wv);
 
+  for(const auto& wv : wantOO)
+    wantAll.push_back(wv);
+
+  
   atomic<int> skipped=0, notpresent=0, wrong=0, indexed=0;
   
   for(const auto& act : wantActiviteiten) {
@@ -375,47 +405,80 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   auto worker = [&]() {
     for(unsigned int n = ctr++; n < wantAll.size(); n = ctr++) {
       string id = get<string>(wantAll[n]["id"]);
+      string text;
       if(skipids.count(id)) {
 	//	fmt::print("{} indexed already, skipping\n", id);
 	skipped++;
 	continue;
       }
-      string fname = makePathForId(id);
-      if(!isPresentNonEmpty(id)) {
-	//	fmt::print("{} is not present\n", id);
-	notpresent++;
-	continue;
-      }
-      string text;
+      if(eget(wantAll[n], "category") == "OODocument") {
+	string fname = makePathForExternalID(id, "oo", ".pdf", false);
+	size_t fsiz=0;
+	if(!haveExternalIdFile(id, "oo", ".pdf", &fsiz)) {
+	  fmt::print("OODocument file {} not present\n", fname);
+	  notpresent++;
+	  continue;
+	}
 
+	if(haveExternalIdFile(id, "improvoo", ".pdf", &fsiz)) {
+	  fname = makePathForExternalID(id, "improvoo", ".pdf", false);
 
-      size_t fsiz;
-      // if we have an improved version, always use that!
-      if(isPresentNonEmpty(id, "improvdocs", "", &fsiz)) {
-	string impfname = makePathForId(id, "improvdocs");
-	
-	text = textFromFile(impfname);
-	if(!text.empty()) {
-	  fmt::print("{} did work using improvdocs overlay!\n", id);
-
+	  fmt::print("Indexing improved OODocument {} from {}\n", id, fname);
+	  text = textFromFile(fname);
+	  if(text.empty()) {
+	    fmt::print("{} is not an OODocument file we can deal with, not even the improved version\n", id, fname);
+	    wrong++;
+	    continue;
+	  }
+	  
 	  // put in the improved file length, so that later when rescanning we don't reindex
 	  wantAll[n]["contentLength"] = (int64_t)fsiz;
 	}
 	else {
-	  fmt::print("{} is not a file we can deal with {}, despite improvement\n", fname, isPDF(impfname) ? "PDF" : "");
-	  wrong++;
-	  continue;
+	  text = textFromFile(fname);
+	  if(text.empty()) {
+	    fmt::print("{} is not an OODocument file we can deal with\n", fname);
+	    wrong++;
+	    continue;
+	  }
+	  wantAll[n]["contentLength"] = (int64_t)fsiz; // need to put in the _actual_ length
 	}
       }
       else {
-	text = textFromFile(fname);
-	if(text.empty()) {
-	  fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(fname) ? "PDF" : "");
-	  wrong++;
+	string fname = makePathForId(id);
+	if(!isPresentNonEmpty(id)) {
+	  //	fmt::print("{} is not present\n", id);
+	  notpresent++;
 	  continue;
 	}
+	
+	size_t fsiz;
+	// if we have an improved version, always use that!
+	if(isPresentNonEmpty(id, "improvdocs", "", &fsiz)) {
+	  string impfname = makePathForId(id, "improvdocs");
+	  
+	  text = textFromFile(impfname);
+	  if(!text.empty()) {
+	    fmt::print("{} did work using improvdocs overlay!\n", id);
+	    
+	    // put in the improved file length, so that later when rescanning we don't reindex
+	    wantAll[n]["contentLength"] = (int64_t)fsiz;
+	  }
+	  else {
+	    fmt::print("{} is not a file we can deal with {}, despite improvement\n", fname, isPDF(impfname) ? "PDF" : "");
+	    wrong++;
+	    continue;
+	  }
+	}
+	else {
+	  text = textFromFile(fname);
+	  if(text.empty()) {
+	    fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(fname) ? "PDF" : "");
+	    wrong++;
+	    continue;
+	  }
+	}
       }
-    
 
       lock_guard<mutex> p(m);
       string titel;
