@@ -12,6 +12,15 @@
   <input name="soorten" value="alles" type="hidden">
 </form>
 
+<style>
+  @media (width < 1000px) {
+      .optional {
+	  display: none;
+      }
+  }
+</style>
+
+
 Meest recente documenten (live updates)
 <small>
   <form>
@@ -35,8 +44,8 @@ Meest recente documenten (live updates)
   <thead>
     <tr>
       <th>Datum</th>
-      <th>Bijgewerkt</th>
-      <th>Comm.</th>
+      <th class="optional">Bijgewerkt</th>
+      <th class="optional">Comm.</th>
       <th>Onderwerp</th>
       <th>Titel/Soort</th>
     </tr>
@@ -46,8 +55,8 @@ Meest recente documenten (live updates)
     {% if d.nummer != "2024D36216" %}
       <tr>
 	<td>{{ d.datum }}</td>
-	<td>{{ d.bijgewerkt }}</td>
-	<td>{% if existsIn(d, "naam") %}<abbr title="{{ d.naam }}">{{ d.afkorting }}</abbr>{% endif %}</td>
+	<td class="optional">{{ d.bijgewerkt }}</td>
+	<td class="optional">{% if existsIn(d, "naam") %}<abbr title="{{ d.naam }}">{{ d.afkorting }}</abbr>{% endif %}</td>
 	{% if d.soort != "Verslag" %}
 	<td> {{ d.onderwerp }}  (<a href="document.html?nummer={{d.nummer}}">{{d.nummer}}</a>)</td>
 	{% else %}
