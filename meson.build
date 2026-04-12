@@ -37,15 +37,25 @@ executable('tkgetxml', 'tkgetxml.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-#executable('roget', 'roget.cc', 'support.cc', 'siphash.cc', 
-#	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep, simplesockets_dep,
-#	argparse_dep, vcs_dep])
+executable('ooget', 'ooget.cc', 'support.cc', 'siphash.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep, simplesockets_dep,
+	argparse_dep, vcs_dep])
+
+executable('oopull', 'oopull.cc', 'support.cc', 'siphash.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep, simplesockets_dep,
+	argparse_dep, vcs_dep])
 
 
 executable('tkbot', 'tkbot.cc', 'support.cc', 'siphash.cc', 'scanmon.cc', 'search.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
 	sqlitewriter_dep, pugi_dep, simplesockets_dep,
 	argparse_dep, vcs_dep])
+
+executable('tkfsck', 'tkfsck.cc', 'support.cc', 'siphash.cc', 
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
+	sqlitewriter_dep,pugi_dep, simplesockets_dep,
+	argparse_dep, vcs_dep])
+
 
 executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep,
