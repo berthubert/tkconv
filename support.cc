@@ -235,19 +235,38 @@ string makePathForExternalID(const std::string& id, const std::string& prefix, c
   return prefix + "/" + getSubdirForExternalID(id)+"/" +id + suffix;
 }
 
-bool haveExternalIdFile(const std::string& id, const std::string& prefix, const std::string& suffix)
+bool haveExternalIdFile(const std::string& id, const std::string& prefix, const std::string& suffix, size_t* siz)
 {
   if(id.find_first_of("./") != string::npos)
     return false;
   
   struct stat sb;
   string fname = prefix + "/" + getSubdirForExternalID(id)+"/" +id + suffix;
+
   int ret = stat(fname.c_str(), &sb);
+  if(ret>=0 && siz)
+    *siz = sb.st_size;
 
   if(ret < 0 || sb.st_size == 0)
     return false;
   return true;
 }
+// bit duplicate, sorry
+bool haveExternalIdFileRightSize(const std::string& id, int64_t siz, const std::string& prefix, const std::string& suffix)
+{
+  if(id.find_first_of("./") != string::npos) 
+    return false;
+  
+  struct stat sb;
+  string fname = prefix + "/" + getSubdirForExternalID(id)+"/" +id + suffix;
+  int ret = stat(fname.c_str(), &sb);
+    
+  
+  if(ret < 0 || sb.st_size != siz)
+    return false;
+  return true;
+}
+
 
 
 /*int siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
