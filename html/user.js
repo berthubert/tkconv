@@ -75,8 +75,14 @@ async function doMijnInit(f)
     }
 }
 
+
+
 async function getMonitors(f)
 {
+    getOOVerantwoordelijken(f);
+    getOOMonitors(f);
+
+    
     const response = await fetch('my-monitors');
     if (response.ok === true) {
         const data = await response.json();
@@ -84,6 +90,85 @@ async function getMonitors(f)
 	f.monitors = data["monitors"];
     }
 
+}
+
+async function removeOOMonitorAndSync(f, v)
+{
+    console.log(`Would like to remove "${v}"`);
+    const formData = new FormData();
+    formData.append('verantwoordelijke', v);
+
+    const response = await fetch('remove-oo-verantwoordelijke-monitor', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+	f.verantwoordelijken = data["oomonitors"];
+	console.log(data);
+	
+	// sync these too
+	const response2 = await fetch('my-monitors');
+	if (response2.ok === true) {
+            const data = await response2.json();
+	    console.log(data);
+	    f.monitors = data["monitors"];
+	}
+
+	
+    }
+    else {
+	console.log("error");
+    }
+
+
+    
+    return false;
+}
+
+async function addOOMonitorAndSync(f, v)
+{
+    console.log(`Would like to add "${v}"`);
+    if(f.verantwoordelijken.indexOf(v) >= 0) {
+	console.log("Was there already, not doing a thing");
+	return;
+    }
+    else
+	console.log(f.verantwoordelijken);
+    
+    const formData = new FormData();
+    formData.append('verantwoordelijke', v);
+
+    const response = await fetch('add-oo-verantwoordelijke-monitor', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+	f.verantwoordelijken = data["oomonitors"];
+
+	// sync these too
+	const response2 = await fetch('my-monitors');
+	if (response2.ok === true) {
+            const data = await response2.json();
+	    console.log(data);
+	    f.monitors = data["monitors"];
+	}
+	
+	console.log(data);
+    }
+    else {
+	console.log("error");
+    }
+    return false;
+}
+
+async function getOOMonitors(f)
+{
+    const response = await fetch('get-oo-verantwoordelijke-monitors');
+    if (response.ok === true) {
+        const data = await response.json();
+	f.verantwoordelijken = data["oomonitors"];
+	console.log(data);
+    }
+    else {
+	console.log("error");
+    }
+    return false;
 }
 
 async function doRequestInvite(f)

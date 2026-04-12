@@ -318,3 +318,103 @@ async function getSearchResults(f)
 }
 
 
+const afkos=["Alles", "Ministeries", "EersteKamer", "WOO", "Onbekend", "AZ", "BUZA", "BZK", "EZK", "DEF", "FIN", "IEW", "JEV", "LVVN", "OCW", "SZW", "VRO", "VWS"];
+
+async function updateOODS(f)
+{
+    let str = window.location.href.split('?')[0];
+    const url = new URL(str);
+
+    for(const element of  afkos ) {
+	const e = "want"+element;
+	console.log(e);
+	localStorage.setItem("oo-"+e, f[e]);
+	if(f[e] == true) {
+	    url.searchParams.set(e, f[e]);
+	}
+    }
+    if(url.href != window.location.href) 
+	window.location.href = url.href;
+//    console.log(`New URL: ${url.href}`);
+
+}
+
+function parseOODSURl(f)
+{
+    const url = new URL(window.location.href);
+    if(url.search=="") {
+	console.log("No settings");
+	for(const element of afkos) {
+	    const e = "want"+element;
+	    const i = localStorage.getItem("oo-"+e);
+	    if(i != null) // only override if we have data
+		f[e] = i == "true";
+	    console.log(e+": "+localStorage.getItem("oo-"+e));
+	}
+	updateOODS(f);
+    }
+    else {
+	for(const element of afkos) {
+	    const e = "want"+element;
+	    f[e] = (url.searchParams.get(e) =="true");
+	}
+    }
+
+}
+
+// for mijn.html
+async function getOOVerantwoordelijken(f)
+{
+    // array of names
+    var config= {
+	placeHolder: "Verantwoordelijke",
+	threshold: 2,
+	data: {
+	    src: async (query) => {
+		try {
+		    // Fetch Data from external Source
+		    const searchParams = new URLSearchParams("");
+		    searchParams.set("q", query);
+		    const source = await fetch("./oo-verantwoordelijken?"+searchParams.toString());
+		    const data = await source.json();
+		    return data;
+		} catch (error) {
+		    console.log(error);
+		    return error;
+		}
+	    }
+	},
+	diacritics: true,
+	
+	resultItem: {
+	    highlight: {
+		render: true
+	    },
+	    submit: true
+	},
+	resultsList: {
+	    maxResults: 100,
+	    element: (list, data) => {
+		const info = document.createElement("p");
+		if (data.results.length) {
+		    info.innerHTML = `Toont <strong>${data.results.length}</strong> van de <strong>${data.matches.length}</strong> resultaten`;
+		} else {
+		    info.innerHTML = `Vond <strong>${data.matches.length}</strong> documenten voor <strong>"${data.query}"</strong>`;
+		}
+		list.prepend(info);
+		
+	    }
+	},
+	events: {
+	    input: {
+		selection: (event) => {
+		    const selection = event.detail.selection.value;
+		    autoCompleteJS.input.value = selection;
+		    addOOMonitorAndSync(f, selection);
+		}
+	    }
+	}
+    };
+    
+    const autoCompleteJS = new autoComplete(config);
+}
