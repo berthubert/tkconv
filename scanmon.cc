@@ -40,6 +40,26 @@ std::string ZoekScanner::describe(SQLiteWriter& sqlw)
 }
 
 
+std::vector<ScannerHit> OODocumentVerantwoordelijkeScanner::get(SQLiteWriter& sqlw) 
+{
+  auto hits = sqlw.queryT("select id,openbaarmakingsdatum from oo.OODocument where openbaarmakingsdatum >= ? and verantwoordelijke=?",
+			  {d_cutoff,
+			   d_verantwoordelijke
+			  });
+  
+  std::vector<ScannerHit> ret;
+  for(auto& h : hits) {
+    ScannerHit sh{.identifier=eget(h, "id"),
+		  .date =eget(h, "openbaarmakingsdatum"),
+		  .kind = "OODocument",
+		  .relurl = "oo.html?nummer="+eget(h, "id"),
+    };
+    ret.push_back(sh);
+  }
+  return ret;
+}
+
+
 std::map<std::string, decltype(&ZaakScanner::make)> g_scanmakers  =
     {
       {"activiteit", ActiviteitScanner::make},
@@ -49,4 +69,5 @@ std::map<std::string, decltype(&ZaakScanner::make)> g_scanmakers  =
       {"commissie", CommissieScanner::make},
       {"persoon", PersoonScanner::make},
       {"toezeggingen", ToezeggingenScanner::make},
+      {"OODocumentVerantwoordelijke", OODocumentVerantwoordelijkeScanner::make}
     };

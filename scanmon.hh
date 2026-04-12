@@ -321,6 +321,31 @@ struct ToezeggingenScanner : Scanner
 };
 
 
+struct OODocumentVerantwoordelijkeScanner : Scanner
+{
+  std::string getType() override
+  {
+    return "Open.overheid.nl verantwoordelijke";
+  }
+
+  static std::unique_ptr<Scanner> make(SQLiteWriter& sqlw, const std::string& id) 
+  {  
+    OODocumentVerantwoordelijkeScanner s;
+    auto row = s.getRow(sqlw, id);
+    s.d_verantwoordelijke = eget(row, "verantwoordelijke");
+    return std::make_unique<OODocumentVerantwoordelijkeScanner>(s);
+  }
+  
+  std::vector<ScannerHit> get(SQLiteWriter& sqlw) override;
+  
+  std::string describe(SQLiteWriter& sqlw) override
+  {
+    return "Open.overheid.nl documenten van "+d_verantwoordelijke;
+  }
+  std::string d_verantwoordelijke;
+};
+
+
 #if 0
 struct GeschenkScanner : Scanner
 {

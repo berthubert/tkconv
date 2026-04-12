@@ -58,6 +58,14 @@ string getDescription(SQLiteWriter& sqlw, const std::string& nummer, const std::
     }
     return eget(res[0], "titel");
   }
+  else if(category=="OODocument") {
+    auto res = sqlw.queryT("select titel from oo.OODocument where id=?",
+			   {nummer});
+    if(!res.empty())
+      return eget(res[0], "titel");
+    else return "";
+  }
+
   else if(category=="Activiteit") {
     auto res = sqlw.queryT("select soort||' '||onderwerp as onderwerp,datum from Activiteit where nummer=?",
 			 {nummer});
@@ -129,9 +137,12 @@ int main(int argc, char** argv)
   }
       
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
-  //   user         id          scanners
+  tp.setInit([](SQLiteWriter& sqlw) {
+    sqlw.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+  });
 
   
+  //   user         id          scanners
   map<string, map<ScannerHit, set<Scanner*>>> all;
 
   atomic<size_t> ctr = 0;
@@ -146,6 +157,7 @@ int main(int argc, char** argv)
       std::lock_guard<std::mutex> l(mlock); // sqlite gets unhappy if you all try to open the same db at the same time
       own = make_unique<SQLiteWriter>("tkindex-small.sqlite3", SQLWFlag::ReadOnly);
       own->query("ATTACH DATABASE 'tk.sqlite3' as meta");
+      own->query("ATTACH DATABASE 'oo.sqlite3' as oo");
     }
     
     for(size_t n = ctr++; n < scanners.size(); n = ctr++) {
