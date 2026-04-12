@@ -251,12 +251,8 @@ int main(int argc, char** argv)
   sqlw.queryT("CREATE table if not exists OODocument (id TEXT NOT NULL REFERENCES OOEntry(id) ON DELETE CASCADE)");
   sqlw.queryT("CREATE unique index if not exists OODocumentUnique on OODocument(id)");
   
-
-  
   int numresultaten=50;
-
-
-  string newest="2026-01-01";
+  string newest="2025-01-01";
 
   bool dynamicStartDate=true;
   if(dynamicStartDate) {
@@ -402,7 +398,10 @@ int main(int argc, char** argv)
       string verantwoordelijke=document["verantwoordelijke"]["label"];
       int64_t grootte = bestand["grootte"];
       string contentType = bestand["mime-type"];
-      
+      string weblocatie;
+      if(document.count("weblocatie"))
+	 weblocatie = document["weblocatie"];
+	 
       string titel;
       if(document.count("titelcollectie"))
 	titel=document["titelcollectie"]["officieleTitel"];
@@ -455,6 +454,7 @@ int main(int argc, char** argv)
 	  {"documentsoorten", dsoorten},
 	  {"json", details.dump()},
 	  {"versie", (int64_t)details["versies"][0]["nummer"]},
+	  {"weblocatie", weblocatie},
 	  {"contentType", contentType}
 	  
 	}, "OODocument");

@@ -9,8 +9,27 @@
 #include "httplib.h"
 #include <set>
 #include "support.hh"
-
+#include <openssl/evp.h>
+#include "argparse/argparse.hpp"
 using namespace std;
+
+static string getSHA1HashString(const std::string& in)
+{
+  unsigned char digest[EVP_MAX_MD_SIZE];
+  size_t digest_len = 0;
+  
+  if(!EVP_Q_digest(nullptr, "SHA1", nullptr,
+	       in.c_str(), in.size(),
+		   digest, &digest_len))
+    throw runtime_error("Calculating SHA1 failed");
+  
+  string ret;
+  for (size_t i = 0; i < digest_len; i++) {
+    ret += fmt::sprintf("%02x", digest[i]);
+  }
+  return ret;
+}
+
 
 static void ifExistsAndDifferentThenRename(const std::string& fname, const std::string& content)
 {
@@ -53,17 +72,101 @@ void storeExternalDocument(const std::string& id, string suffix, const std::stri
   }
 }
 
+void doFSCK(const auto& wantDocs)
+{
+  std::atomic<int> missing=0, wrongHash=0, wrongSize=0, ok=0;
+  std::atomic<int> ctr=0;
+  std::mutex m;
+
+  ofstream broken("broken.csv");
+  broken<<"id,error,dbhash,filehash,dbsize,filesize"<<endl;
+  
+  auto doCheck=[&]() {
+    for(unsigned int n = ctr++; n < wantDocs.size(); n = ctr++) {
+      if(!(n % 256)) {
+	fmt::print("\rChecked {} OODocuments, {} were mising, {} had the wrong size, {} the wrong hash, {} were ok",
+		   n, (int)missing, (int)wrongSize, (int)wrongHash, (int)ok);
+	cout.flush();
+      }
+      const auto& wd = wantDocs[n];
+      string reason;
+      size_t fsiz=0;
+      string hash;
+      
+      if(!haveExternalIdFile(eget(wd, "id"), "oo", ".pdf", &fsiz)) {
+	reason="missing";
+	missing++;
+      }
+      else if(!haveExternalIdFileRightSize(eget(wd, "id"), iget(wd, "grootte"), "oo", ".pdf")) {
+	reason="wrongsize";
+	wrongSize++;
+      }
+      else {
+	string fname = makePathForExternalID(eget(wd, "id"), "oo", ".pdf");
+	string contents = getContentsOfFile(fname);
+	hash = getSHA1HashString(contents);
+	if(hash == eget(wd, "hash"))
+	  ok++;
+	else {
+	  reason="wronghash";
+	  wrongHash++;
+	}
+      }
+      if(!reason.empty()) {
+	lock_guard<mutex> p(m);
+	broken<<eget(wd, "id")<<","<<reason<<","<<eget(wd, "hash")<<","<<hash<<","<<iget(wd,"grootte")<<","<<fsiz<<endl;
+      }
+    }
+  };
+
+  vector<thread> workers;
+  for(int n=0; n < 16; ++n)  // number of threads, go brrr
+    workers.emplace_back(doCheck);
+  
+  for(auto& w : workers)
+    w.join();
+
+
+  fmt::print("\rChecked {} OODocuments, {} were mising, {} had the wrong size, {} wrong hash, {} were ok\n\n",
+	     wantDocs.size(), (int)missing, (int)wrongSize, (int)wrongHash, (int)ok);
+}
+
 int main(int argc, char** argv)
 {
+  argparse::ArgumentParser args("oopull", "0.0");
+
+  args.add_argument("--fsck").default_value(false)
+    .implicit_value(true).help("Check file sizes and hashes");
+
+  args.add_argument("--begin")
+    .help("Begin date of indexing, 2024-12-05 format").default_value("2025-01-01");
+
+  
+  try {
+    args.parse_args(argc, argv);
+  }
+  catch (const std::runtime_error& err) {
+    std::cout << err.what() << std::endl << args;
+    std::exit(1);
+  }
+  
   SQLiteWriter sqlw("oo.sqlite3", SQLWFlag::ReadOnly);
 
-  string limit="2026-01-01";
-  auto wantDocs = sqlw.queryT("select id,bestandsId,grootte,hash,titel from OODocument where openbaarmakingsdatum > ? and verantwoordelijke != 'Tweede Kamer' and verantwoordelijke not like 'gemeente %'", {limit});
+  string limit = args.get<string>("begin");
+
+  auto wantDocs = sqlw.queryT("select id,bestandsId,grootte,hash,titel from OODocument where openbaarmakingsdatum > ? and verantwoordelijke != 'Tweede Kamer'", {limit});
   cout<<"Got "<<wantDocs.size()<<" documents we need to ensure we have (correctly)"<<endl;
-  int error=0, retrieved=0, present=0;
+  int error=0, retrieved=0, present=0, wrongSize=0;
+
+
+  if (args["--fsck"] == true) {
+    doFSCK(wantDocs);
+    std::exit(0);
+  }
   
   int numalready=erase_if(wantDocs, [](auto &wd) {
-    return haveExternalIdFileRightSize(eget(wd, "id"), iget(wd, "grootte"), "oo", ".pdf");
+    return haveExternalIdFile(eget(wd, "id"), "oo", ".pdf");
+    //    return haveExternalIdFileRightSize(eget(wd, "id"), iget(wd, "grootte"), "oo", ".pdf");
   });
 
   set<string> knownbad{"2e094d39-8dde-4ac3-b7d6-bbdf94936359", "2edb5bf0-2cf0-40c8-9c03-3302d144504c", "a296fe12-cedb-4b1f-bec5-3a5ee1198b9b"};
@@ -76,12 +179,13 @@ int main(int argc, char** argv)
 	     numknownbad,
 	     wantDocs.size());
   
-  
+  int counter=1;
   for(const auto& wd: wantDocs) {
-    cout << eget(wd, "id")<<" " << eget(wd, "titel") << " bestandsid " << eget(wd, "bestandsid") << " " << iget(wd, "grootte")<<"\n";
-    
+    cout << counter << "/" << wantDocs.size() <<": "<<eget(wd, "id")<<" " << eget(wd, "titel") << " bestandsid " << eget(wd, "bestandsid") << " " << iget(wd, "grootte")<<"\n";
+    counter++;
+      
     string url="https://open.overheid.nl";
-    httplib::Client cli(url);
+      httplib::Client cli(url);
     cli.set_connection_timeout(10, 0); 
     cli.set_read_timeout(10, 0); 
     cli.set_write_timeout(10, 0);
@@ -104,9 +208,26 @@ int main(int argc, char** argv)
       continue;
     }
 
+    if(res->body.size() != (unsigned size_t)iget(wd,"grootte")) {
+      cout<<" !!! FILESIZE WRONG!"<<endl;
+      wrongSize++;
+    }
+
+    if(getSHA1HashString(res->body) != eget(wd,"hash")) {
+      cout<<" !!! HASH WRONG"<<endl;
+    }
+    if(res->body.empty()) {
+      fmt::print("Empty response for url {}, not storing\n",
+		 url);
+      error++;
+      continue;
+    }
     storeExternalDocument(eget(wd, "id"), ".pdf", res->body);
     retrieved++;
-    fmt::print("Got {} bytes ({}/{}) \n", res->body.size(), retrieved+error+present, wantDocs.size());
+    fmt::print("\n");
+    //    fmt::print("Got {} bytes ({}/{}) \n", res->body.size(), retrieved+error+present, wantDocs.size());
     sleep(1);
-  }    
+  }
+  fmt::print("Had {} OODocuments to look at, stored {}, {} with wrong file size. {} retrieval failures.\n",
+	     wantDocs.size(), retrieved, wrongSize, error);
 }
