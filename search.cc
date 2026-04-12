@@ -103,6 +103,19 @@ std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query,
       r.bijgewerkt = eget(gesch[0], "bijgewerkt");
       r.persoonnummer = std::get<int64_t>(gesch[0]["nummer"]);
     }
+    else if(category == "OODocument") {
+      auto ood = d_sqw.queryT("SELECT id, titel, omschrijvingen, mutatiedatumtijd bijgewerkt, openbaarmakingsdatum datum, omschrijvingen from oo.OODocument where id=?", {id});
+      
+      if(ood.empty()) {
+	fmt::print("Weird, could not find OODocument {} in tk", id);
+	continue;
+      }
+      r.nummer = id;
+      r.relurl = "oo.html?nummer=" + eget(ood[0], "id");
+      r.titel = eget(ood[0], "omschrijvingen"); 
+      r.onderwerp = eget(ood[0],"titel");
+      r.bijgewerkt = eget(ood[0], "bijgewerkt"); // UTC issue XXX
+    }
 
     else {
       cout<<"Unknown category '"<<category<<"'\n";

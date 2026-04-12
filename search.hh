@@ -15,7 +15,7 @@
    The 'categorie' however is still called 'Verslag'.
 */
 
-// you give this a SQLite connection with both tkindex and tk in there
+// you give this a SQLite connection with both tkindex and tk and oo in there
 struct SearchHelper
 {
   explicit SearchHelper(SQLiteWriter& sqw) : d_sqw(sqw)
