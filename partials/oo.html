@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block div %}
+{% endblock %}
+
+{% block javascript %}
+{% endblock %}
+
+
+{% block main %}
+<hgroup>
+<h1>{{ titel }}</h1>
+<h4>{{ verantwoordelijke }} (via open.overheid.nl)</h4>
+</hgroup>
+<p>
+  Openbaarmakingsdatum: {{ openbaarmakingsdatum }}, laatste wijziging: {{ mutatiedatumtijd }}, 🔗<a href="https://open.overheid.nl/details/{{id}}">Pagina op open.overheid.nl</a>{% if length(weblocatie) > 0 %}, 🔗<a href="{{weblocatie}}">bekijk op officielebekendmakingen.nl</a>.
+  {% endif %}
+  
+</p>
+{% if length(reldocs) > 0 %}
+<h3>Gerelateerde documenten</h3>
+<ul>
+  {% for a in reldocs %}
+  <li><a href="./oo.html?nummer={{a.id}}">{{a.titel}}</a> </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if bronDocument != "" %}
+
+Hoort bij document <a href="./oo.html?nummer={{bronDocument}}">{{bronTitel}}</a>
+
+{% endif %}
+<iframe width='95%'  height='1024' src='./getrawoo/{{id}}'></iframe>
+{% endblock %}
+	

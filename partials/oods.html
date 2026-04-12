@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block div %}
+x-data="{
+wantAlles: false,
+wantMinisteries: true,
+wantEersteKamer: false,
+wantAZ: false, wantBUZA: false, wantBZK: false, wantEZK: false, wantDEF: false,
+wantFIN: false, wantIEW: false, wantJEV: false, wantLVVN: false,
+wantOCW: false, wantSZW: false, wantVRO: false, wantVWS: false,
+wantWOO: true,
+wantOnbekend: true
+}" x-init="parseOODSURl($data)"
+{% endblock %}
+
+
+{% block javascript %}
+<script defer src="user.js"></script>
+{{ super() }}
+
+{% endblock %}
+
+
+{% block main %}
+<h5>Aanvullingen uit open.overheid.nl </h5>
+
+<form>
+  <center>
+  <fieldset class="grid">
+    <label><input type="checkbox" x-model="wantAlles" @change="updateOODS($data);"/>Alles</label>
+    <label><input type="checkbox" x-model="wantEersteKamer" x-bind:disabled="wantAlles" @change="updateOODS($data);"/>Eerste Kamer</label>
+    <label><input type="checkbox" x-model="wantMinisteries" x-bind:disabled="wantAlles" @change="updateOODS($data);"/>Alle ministeries</label>
+    <label><input type="checkbox" x-model="wantWOO" x-bind:disabled="wantAlles" @change="updateOODS($data);"/>Alle WOO</label>
+    <label><input type="checkbox" x-model="wantOnbekend" x-bind:disabled="wantAlles" @change="updateOODS($data);"/>"Onbekend"</label>
+  </fieldset>
+  <fieldset class="grid">
+    <label><input type="checkbox" x-model="wantAZ" x-bind:disabled="wantAlles || wantMinisteries" @change="updateOODS($data);"/>AZ</label>
+    <label><input type="checkbox" x-model="wantBUZA" x-bind:disabled="wantAlles || wantMinisteries" @change="updateOODS($data);"/>BUZA</label>
+    <label><input type="checkbox" x-model="wantBZK" x-bind:disabled="wantAlles || wantMinisteries" @change="updateOODS($data);"/>BZK</label>
+    <label><input type="checkbox" x-model="wantDEF" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>DEF</label>
+    <label><input type="checkbox" x-model="wantEZK" x-bind:disabled="wantAlles || wantMinisteries" @change="updateOODS($data);"/>EZK</label>
+    <label><input type="checkbox" x-model="wantFIN" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>FIN</label>
+    <label><input type="checkbox" x-model="wantIEW" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>I&amp;W</label>
+    <label><input type="checkbox" x-model="wantJEV" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>J&amp;V</label>
+    <label><input type="checkbox" x-model="wantLVVN" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>LVVN</label>
+    <label><input type="checkbox" x-model="wantOCW" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>OCW</label>
+    <label><input type="checkbox" x-model="wantSZW" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>SZW</label>
+    <label><input type="checkbox" x-model="wantVRO" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>VRO</label>
+    <label><input type="checkbox" x-model="wantVWS" x-bind:disabled="wantAlles|| wantMinisteries" @change="updateOODS($data);"/>VWS</label>
+  </fieldset>
+
+  </center>
+</form>
+
+
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Bijgewerkt</th>
+      <th>Bron</th>
+      <th>Titel</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in oods %}
+    <tr>
+      <td>{{d.openbaarmakingsdatum}}</td>
+      <td>{{d.mutatiedatumtijd}}</td>
+      <td>{{d.verantwoordelijke}}</td>
+      <td><a href="./oo.html?nummer={{d.id}}">{{d.titel}}</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  setInterval(function() { window.location.reload();}, 60*1000);
+</script>
+
+{% endblock %}
+	
