@@ -210,7 +210,7 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
   sws.wrapGet({Capability::IsUser}, "/have-monitor/:kind/:nummer", [](auto& cr) {
     string kind = cr.req.path_params.at("kind");
     string nummer = cr.req.path_params.at("nummer");
-    cout<<"nummer: "<<nummer<<endl;
+    cout<<"have-monitor nummer: "<<nummer<<endl;
     string selector;
     std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> rows;
     if(kind == "persoon" || kind =="activiteit" || kind=="zaak") 

@@ -172,6 +172,7 @@ void doSchriftelijkeVragen(SQLiteWriter& sqlw)
 
 int main(int argc, char** argv)
 {
+  setenv("TZ", "/usr/share/zoneinfo/Europe/Amsterdam", 1); 
   SQLiteWriter sqlw("tk.sqlite3");
 
   doSchriftelijkeVragen(sqlw);

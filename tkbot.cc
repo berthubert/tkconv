@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 	ddesc["category"] = d.kind;
 	ddesc["relurl"] = d.relurl;
 	ddesc["textsnippet"] = deHTML(d.snippet);
-	ddesc["htmlsnippet"] = d.snippet;
+	ddesc["htmlsnippet"] = d.snippet; // UNESCAPED
 	ddesc["description"] = getDescription(tp.getLease().get(), d.identifier,
 					      d.kind);
 	docdescs.push_back(ddesc);
