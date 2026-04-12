@@ -408,6 +408,9 @@ int main(int argc, char** argv)
 
   
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
+  tp.setInit([](SQLiteWriter& sqlw) {
+    sqlw.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+  });
   
   signal(SIGPIPE, SIG_IGN); // every TCP application needs this
   SQLiteWriter userdb("user.sqlite3",
@@ -473,8 +476,8 @@ int main(int argc, char** argv)
     if(ret.empty()) {
       ret = sqlw->queryT("select * from Verslag where id=? order by rowid desc limit 1", {nummer});
       if(ret.empty()) {
-	res.set_content(fmt::format("Could not find a Verslag with id {}", id), "text/plain");
-	return;
+        res.set_content(fmt::format("Could not find a Verslag with id {}", id), "text/plain");
+        return;
       }
       id=nummer;
     }
@@ -484,6 +487,7 @@ int main(int argc, char** argv)
       contentType = eget(ret[0], "contentType");
     }
 
+    
     sqlw.release();
 
     if(version) {
@@ -509,6 +513,29 @@ int main(int argc, char** argv)
     res.set_content(content, contentType);
   });
 
+  sws.d_svr.Get("/getrawoo/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string nummer=req.path_params.at("nummer"); 
+    cout<<"getrawoo nummer: "<<nummer<<endl;
+    SQLiteWriter oo("oo.sqlite3", SQLWFlag::ReadOnly);
+    auto ret=oo.queryT("select * from OODocument where id=?", {nummer});
+
+    if(ret.empty()) {
+      res.set_content(fmt::format("Could not find a OODocument with id {}", nummer), "text/plain");
+      res.status = 404;
+      return;
+    }
+    // ok it exists in the database
+    string fname;
+    if(haveExternalIdFile(nummer, "improvoo", ".pdf")) {
+      fname = makePathForExternalID(nummer, "improvoo", ".pdf", false);
+    }
+    else 
+      fname = makePathForExternalID(nummer, "oo", ".pdf", false);
+    
+    string content = getContentsOfFile(fname);
+    res.set_content(content, "application/pdf");
+  });
+  
   sws.d_svr.Get("/personphoto/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 1234
     cout<<"persoon nummer: "<<nummer<<endl;
@@ -707,9 +734,12 @@ int main(int argc, char** argv)
     if(timsi.size()==1) {
       data["timsi"] = eget(timsi[0], "timsi");
     }
-      
+
+
     return make_pair<string,string>(e.render_file("./partials/mijn.html", data), "text/html");
   });
+
+  
 
   sws.wrapGet({}, "/search.html", [&tp](auto& cr) {
     string q = cr.req.get_param_value("q");
@@ -747,6 +777,107 @@ int main(int argc, char** argv)
     return make_pair<string,string>(e.render_file("./partials/personen.html", data), "text/html");
   });
 
+  sws.wrapGet({}, "/oods.html", [&tp](auto& cr) {
+    nlohmann::json data;
+    data["pagemeta"]["title"]="Alle open.overheid.nl documenten";
+    data["og"]["title"] = "Alle open.overheid.nl documenten";
+    data["og"]["description"] = "Alle open.overheid.nl documenten";
+    data["og"]["imageurl"] = "";
+
+    /*
+      Selection criteria:
+      * Everything!
+      * All ministries (default yes)
+      * Eerste Kamer (default yes)
+      * Tweede Kamer (default no)
+      * Specifiek gemeentes, specific provincies, specific waterschappen
+     */
+    string selector = "( 1 ";
+    // ="verantwoordelijke != 'Tweede Kamer' and verantwoordelijke not like 'Gemeente %' and verantwoordelijke not like 'provincie %'";
+
+    auto c = [&cr](const auto& val) {
+      return cr.req.get_param_value(string("want")+val)=="true";
+    };
+    
+    if(c("Alles"))
+      ;
+    else {
+      selector = "( 0 ";
+      if(c("Ministeries")) 
+	selector +=  " OR verantwoordelijke like 'Ministerie v%'";
+      else {
+	map<string,string> mappings= {
+	  {"AZ", "ministerie van Algemene Zaken"},
+	  {"BUZA", "ministerie van Buitenlandse Zaken"},
+	  {"BZK", "ministerie van Binnenlandse Zaken en Koninkrijksrelaties"},
+	  {"DEF", "ministerie van Defensie"},
+	  {"EZK", "ministerie van Economische Zaken en Klimaat"},
+	  {"FIN", "ministerie van Financiën"},
+	  {"IEW", "ministerie van Infrastructuur en Waterstaat"},
+	  {"JEV", "ministerie van Justitie en Veiligheid"},
+	  {"LVVN", "ministerie van Landbouw, Visserij, Voedselzekerheid en Natuur"},
+	  {"OCW", "ministerie van Onderwijs, Cultuur en Wetenschap"},
+	  {"SZW", "ministerie van Sociale Zaken en Werkgelegenheid"},
+	  {"VRO", "ministerie van Volkshuisvesting en Ruimtelijke Ordening"},
+	  {"VWS", "ministerie van Volksgezondheid, Welzijn en Sport"}
+	  
+	};
+	for(const auto& [afko, full] : mappings) {
+	  if(c(afko)) 
+	    selector += "OR verantwoordelijke = '"+full+"'";
+	}
+      }
+      if(c("EersteKamer")) 
+	selector +=  " OR verantwoordelijke = 'Eerste Kamer'";
+      if(c("WOO")) 
+      	selector +=  " OR titel like '%WOO-%' OR titel like '%WOO '";
+      if(c("Onbekend"))
+	 selector +=  " OR verantwoordelijke = 'Onbekend'";
+    }
+    selector +=")";
+
+    selector += " and documentsoorten not like '%Kamerbrief%'";
+    
+    cout<<"Selector: "<<selector<<endl;
+    
+    SQLiteWriter sqlw("oo.sqlite3", SQLWFlag::ReadOnly);
+    // and documentsoorten not like '%kamerbrief%'
+    auto oodst = sqlw.queryT("select openbaarmakingsdatum,id,replace(verantwoordelijke, 'ministerie van ', '') verantwoordelijke,mutatiedatumtijd, titel,bestandsid,informatiecategorieen from OODocument where "+selector+" and brondocument=''  and documentsoorten not like '%Kamervraag%' order by 1 desc,mutatiedatumtijd desc limit 200");
+
+
+    int nummissing=erase_if(oodst, [](auto &d) {
+      bool ret = !haveExternalIdFile(eget(d, "id"), "oo", ".pdf");
+      if(ret) {
+	cout<<"Missing: "<< eget(d,"id")<<", "<<eget(d, "titel")<<endl;
+      }
+      return ret;
+    });
+    cout<<"Removed "<<nummissing<<" because no file"<<endl;
+    auto oods = packResultsJson(oodst);
+    
+    bulkEscape(data);
+    bulkEscape(oods);
+    
+    for(auto& d: oods) {
+      string ddt = d["mutatiedatumtijd"];
+      ddt.resize(16);
+
+      struct tm tm={};
+      strptime(ddt.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+      time_t then = timegm(&tm);
+      d["mutatiedatumtijd"] = fmt::format("{:%Y-%m-%d&nbsp;%H:%M}", fmt::localtime(then));
+    }
+
+    
+    data["oods"]=oods;
+    
+    inja::Environment e;
+    e.set_html_autoescape(false); 
+    
+    return make_pair<string,string>(e.render_file("./partials/oods.html", data), "text/html");
+  });
+
+  
   sws.d_svr.Get("/toezegging.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     /* CREATE TABLE Toezegging ('id' TEXT PRIMARY KEY, 'skiptoken' INT,
     "nummer" TEXT, "tekst" TEXT,
@@ -1835,6 +1966,18 @@ int main(int argc, char** argv)
     res.set_content(ret.dump(), "application/json");
   });
 
+
+  sws.d_svr.Get("/oo-verantwoordelijken", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string q = req.get_param_value("q");
+
+    auto vera = tp.getLease()->queryT("select distinct(verantwoordelijke) v from oodocument where v like '%' || ? || '%'", {q});
+    cout<<"Got "<<vera.size()<<" hits"<<endl;
+    nlohmann::json ret = nlohmann::json::array();
+    for(const auto& k : vera)
+      ret.push_back(eget(k, "v"));
+    res.set_content(ret.dump(), "application/json");
+  });
+
   
   sws.d_svr.Get("/verslag.html", [&tp](const httplib::Request &req, httplib::Response &res) {
     string id = req.get_param_value("vergaderingid"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
@@ -1866,6 +2009,51 @@ int main(int argc, char** argv)
     bulkEscape(data); 
     data["htmlverslag"]=enrichHTML(getHtmlForDocument(data["id"], true), tp.getLease().get());
     res.set_content(e.render_file("./partials/verslag.html", data), "text/html");
+  });
+
+
+  sws.d_svr.Get("/oo.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string id = req.get_param_value("nummer"); // 9e79de98-e914-4dc8-8dc7-6d7cb09b93d7
+
+    auto lease = tp.getLease();
+    auto oodocs = packResultsJson(lease->queryT("select * from OODocument where id=?", {id}));
+    if(oodocs.empty()) {
+      res.status = 404;
+      res.set_content("Geen documenten gevonden", "text/plain");
+      return;
+    }
+
+    
+    nlohmann::json data = oodocs[0];
+
+    data["bronTitel"]="";
+    if((string)data["bronDocument"]!="") {
+      auto bron=lease->queryT("select titel from OODocument where id=?", {(string)data["bronDocument"]});
+      if(!bron.empty())
+	data["bronTitel"] = eget(bron[0], "titel");
+    }
+    
+    auto reldocs = packResultsJson(lease->queryT("select * from OODocument where brondocument=?", {id}));
+    cout<<"Had "<<reldocs.size()<<" related/child OOdocuments"<<endl;
+    data["reldocs"] = reldocs;
+    // 2024-09-19T12:19:10.3141655Z
+    string updated = data["mutatiedatumtijd"];
+    struct tm tm={};
+    strptime(updated.c_str(), "%Y-%m-%dT%H:%M:%S", &tm);
+    time_t then = timegm(&tm);
+    data["mutatiedatumtijd"] = fmt::format("{:%Y-%m-%d %H:%M}", fmt::localtime(then));
+
+    inja::Environment e;
+    e.set_html_autoescape(false); // XX 
+
+    data["pagemeta"]["title"]=(string)data["titel"];
+    data["og"]["title"] = (string)data["titel"];
+    data["og"]["description"] = (string)data["mutatiedatumtijd"] + " " + (string)data["titel"];
+    data["og"]["imageurl"] = "";
+
+    bulkEscape(data); 
+    //    data["htmlverslag"]="";
+    res.set_content(e.render_file("./partials/oo.html", data), "text/html");
   });
 
   
@@ -1971,6 +2159,7 @@ int main(int argc, char** argv)
     term = convertToSQLiteFTS5(term);
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
+    idx.query("ATTACH DATABASE 'oo.sqlite3' as oo");
     
     static auto s_uc = make_shared<int>(0);
     cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"', " <<
@@ -2130,15 +2319,16 @@ int main(int argc, char** argv)
   
   sws.d_svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
     auto fmt = "<h1>Error 500</h1><p>%s</p>";
-    string buf;
+    string buf, bufplain;
     try {
       std::rethrow_exception(ep);
     } catch (std::exception &e) {
-      buf = fmt::sprintf(fmt, htmlEscape(e.what()).c_str());
-    } catch (...) { // See the following NOTE
-      buf = fmt::sprintf(fmt, "Unknown exception");
+      buf = fmt::sprintf(fmt, htmlEscape(e.what()));
+      bufplain = e.what();
+    } catch (...) { 
+      bufplain = buf = "Unknown exception";
     }
-    cout<<"Error: '"<<buf<<"'"<<endl;
+    cout<<"Error: '"<<bufplain<<"'"<<endl;
     res.set_content(buf, "text/html");
     res.status = 500; 
   });
