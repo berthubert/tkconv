@@ -116,6 +116,56 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     return j;
   });
 
+
+//'set-oo-verantwoordelijken-monitors'
+
+  sws.wrapPost({Capability::IsUser}, "/remove-oo-verantwoordelijke-monitor", [](auto& cr) {
+    string verantwoordelijke=cr.req.get_file_value("verantwoordelijke").content;
+
+    cr.lsqw.query("delete from scanners where userid=? and soort=? and verantwoordelijke=?",
+		   {cr.user, "OODocumentVerantwoordelijke", verantwoordelijke});
+    
+    auto mons = cr.lsqw.query("select verantwoordelijke from scanners where userid=? and soort=? order by verantwoordelijke",
+		    {cr.user, "OODocumentVerantwoordelijke"});
+
+    nlohmann::json oomonitors = nlohmann::json::array();
+    for(const auto& m : mons)
+      oomonitors.push_back(eget(m, "verantwoordelijke"));
+    return nlohmann::json{{"ok", 1}, {"oomonitors", oomonitors}};
+  });
+
+  sws.wrapPost({Capability::IsUser}, "/add-oo-verantwoordelijke-monitor", [](auto& cr) {
+    string verantwoordelijke=cr.req.get_file_value("verantwoordelijke").content;
+
+    string id = getLargeId();
+    cr.lsqw.addValue({{"id", id}, {"userid", cr.user}, {"soort", "OODocumentVerantwoordelijke"}, {"verantwoordelijke", verantwoordelijke}, {"cutoff", getTodayDBFormat()},
+      		      {"lastRun", 0}, {"interval", g_defScannerIntS}}, "scanners");
+
+    auto mons = cr.lsqw.query("select verantwoordelijke from scanners where userid=? and soort=? order by verantwoordelijke",
+		    {cr.user, "OODocumentVerantwoordelijke"});
+
+    nlohmann::json oomonitors = nlohmann::json::array();
+    for(const auto& m : mons)
+      oomonitors.push_back(eget(m, "verantwoordelijke"));
+    return nlohmann::json{{"ok", 1}, {"oomonitors", oomonitors}};
+  });
+
+  sws.wrapGet({Capability::IsUser}, "/get-oo-verantwoordelijke-monitors", [](auto& cr) {
+    nlohmann::json oomonitors = nlohmann::json::array();
+    try {
+      auto mons = cr.lsqw.query("select verantwoordelijke from scanners where userid=? and soort=? order by verantwoordelijke",
+				{cr.user, "OODocumentVerantwoordelijke"});
+      
+      
+      for(const auto& m : mons)
+	oomonitors.push_back(eget(m, "verantwoordelijke"));
+    }
+    catch(std::exception& e) {
+      cout<<"Retrieving OO scanners failed, possibly because no oomonitors have ever been created: "<<e.what()<<endl;
+    }
+    return nlohmann::json{{"ok", 1}, {"oomonitors", oomonitors}};
+  });
+
   
   sws.wrapPost({Capability::IsUser}, "/add-person-monitor", [](auto& cr) {
     string nummer = cr.req.get_file_value("nummer").content;
