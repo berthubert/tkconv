@@ -2026,6 +2026,10 @@ int main(int argc, char** argv)
     
     nlohmann::json data = oodocs[0];
 
+    string omschrijvingen = data["omschrijvingen"];
+    nlohmann::json arr = nlohmann::json::parse(omschrijvingen); // this is a json array
+    data["omschrijvingen"]=arr;
+
     data["bronTitel"]="";
     if((string)data["bronDocument"]!="") {
       auto bron=lease->queryT("select titel from OODocument where id=?", {(string)data["bronDocument"]});

@@ -14,7 +14,12 @@
 <p>
   Openbaarmakingsdatum: {{ openbaarmakingsdatum }}, laatste wijziging: {{ mutatiedatumtijd }}, 🔗<a href="https://open.overheid.nl/details/{{id}}">Pagina op open.overheid.nl</a>{% if length(weblocatie) > 0 %}, 🔗<a href="{{weblocatie}}">bekijk op officielebekendmakingen.nl</a>.
   {% endif %}
-  
+
+  <ul>
+  {% for o in omschrijvingen %}
+  <li>{{o}}</li>
+  {% endfor %}
+  </ul>
 </p>
 {% if length(reldocs) > 0 %}
 <h3>Gerelateerde documenten</h3>
@@ -30,6 +35,9 @@
 Hoort bij document <a href="./oo.html?nummer={{bronDocument}}">{{bronTitel}}</a>
 
 {% endif %}
+
+🔗<a href="./getrawoo/{{id}}">Directe link naar PDF</a>
+<br>
 <iframe width='95%'  height='1024' src='./getrawoo/{{id}}'></iframe>
 {% endblock %}
 	
