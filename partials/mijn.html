@@ -164,7 +164,8 @@ selected: "1 dag"}' x-init="doMijnInit($data)"
       </template>
     </select>
     <button :disabled="allinterval==''" text="Bevestig" @click="updateAllInterval($data, allinterval)">Bevestig</button>
-    <h3>Open.overheid.nl</h3>
+    <h3 id="oods">Open.overheid.nl</h3>
+    <p>Kies hier organisaties waarvan je bericht wil krijgen als er op open.overheid.nl een nieuw document beschikbaar is:</p>
     <input style="width: 40%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">
 
 
