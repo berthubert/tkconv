@@ -136,7 +136,7 @@ int main(int argc, char** argv)
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
   fmt::print("Getting verslagen since {}\n", limit);
-  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category, contentLength, Verslag.bijgewerkt bijgewerkt from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? order by datum desc, verslag.updated desc", {limit});
+  auto alleVerslagen = todo.queryT("select Verslag.id as id, vergadering.id as vergaderingid,datum, vergadering.titel as onderwerp, '' as titel, 'Verslag' as category, contentLength, Verslag.bijgewerkt bijgewerkt from Verslag,Vergadering where Verslag.vergaderingId=Vergadering.id and datum > ? and Verslag.status != 'Casco' order by datum desc, verslag.updated desc", {limit});
 
   set<string> seenvergadering;
   decltype(alleVerslagen) wantVerslagen;
