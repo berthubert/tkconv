@@ -390,8 +390,13 @@ int main(int argc, char** argv)
       
       string mutatiedatumtijd = details["versies"][0]["mutatiedatumtijd"];
       auto bestand = details["versies"][0]["bestanden"][0];
+      if(bestand["gepubliceerd"]==false) {
+	cout<<"Unpublished, skipping"<<endl;
+	continue;
+      }
       string openbaarmakingsdatum = details["versies"][0]["openbaarmakingsdatum"];
       string bestandsnaam = bestand["bestandsnaam"];
+
       string bestandsid = bestand["id"];
       
       string hash = bestand["hash"]; // this appears to be SHA1
