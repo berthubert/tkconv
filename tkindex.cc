@@ -22,7 +22,7 @@ static string textFromFile(const std::string& fname)
     command = string("pandoc -f docx '"+fname+"' -t plain");
   }
   else if(isXML(fname)) {
-    command = string("xmlstarlet tr tk.xslt < '"+fname+"' | sed 's:<[^>]*>: :g'");
+    command = string("xmlstarlet tr tk.xslt < '"+fname+"' | tr '\n' ' ' | sed 's:<style>.*</style>: :g' | sed 's:<[^>]*>: :g'");
   }
   else if(isDoc(fname))
     command = "catdoc - < '" + fname +"'";
