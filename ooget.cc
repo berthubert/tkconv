@@ -390,19 +390,26 @@ int main(int argc, char** argv)
       
       string mutatiedatumtijd = details["versies"][0]["mutatiedatumtijd"];
       auto bestand = details["versies"][0]["bestanden"][0];
-      if(bestand["gepubliceerd"]==false) {
+      /*
+      cout << bestand.dump() << endl;
+      if((bool)bestand["gepubliceerd"]==false) {
 	cout<<"Unpublished, skipping"<<endl;
 	continue;
       }
+      */
       string openbaarmakingsdatum = details["versies"][0]["openbaarmakingsdatum"];
       string bestandsnaam = bestand["bestandsnaam"];
 
-      string bestandsid = bestand["id"];
-      
-      string hash = bestand["hash"]; // this appears to be SHA1
+      string bestandsid;
+      if(bestand.count("id"))
+	bestandsid=bestand["id"];
+      string hash;
+      if(bestand.count("hash"))
+	
+	hash = bestand["hash"]; // this appears to be SHA1
       string verantwoordelijke=document["verantwoordelijke"]["label"];
       int64_t grootte = bestand["grootte"];
-      string contentType = bestand["mime-type"];
+      string contentType = bestand.count("mime-type") ? bestand["mime-type"] : "";
       string weblocatie;
       if(document.count("weblocatie"))
 	 weblocatie = document["weblocatie"];
@@ -428,7 +435,9 @@ int main(int argc, char** argv)
 	dsoorten = j.dump();
       }
       
-      vector<string> omschr = document["omschrijvingen"];
+      vector<string> omschr;
+      if(document.count("omschrijvingen"))
+	omschr = document["omschrijvingen"];
       string omschrijvingen = fmt::format("{}", omschr);
       
       string bronDocument;
@@ -441,6 +450,10 @@ int main(int argc, char** argv)
 	    bronDocument=tmp.substr(prefix.length());
 	}
       }
+      int64_t versie = -1;
+      if(details.count("versies") && !details["versies"].empty() && details["versies"][0].count("nummer"))
+	versie = details["versies"][0]["nummer"];
+      
       cout << bestandsnaam <<" "<< mutatiedatumtijd <<" " << titel<<" "<<hash <<endl;
       
       sqlw.addOrReplaceValue( {
@@ -458,7 +471,7 @@ int main(int argc, char** argv)
 	  {"informatiecategorieen", icategorieen},
 	  {"documentsoorten", dsoorten},
 	  {"json", details.dump()},
-	  {"versie", (int64_t)details["versies"][0]["nummer"]},
+	  {"versie", versie},
 	  {"weblocatie", weblocatie},
 	  {"contentType", contentType}
 	  
@@ -521,7 +534,9 @@ int main(int argc, char** argv)
 	auto bestand = details["versies"][0]["bestanden"][0];
 	
 	string bestandsnaam = bestand["bestandsnaam"];
-	string bestandsid = bestand["id"];
+	string bestandsid;
+	if(bestand.count("id"))
+	  bestandsid=bestand["id"];
 	
 	string hash = bestand["hash"]; // this appears to be SHA1
 	string verantwoordelijke=document["verantwoordelijke"]["label"];
