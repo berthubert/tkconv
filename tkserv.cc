@@ -842,7 +842,7 @@ int main(int argc, char** argv)
     
     SQLiteWriter sqlw("oo.sqlite3", SQLWFlag::ReadOnly);
     // and documentsoorten not like '%kamerbrief%'
-    auto oodst = sqlw.queryT("select openbaarmakingsdatum,id,replace(verantwoordelijke, 'ministerie van ', '') verantwoordelijke,mutatiedatumtijd, titel,bestandsid,informatiecategorieen from OODocument where "+selector+" and brondocument=''  and documentsoorten not like '%Kamervraag%' order by 1 desc,mutatiedatumtijd desc limit 200");
+    auto oodst = sqlw.queryT("select openbaarmakingsdatum,id,replace(verantwoordelijke, 'ministerie van ', '') verantwoordelijke,mutatiedatumtijd, titel,bestandsid,informatiecategorieen from OODocument where "+selector+" and brondocument=''  and documentsoorten not like '%Kamervraag%' order by 1 desc,mutatiedatumtijd desc limit 300");
 
 
     int nummissing=erase_if(oodst, [](auto &d) {
