@@ -80,14 +80,19 @@ int main(int argc, char** argv)
       string improvfname = makePathForId(item.id, "improvdocs", "", true);
       int ret = system(("ocrmypdf --redo-ocr -l nld "+fname+" "+improvfname).c_str());
 
-      if(ret >= 0 && isPresentNonEmpty(item.id, "improvdocs", "")) {
-	int rc = WEXITSTATUS(ret);
-	fmt::print("Improvement worked? {}\n", rc);
-
-	if(rc ==1 )
-	  cfdb.reportFix(item.id, item.kind, "OCRMyPdf");
+      if(ret >= 0)  {
+	if(isPresentNonEmpty(item.id, "improvdocs", "")) {
+	  int rc = WEXITSTATUS(ret);
+	  fmt::print("Improvement worked? {}\n", rc);
+	  
+	  if(rc ==1 )
+	    cfdb.reportFix(item.id, item.kind, "OCRMyPdf");
+	  else
+	    cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf error code "+to_string(rc));
+	}
 	else
-	  cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf error code "+to_string(rc));
+	  cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf did not produce a file");
+
       }
 
       
@@ -120,13 +125,17 @@ int main(int argc, char** argv)
       string improvfname = makePathForExternalID(item.id, "improvoo", ".pdf", true);
       int ret = system(("ocrmypdf --redo-ocr -l nld "+fname+" "+improvfname).c_str());
       
-      if(ret >= 0 && haveExternalIdFile(item.id, "oo", ".pdf")) {
-	int rc = WEXITSTATUS(ret);
-	fmt::print("Improvement worked? {}\n", rc);
-	if(rc==1)
-	  cfdb.reportFix(item.id, item.kind, "OCRMyPdf");
+      if(ret >= 0) {
+	if(haveExternalIdFile(item.id, "oo", ".pdf")) {
+	  int rc = WEXITSTATUS(ret);
+	  fmt::print("Improvement worked? {}\n", rc);
+	  if(rc==1)
+	    cfdb.reportFix(item.id, item.kind, "OCRMyPdf");
+	  else
+	    cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf error code "+to_string(rc));
+	}
 	else
-	  cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf error code "+to_string(rc));
+	  cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf did not produce a file");
       }
       
     }
