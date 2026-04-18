@@ -352,7 +352,7 @@ string humanDutchTimestamp(time_t w)
 // 2026-02-13T13:31:56.442737079Z
 std::string getDBDateTimeString(time_t w)
 {
-  return fmt::format("{:%Y-%M-%DT%H:%M:%S}", fmt::localtime(w));
+  return fmt::format("{:%Y-%m-%dT%H:%M:%S}", fmt::localtime(w));
 }
 
 // do not put \r in in
