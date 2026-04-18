@@ -8,6 +8,7 @@
 #include <atomic>
 #include "support.hh"
 #include <unordered_set>
+#include "meta.hh"
 #include "argparse/argparse.hpp"
 
 using namespace std;
@@ -401,7 +402,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   
   atomic<size_t> ctr = 0;
   std::mutex m;
-
+  ConversionFailureDB cfdb;
   auto worker = [&]() {
     for(unsigned int n = ctr++; n < wantAll.size(); n = ctr++) {
       string id = get<string>(wantAll[n]["id"]);
@@ -438,6 +439,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	  text = textFromFile(fname);
 	  if(text.empty()) {
 	    fmt::print("{} is not an OODocument file we can deal with\n", fname);
+	    {
+	      lock_guard<mutex> p(m);
+	      cfdb.reportFailure(id, "OODocument", "No text from file");
+	    }
+
 	    wrong++;
 	    continue;
 	  }
@@ -474,6 +480,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	  text = textFromFile(fname);
 	  if(text.empty()) {
 	    fmt::print("{} is not a file we can deal with {}\n", fname, isPDF(fname) ? "PDF" : "");
+	    {
+	      lock_guard<mutex> p(m);
+	      cfdb.reportFailure(id, "Document", "No text from file");
+	    }
 	    wrong++;
 	    continue;
 	  }

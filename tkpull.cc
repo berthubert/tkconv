@@ -9,6 +9,7 @@
 #include "httplib.h"
 #include <set>
 #include "support.hh"
+#include "meta.hh"
 
 using namespace std;
 
@@ -47,35 +48,6 @@ void storeDocument(const std::string& id, const std::string& content, const stri
   }
 }
 
-struct ThrottleDB
-{
-  ThrottleDB() : d_sqlw("meta.sqlite3")
-  {
-    d_sqlw.query("create table if not exists throttle (thing TEXT, reason TEXT, timestamp INT) STRICT");
-    time_t now = time(0);
-    d_sqlw.query("delete from throttle where timestamp < ?", {now - s_retention});
-  }
-
-  void report(const std::string& thing, const std::string& reason="")
-  {
-    d_sqlw.addValue({{"thing", thing}, {"reason", reason}, {"timestamp", time(nullptr)}}, "throttle");
-  }
-
-  bool shouldThrottle(const std::string& thing, int limitSeconds, int limit)
-  {
-    time_t lim = time(nullptr) - limitSeconds;
-    auto res = d_sqlw.queryT("select count(1) as c from throttle where thing=? and timestamp > ?",
-		 {thing, lim});
-    if(res.empty())
-      return false;
-    //    cout<<"Asked for '"<<thing<<"', limitSeconds "<<limitSeconds<<" limit "<<limit<<" lim "<<lim<<", count: "<<std::get<int64_t>(res[0]["c"])<<endl;
-    
-    return std::get<int64_t>(res[0]["c"]) >= limit;
-  }
-  
-  SQLiteWriter d_sqlw;
-  constexpr static unsigned int s_retention = 7*86400;
-};
 
 int main(int argc, char** argv)
 {

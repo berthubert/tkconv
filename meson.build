@@ -2,6 +2,7 @@ project('tkconv', 'cpp', default_options : ['cpp_std=c++20'])
 
 sqlitedep = dependency('sqlite3', version : '>=3.50', default_options: ['fts5=enabled'])
 thread_dep = dependency('threads')
+magic_dep = dependency('libmagic')
 json_dep = dependency('nlohmann_json')
 bcryptcpp_dep = dependency('bcryptcpp', static: true)
 fmt_dep = dependency('fmt', version: '>10', static: true)
@@ -56,14 +57,19 @@ executable('tkfsck', 'tkfsck.cc', 'support.cc', 'siphash.cc',
 	sqlitewriter_dep,pugi_dep, simplesockets_dep,
 	argparse_dep, vcs_dep])
 
+executable('tkimprov', 'tkimprov.cc', 'support.cc', 'siphash.cc', 'meta.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
+	sqlitewriter_dep,pugi_dep, simplesockets_dep, magic_dep,
+	argparse_dep, vcs_dep])
 
-executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc',
+
+executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc', 'meta.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep,
 	simplesockets_dep,
 	cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
-executable('tkpull', 'tkpull.cc', 'support.cc', 'siphash.cc',
+executable('tkpull', 'tkpull.cc', 'support.cc', 'siphash.cc', 'meta.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
 	simplesockets_dep,
 	sqlitewriter_dep, pugi_dep,
@@ -97,6 +103,6 @@ executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
 #	argparse_dep, vcs_dep])
 
 
-executable('testrunner', 'testrunner.cc', 'support.cc',  'siphash.cc', 'search.cc', 
+executable('testrunner', 'testrunner.cc', 'support.cc',  'siphash.cc', 'search.cc', 'meta.cc',
 dependencies: [sqlitedep, json_dep, fmt_dep, sqlitedep, sqlitewriter_dep, doctest_dep, cpphttplib, simplesockets_dep])
 

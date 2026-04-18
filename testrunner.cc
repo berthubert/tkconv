@@ -11,7 +11,7 @@
 #include <fmt/chrono.h>
 #include <fmt/printf.h>
 #include "nlohmann/json.hpp"
-
+#include "meta.hh"
 #include "support.hh"
 
 using namespace std;
@@ -91,6 +91,34 @@ TEST_CASE("Test timestamps")
 }
 
 
+TEST_CASE("Failure dB") {
+  mkdir("testcases", 0700);
+  unlink("testcases/meta.sqlite3");
+  unlink("testcases/meta.sqlite3-wal");
+  unlink("testcases/meta.sqlite3-shm");
+  ConversionFailureDB cfdb("testcases/");
+  
+  cfdb.reportFailure("12345", "Document", "PDF");
+  cfdb.reportFailure("12345", "Document", "PDF");
+
+  auto failed = cfdb.getUnattemptedItems();
+  REQUIRE(failed.size() == 1);
+  CHECK(failed[0].id=="12345");
+
+  auto all = cfdb.getItems();
+  REQUIRE(all.size() == 1);
+  CHECK(all[0].id=="12345");
+  
+  
+  cfdb.reportFix("12345", "Document", "OCR");
+  failed = cfdb.getUnattemptedItems();
+  CHECK(failed.size() == 0);
+
+  all = cfdb.getItems();
+  REQUIRE(all.size() == 1);
+  CHECK(all[0].id=="12345");
+  
+}
 
 TEST_CASE("Send email" * doctest::skip())
 {
