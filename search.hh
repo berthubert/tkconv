@@ -32,6 +32,7 @@ struct SearchHelper
     std::string snippet;
     std::string titel;
     std::string onderwerp;
+    std::string verantwoordelijke;
     int persoonnummer=-1;
     double score;
   };
