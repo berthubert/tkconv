@@ -244,7 +244,7 @@ int main(int argc, char** argv)
 
   SQLiteWriter sqlw("oo.sqlite3");
 
-  sqlw.queryT("CREATE table if not exists OOEntry (id TEXT)");
+  sqlw.queryT("CREATE table if not exists OOEntry (id TEXT, mutatiedatumtijd TEXT)");
   sqlw.queryT("CREATE unique index if not exists OOEntryUnique on OOEntry(id)");
   
 
