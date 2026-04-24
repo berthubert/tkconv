@@ -99,7 +99,12 @@ int main(int argc, char** argv)
   }
   cout<<"Limit for documents: "<<limit<<endl;
   SQLiteWriter todo("tk.sqlite3", SQLWFlag::ReadOnly);
-  todo.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+  try {
+    todo.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+  }
+  catch(exception& e) {
+    fmt::print("Error attaching oo.sqlite3, perhaps it does not yet exist? Error was: {}\n", e.what());
+  }
   
   std::regex dregex(R"(\d{4}-\d{2}-\d{2})");
   if(!regex_match(limit, dregex)) {
@@ -130,10 +135,15 @@ int main(int argc, char** argv)
   auto wantPersoonGeschenk = todo.queryT("select persoongeschenk.id id, omschrijving, datum, roepnaam, tussenvoegsel, achternaam,persoongeschenk.bijgewerkt from PersoonGeschenk,Persoon where persoon.id = persoonId");
   fmt::print("There are {} persoongeschenken in the tk database that need to be in the index\n", wantPersoonGeschenk.size());
 
-  auto wantOO = todo.queryT("select id, titel, openbaarmakingsdatum datum, verantwoordelijke, grootte contentLength, mutatiedatumtijd bijgewerkt, 'OODocument' category, omschrijvingen as onderwerp from OODocument where datum > ? and verantwoordelijke != 'Tweede Kamer' and documentsoorten not like '%Kamerbrief%' and contentType != 'application/x-zip-compressed'", {limit});
-  fmt::print("There are {} OODocuments in the tk database that need to be in the index\n", wantOO.size());
-  
-  
+  decltype(wantDocs) wantOO;
+  try {
+    wantOO = todo.queryT("select id, titel, openbaarmakingsdatum datum, verantwoordelijke, grootte contentLength, mutatiedatumtijd bijgewerkt, 'OODocument' category, omschrijvingen as onderwerp from OODocument where datum > ? and verantwoordelijke != 'Tweede Kamer' and documentsoorten not like '%Kamerbrief%' and contentType != 'application/x-zip-compressed'", {limit});
+    fmt::print("There are {} OODocuments in the tk database that need to be in the index\n", wantOO.size());
+  }
+  catch(exception& e) {
+    fmt::print("Error retrieving OODocuments, perhaps the oo.sqlite3 database does not yet exist? Error was: {}\n", e.what());
+  }
+
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
   fmt::print("Getting verslagen since {}\n", limit);
