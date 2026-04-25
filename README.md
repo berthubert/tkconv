@@ -45,7 +45,7 @@ Nog een ding - de software heet 'tkconv', en het project en de website heten
 
 # Met dank aan
 
-Veel dank aan Jan Allersma, Wander Nauta, Bart Smit, Peter Peerdeman en Bart
+Veel dank aan Jan Allersma, Wander Nauta, Bart Smit, Peter Peerdeman, Vincent traag, en Bart
 Schuller voor hun open source bijdragen & tests!  Verder bouwt dit project op de
 noeste arbeid van de staf van de Tweede Kamer, zonder hun werk was er niks
 weer te geven.
@@ -188,6 +188,8 @@ do
         ./build/tkpull
         ./build/oppull
         ./build/oppull xml
+        ./build/ooget
+        ./build/oopull
         ./build/tkparse
         ./build/tkindex
         ./build/tkindex --days=14 --tkindex tkindex-small.sqlite3
