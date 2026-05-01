@@ -370,16 +370,21 @@ int main(int argc, char** argv)
       count++;
       cout.flush();
       sleep(1);
-      auto res = cli.Get("https://open.overheid.nl/overheid/openbaarmakingen/api/v0/zoek/"+id);
+      string theurl= "https://open.overheid.nl/overheid/openbaarmakingen/api/v0/zoek/"+id;
+      auto res = cli.Get(theurl);
       
       if(!res) {
 	auto err = res.error();
-	throw runtime_error("Oops retrieving: "+httplib::to_string(err));
+	throw runtime_error("Oops retrieving "+theurl+": "+httplib::to_string(err));
       }
       
       //      cout<<"HTTP status: "<<res->status<<endl;
       //    cout<<"Got: '"<<res->body.c_str()<<"'" <<endl;
-      
+
+      if(res->body.empty()) {
+	cout<<"Got empty response from "<<theurl<<", status: "<<res->status<<endl;
+	continue;
+      }
       nlohmann::json details = nlohmann::json::parse(res->body.c_str());
       
       auto document=details["document"];
@@ -438,7 +443,11 @@ int main(int argc, char** argv)
       vector<string> omschr;
       if(document.count("omschrijvingen"))
 	omschr = document["omschrijvingen"];
-      string omschrijvingen = fmt::format("{}", omschr);
+      nlohmann::json jomschr = omschr;
+      string omschrijvingen = jomschr.dump();
+
+      // XXX this is how to request further related documents
+      // https://open.overheid.nl/publicatie/d5b76f2b-8bdc-4d89-933b-683ac597a993/_relaties?types=https://identifier.overheid.nl/tooi/def/thes/kern/c_05f4a5f3,https://identifier.overheid.nl/tooi/def/thes/kern/c_4d1ea9ba,https://identifier.overheid.nl/plooi/def/thes/documentrelatie/bundel,https://identifier.overheid.nl/plooi/def/thes/documentrelatie/onderdeel
       
       string bronDocument;
       if(!details["documentrelaties"].empty()) { // COULD BE MULTIPLE
