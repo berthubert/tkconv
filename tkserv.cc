@@ -269,7 +269,8 @@ auto getBesluitenFromZaak(auto& sqlw, const std::string& nummer)
   
   for(auto& b : besluiten) {
     string datum = b["datum"];
-    datum[10] = ' ';
+    if(datum.size() > 10)
+      datum[10] = ' ';
     b["datum"] = datum;
     VoteResult vr;
     if(getVoteDetail(sqlw.get(), b["id"], vr)) {
@@ -941,7 +942,8 @@ int main(int argc, char** argv)
     for(auto &d : z["agendapunten"]) {
       d["activiteit"] = packResultsJson(sqlw->queryT("select *, substr(aanvangstijd, 0, 17) aanvangstijd from Activiteit where id=?", {(string)d["activiteitId"]}))[0];
       string aanv = d["activiteit"]["aanvangstijd"];
-      aanv[10]=' ';
+      if(aanv.size()> 10)
+	aanv[10]=' ';
       d["activiteit"]["aanvangstijd"]=aanv;
     }
     auto& ap = z["agendapunten"];
@@ -1765,9 +1767,12 @@ int main(int argc, char** argv)
     string externeid = eget(ret[0], "externeidentifier");
     data["meta"] = packResultsJson(ret)[0];
     data["meta"]["datum"] = ((string)data["meta"]["datum"]).substr(0, 10);
-
-    string bijgewerkt = ((string)data["meta"]["bijgewerkt"]).substr(0, 16);
-    bijgewerkt[10]=' ';
+    
+    string bijgewerkt = data["meta"]["bijgewerkt"];
+    if(bijgewerkt.size() > 10) {
+      bijgewerkt[10]=' ';
+      bijgewerkt.resize(16);
+    }
     data["meta"]["bijgewerkt"] = bijgewerkt;    
     string kamerstukdossierId, kamerstuktoevoeging;
     int kamerstuknummer=0, kamerstukvolgnummer=0;
@@ -1891,13 +1896,13 @@ int main(int argc, char** argv)
       for(auto& actid : actids) {
 	auto activiteit = packResultsJson(sqlw->queryT("select * from Activiteit where id = ? order by rowid desc limit 1", {actid}));
 	for(auto&a : activiteit) {
-	  if(((string)a["datum"]).empty()) {
-	    a["datum"] = "Geen datum";
-	  }
+	  string dtmp = a["datum"];
+	  if(dtmp.size() < 16)
+	    a["datum"]="Geen datum";
 	  else {
-	    string d = ((string)a["datum"]).substr(0,16);
-	    d[10]= ' ';
-	    a["datum"] = d;
+	    dtmp.resize(16);
+	    dtmp[10]= ' ';
+	    a["datum"] = dtmp;
 	  }
 	  activiteiten.push_back(a);
 	}
@@ -1906,9 +1911,14 @@ int main(int argc, char** argv)
     // directly linked activity
     auto diract = packResultsJson(sqlw->queryT("select Activiteit.* from Link,Activiteit where van=? and naar=Activiteit.id", {documentId}));
     for(auto&a : diract) {
-      string d = ((string)a["datum"]).substr(0,16);
-      d[10]= ' ';
-      a["datum"] = d;
+      string dtmp = a["datum"];
+      if(dtmp.size() < 16)
+	a["datum"]="Geen datum";
+      else {
+	dtmp.resize(16);
+	dtmp[10]= ' ';
+	a["datum"] = dtmp;
+      }
       activiteiten.push_back(a);
     }
     sort(activiteiten.begin(), activiteiten.end(), [](auto&a, auto&b) {
@@ -2120,8 +2130,11 @@ int main(int argc, char** argv)
 	  vr.nietdeelgenomenpartij, vr.nietdeelgenomen);
 	*/
 	string datum = b["datum"]; // 2024-10-10T12:13:14
-	datum[10]=' ';
-	datum.resize(16);
+	if(datum.size() > 10) {
+	  datum.resize(16);
+	  datum[10]=' ';
+	}
+
 	b["datum"] = datum;
 	b["voorpartij"] = vr.voorpartij;
 	b["tegenpartij"] = vr.tegenpartij;
