@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 	  int rc = WEXITSTATUS(ret);
 	  fmt::print("Improvement worked? {}\n", rc);
 	  
-	  if(rc ==1 )
+	  if(rc == 0 )
 	    cfdb.reportFix(item.id, item.kind, "OCRMyPdf");
 	  else
 	    cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf error code "+to_string(rc));
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	if(haveExternalIdFile(item.id, "oo", ".pdf")) {
 	  int rc = WEXITSTATUS(ret);
 	  fmt::print("Improvement worked? {}\n", rc);
-	  if(rc==1)
+	  if(rc==0)
 	    cfdb.reportFix(item.id, item.kind, "OCRMyPdf");
 	  else
 	    cfdb.reportFailedAttempt(item.id, item.kind, "OCRMyPdf error code "+to_string(rc));
