@@ -306,7 +306,7 @@ async function getSearchResults(f)
 	rssurl.searchParams.set("q", f.searchQuery);
 	f.rssurl = rssurl.href;
 
-	f.message = `${data["milliseconds"]} milliseconden`;
+	f.message = `< ${Math.ceil(data["milliseconds"])} milliseconden`;
 	f.busy=false;
 	orderByDate(f, false);
     }
