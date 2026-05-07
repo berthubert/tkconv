@@ -310,8 +310,9 @@ int main(int argc, char** argv)
       cout<<"Could not get newest date from database, perhaps doesn't exist yet"<<endl;
     }
   }
-  cout<<"We are interested in entries newer than "<<newest<<endl;
-  time_t t = getDateTimestamp(newest);
+  time_t t = getDateTimestamp(newest) - 86400;
+  fmt::print("We are interested in entries newer than {:%d-%m-%Y}\n", fmt::localtime(t));
+
   int known=0, newentries=0;  
   for(;;) {
     if(t > time(nullptr))
@@ -324,7 +325,7 @@ int main(int argc, char** argv)
     int start=0;
 
     for(;;) {
-      sleep(1);
+      usleep(250000);
 
       // https://open.overheid.nl/overheid/openbaarmakingen/api/v0/zoek?zoektekst=&start=0&aantalResultaten=20&sort=publicatiedatum&publicatiedatumVan=01-01-2026
       string url = fmt::format("https://open.overheid.nl/overheid/openbaarmakingen/api/v0/zoek?zoektekst=&start={}&aantalResultaten={}&sort=publicatiedatum&order=asc&publicatiedatumVan={}", start, numresultaten, startDatumNLFormat);
