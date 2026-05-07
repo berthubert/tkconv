@@ -375,8 +375,6 @@ int main(int argc, char** argv)
 	  id.resize(pos);
 	string mutatiedatumtijd = o["document"]["mutatiedatumtijd"];
 
-
-
 	// we do this check since addOrReplace causes a delete on the OODocument through cascade!
 	auto present = sqlw.queryT("select count(1) c from OOEntry where id=? and mutatiedatumtijd=?",
 		    {id, (string)o["document"]["mutatiedatumtijd"]});
@@ -391,7 +389,8 @@ int main(int argc, char** argv)
 	    {"mutatiedatumtijd", (string)o["document"]["mutatiedatumtijd"]},
 	    {"publisher",(string)o["document"]["publisher"]},
 	    {"aanbieder",(string)o["document"]["aanbieder"]},
-	    {"bestandsType", (string)o["bestandsType"]}
+	    {"bestandsType", (string)o["bestandsType"]},
+	    {"ophaaltijd", getDBDateTimeString(time(nullptr))}
 	    
 	  }, "OOEntry");
 	}
@@ -554,7 +553,8 @@ int main(int argc, char** argv)
 	  {"json", details.dump()},
 	  {"versie", versie},
 	  {"weblocatie", weblocatie},
-	  {"contentType", contentType}
+	  {"contentType", contentType},
+	  {"ophaaltijd", getDBDateTimeString(time(nullptr))}
 	  
 	}, "OODocument");
     }
