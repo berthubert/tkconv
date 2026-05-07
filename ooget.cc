@@ -233,8 +233,52 @@ void storeRODocument(const std::string& id, string suffix, const std::string& co
     throw runtime_error("Unable to rename saved file "+fname+".tmp - "+strerror(e));
   }
 }
-
-
+/*
+void fixupBronDocument(SQLiteWriter& sqlw)
+{
+  httplib::Client cli("https://open.overheid.nl");
+  cli.set_connection_timeout(15, 0); 
+  cli.set_read_timeout(15, 0); 
+  cli.set_write_timeout(15, 0); 
+  auto res = sqlw.queryT("select id from OODocument where bronDocument='' and openbaarmakingsdatum > '2026-03'");
+  cout<<"Have "<<res.size()<<" documents to check"<<endl;
+  
+  for(const auto& r : res) {
+    string id = eget(r, "id");
+    string theurl= fmt::format("https://open.overheid.nl/publicatie/{}/_relaties?types=https://identifier.overheid.nl/tooi/def/thes/kern/c_05f4a5f3,https://identifier.overheid.nl/tooi/def/thes/kern/c_4d1ea9ba,https://identifier.overheid.nl/plooi/def/thes/documentrelatie/bundel,https://identifier.overheid.nl/plooi/def/thes/documentrelatie/onderdeel", id);
+    auto res = cli.Get(theurl);
+    if(!res || res->status != 200 || res->body.empty()) {
+      
+      cout << "Could not get relations for document id "<<id;
+      if(res)
+	cout<<" status "<<res->status << endl;
+      continue;
+    }
+    string bronDocument;
+    nlohmann::json rels = nlohmann::json::parse(res->body);
+    for(const auto& r : rels) {
+      //      cout<<r.dump()<<endl;
+      string role = r["role"];
+      if(role=="https://identifier.overheid.nl/tooi/def/thes/kern/c_4d1ea9ba") {
+	string relation = r["relation"];
+	//	           https://open.overheid.nl/documenten/f15ad15a-8b2d-43dd-bb46-fc6ce33ed02a
+	string prefix="https://open.overheid.nl/documenten/";
+	if(relation.find(prefix)==0) {
+	  bronDocument=relation.substr(prefix.length());
+	  cout<<"bronDocument = "<<bronDocument<<endl;
+	}
+      }
+    }
+    cout<<".";
+    cout.flush();
+    if(bronDocument.empty())
+      continue;
+    cout<<"Updated "<<id<< " with bronDocument " << bronDocument <<endl;
+    sqlw.queryT("update OODocument set bronDocument=? where id=?", {bronDocument, id});
+    usleep(10000);
+  }
+}
+*/
 int main(int argc, char** argv)
 {
   httplib::Client cli("https://open.overheid.nl");
@@ -459,6 +503,29 @@ int main(int argc, char** argv)
 	    bronDocument=tmp.substr(prefix.length());
 	}
       }
+      else {
+	string theurl= fmt::format("https://open.overheid.nl/publicatie/{}/_relaties?types=https://identifier.overheid.nl/tooi/def/thes/kern/c_05f4a5f3,https://identifier.overheid.nl/tooi/def/thes/kern/c_4d1ea9ba,https://identifier.overheid.nl/plooi/def/thes/documentrelatie/bundel,https://identifier.overheid.nl/plooi/def/thes/documentrelatie/onderdeel", id);
+	res = cli.Get(theurl);
+	if(!res || res->status != 200 || res->body.empty()) {
+	  throw runtime_error("Could not get relations for document id "+id);
+	}
+	nlohmann::json rels = nlohmann::json::parse(res->body);
+	for(const auto& r : rels) {
+	  cout<<r.dump()<<endl;
+	  string role = r["role"];
+	  if(role=="https://identifier.overheid.nl/tooi/def/thes/kern/c_4d1ea9ba") {
+	    string relation = r["relation"];
+	    //	           https://open.overheid.nl/documenten/f15ad15a-8b2d-43dd-bb46-fc6ce33ed02a
+	    string prefix="https://open.overheid.nl/documenten/";
+	    if(relation.find(prefix)==0) {
+	      bronDocument=relation.substr(prefix.length());
+	      cout<<"bronDocument = "<<bronDocument<<endl;
+	    }
+	  }
+	}
+      }
+
+      
       int64_t versie = -1;
       if(details.count("versies") && !details["versies"].empty() && details["versies"][0].count("nummer"))
 	versie = details["versies"][0]["nummer"];
