@@ -113,18 +113,29 @@ int main(int argc, char** argv)
     set<RetStore> toRetrieve;
     string prefix = (store == &wantPhotos) ? "photos" : "docs";
     for(auto& d : *store) {
-      if(isPresentRightSize(get<string>(d["id"]), get<int64_t>(d["contentLength"]), prefix)  )
-	present++;
+      // the tweedekamer gegevensmagazijn lies about photo file sizes, so we ignore these..
+      if(store == &wantPhotos) {
+	if(isPresentNonEmpty(get<string>(d["id"]), prefix))
+	  present++;
+	else
+	  toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]), get<int64_t>(d["contentLength"])});
+	// length actually doesn't get checked
+      }
       else {
-	auto contentLength = get_if<int64_t>(&d["contentLength"]);
-
-	toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]),
-	    contentLength ? *contentLength : 0});
-	
-	size_t siz;
-	if(isPresentNonEmpty(get<string>(d["id"]), prefix, "", &siz)) {
-	  fmt::print("Re-retrieving {} {}, has wrong size on disk {}, should be {}\n",
-		     name, get<string>(d["id"]), siz, get<int64_t>(d["contentLength"]));
+      
+	if(isPresentRightSize(get<string>(d["id"]), get<int64_t>(d["contentLength"]), prefix)  )
+	  present++;
+	else {
+	  auto contentLength = get_if<int64_t>(&d["contentLength"]);
+	  
+	  toRetrieve.insert({get<string>(d["id"]), get<string>(d["enclosure"]),
+	      contentLength ? *contentLength : 0});
+	  
+	  size_t siz;
+	  if(isPresentNonEmpty(get<string>(d["id"]), prefix, "", &siz)) {
+	    fmt::print("Re-retrieving {} {}, has wrong size on disk {}, should be {}\n",
+		       name, get<string>(d["id"]), siz, get<int64_t>(d["contentLength"]));
+	  }
 	}
       }
     }
@@ -165,7 +176,8 @@ int main(int argc, char** argv)
       }
 
       fmt::print("Got {} bytes\n", res->body.size());
-      if(res->body.size() == (unsigned int)need.contentLength) {
+      // for photos, the size very often is bogus so we just ignore it
+      if(res->body.size() == (unsigned int)need.contentLength || store == &wantPhotos) {
 	storeDocument(need.id, res->body, prefix);
 	retrieved++;
       }
