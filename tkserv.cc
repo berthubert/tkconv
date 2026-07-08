@@ -581,7 +581,33 @@ int main(int argc, char** argv)
     res.status = 301;
     res.set_header("Location", "../document.html?nummer="+dest);
   });
-  
+
+
+  /* this is because the officiele publicatie odp versions of documents now contain relative links to
+     kamerstukdossiers as dossier/12345-xv - here we catch such relative links and forward them to the right place */ 
+  sws.d_svr.Get("/dossier/:id", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string dossierid=req.path_params.at("id");
+    int nummer = atoi(dossierid.c_str());
+    string toevoeging;
+    if(auto pos = dossierid.find('-'); pos != string::npos) {
+      toevoeging=dossierid.substr(pos+1);
+      if(auto pos2 = toevoeging.find_first_of("./&?<> ") ; pos2 != string::npos) {
+	res.status = 404;
+	res.set_content(fmt::format("Ongeldige link", nummer), "text/plain");
+	return;
+      }
+    }
+      
+    auto docs = tp.getLease()->queryT("select count(1) c from kamerstukdossier where nummer=? and toevoeging=?", {nummer, toevoeging});
+    if(docs.empty() || iget(docs[0], "c")==0) {
+      res.status = 404;
+      res.set_content(fmt::format("Er is geen kamerstukdossier met nummer {} en toevoeging {}", nummer, toevoeging), "text/plain");
+      return;
+    }
+    res.status = 301;
+    res.set_header("Location", "../ksd.html?ksd="+to_string(nummer)+"&toevoeging="+toevoeging);
+  });
+
   sws.d_svr.Get("/jarig-vandaag", [&tp](const httplib::Request &req, httplib::Response &res) {
     string f = fmt::format("{:%%-%m-%d}", fmt::localtime(time(0)));
     auto sqlw = tp.getLease();
