@@ -958,13 +958,18 @@ int main(int argc, char** argv)
   });    
 
   // these are internal tweedekamer links, which we catch here to make them work
-  sws.d_svr.Get("/kst-([0-9]{5})-([0-9]{1,4})", [&tp](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Get("/kst-([0-9]{5})(-[a-zA-Z0-9]{1,4})?-([0-9]{1,4})", [&tp](const httplib::Request &req, httplib::Response &res) {
     auto sqlw = tp.getLease();
     auto kstnum = atoi(req.matches[1].str().c_str());
-    auto volgnummer = atoi(req.matches[2].str().c_str());
+    auto toevoeging = req.matches[2].str();
+    auto volgnummer = atoi(req.matches[3].str().c_str());
 
+    if(!toevoeging.empty())
+      toevoeging = toevoeging.substr(1); // skip the - 
+    
+    fmt::print("kstnum {}, toevoeging {}, volgnummer {}\n", kstnum, toevoeging, volgnummer);
     auto sqlret = sqlw->queryT("select document.nummer num from document,kamerstukdossier where kamerstukdossierid=kamerstukdossier.id and kamerstukdossier.nummer=? and volgnummer=? and toevoeging=?",
-			      {kstnum, volgnummer, ""});
+			      {kstnum, volgnummer, toevoeging});
     if(sqlret.empty()) {
       res.set_content("No such kst", "text/plain");
       res.status = 404;
