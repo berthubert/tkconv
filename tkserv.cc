@@ -1651,6 +1651,12 @@ int main(int argc, char** argv)
     
     if(!meta.empty())
       data["meta"] = packResultsJson(meta)[0];
+    else {
+      res.set_content(fmt::format("Kan kamerstukdossier {} {} niet vinden", nummer, toevoeging), "text/plain");
+      res.status = 404;
+      return;
+    }
+      
     inja::Environment e;
     e.set_html_autoescape(true);
 
