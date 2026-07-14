@@ -104,6 +104,18 @@ string getEmailForUserId(SQLiteWriter& sqlw, const std::string& userid)
   return eget(res[0], "email");
 }
 
+
+bool isUserIdMuted(SQLiteWriter& sqlw, const std::string& userid)
+{
+  auto res = sqlw.queryT("select * from users where user=?", {userid});
+  if(res.empty())
+    throw runtime_error("No entry for userid '"+userid+"'");
+  if(res[0].count("muted") == 0) // database might not have the muted field
+    return false;
+  return iget(res[0], "muted");
+}
+
+
 int main(int argc, char** argv)
 {
   argparse::ArgumentParser args("tkbot", "0.0");
@@ -126,11 +138,16 @@ int main(int argc, char** argv)
   
   SQLiteWriter userdb("user.sqlite3");  
 
+  userdb.queryT("create index if not exists identidx on sentNotification(identifier, userid)");
+  
   time_t now = time(0);
   auto toscan=userdb.queryT("select rowid,* from scanners where (lastRun is NULL or interval is NULL) or (lastRun + interval < ?)",
 			    {now});
   vector<unique_ptr<Scanner>> scanners;
   for(auto& ts: toscan) {
+    if(isUserIdMuted(userdb, eget(ts, "userid"))) {
+      continue;
+    }
     if(auto iter = g_scanmakers.find(eget(ts,"soort")); iter != g_scanmakers.end()) {
       scanners.push_back(iter->second(userdb, get<string>(ts["id"])));
     }
@@ -162,11 +179,11 @@ int main(int argc, char** argv)
     
     for(size_t n = ctr++; n < scanners.size(); n = ctr++) {
       auto& scanner = scanners[n];
-    
+
       fmt::print("{}\n", scanner->describe(*own));
       try {
 	auto ds = scanner->get(*own); // this does the actual work
-
+	
 	for(const auto& d: ds) {
 	  // for userdb and all and emissionid
 	  std::lock_guard<std::mutex> l(mlock);   

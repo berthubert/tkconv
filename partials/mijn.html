@@ -128,7 +128,7 @@ selected: "1 dag"}' x-init="doMijnInit($data)"
 </template>
 
 <template x-if="state==4 || state==3">
-  <div x-data="{monitors: []}" x-init="getMonitors($data)">
+  <div x-data="{monitors: [], muted: -1}" x-init="getMonitors($data)">
     <div><input type="button" @click.prevent="doLogout($data);" value="Uitloggen"><details><summary role="button">Privacybeleid</summary>
     <p>Privacybeleid: je data wordt aan niemand verkocht en met niemand gedeeld. Je kunt mail krijgen als je monitors definieert, of als je opnieuw in wil loggen.
       Ik ga je nooit spammen. Als er ooit andere mail wordt gestuurd is dat omdat dat heel dringend nodig was (bijvoorbeeld als we gehacked zouden zijn). Behalve je emailadres en je monitors slaan we niets op. Niet eens je naam, en ook geen wachtwoord.
@@ -168,6 +168,10 @@ selected: "1 dag"}' x-init="doMijnInit($data)"
       </template>
     </select>
     <button :disabled="allinterval==''" text="Bevestig" @click="updateAllInterval($data, allinterval)">Bevestig</button>
+    &nbsp;&nbsp;
+    <input title="Pauzering email" type="checkbox" id="muted" name="muted" x-model="muted" @change="updateMuted($data)">
+    <template x-if="muted==1"><label for="muted"><label>🔇 <b>Ontvink</b> om weer e-mail berichten te ontvangen</label></template>
+    <template x-if="muted==0"><label><b>Vink aan</b> om e-mail berichten te pauzeren</label> </template>
     <h3 id="oods">Open.overheid.nl</h3>
     <p>Kies hier organisaties waarvan je bericht wil krijgen als er op open.overheid.nl een nieuw document beschikbaar is:</p>
     <input style="width: 40%;"  size=120 id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off">

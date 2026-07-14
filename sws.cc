@@ -115,7 +115,7 @@ void Users::createUser(const std::string& user, const std::string& password, con
   string pwhash = password.empty() ? "" : bcrypt::generateHash(password);
   d_lsqw.addValue({{"user", user}, {"pwhash", pwhash}, {"admin", (int)admin},
 		   {"timsi", getLargeId()},
-		   {"disabled", 0}, {"caps", ""}, {"lastLoginTstamp", 0}, {"email", email}}, "users");
+		   {"disabled", 0}, {"muted", 0}, {"caps", ""}, {"lastLoginTstamp", 0}, {"email", email}}, "users");
 }
 
 void Users::delUser(const std::string& user)
@@ -313,6 +313,16 @@ void SimpleWebSystem::standardFunctions()
     cr.log({{"action", "kill-my-session"}});
     return nlohmann::json{{"ok", 1}};
   });
+
+  wrapPost({Capability::IsUser}, "/set-muted", [](auto& cr) {
+    string muted = cr.req.get_file_value("muted").content;
+    cr.log({{"action", "set-muted"}, {"value", muted}});
+    cout<<"muted: '"<<muted<<"'\n";
+    int mutbool = muted=="true";
+    cr.lsqw.query("update users set muted=? where user=?", {mutbool, cr.user});
+    return nlohmann::json{{"ok", 1}};
+  });
+
   
   wrapPost({Capability::IsUser}, "/logout", [](auto& cr)  {
     cr.log({{"action", "logout"}});

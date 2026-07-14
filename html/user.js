@@ -75,21 +75,35 @@ async function doMijnInit(f)
     }
 }
 
-
-
 async function getMonitors(f)
 {
     getOOVerantwoordelijken(f);
     getOOMonitors(f);
 
-    
     const response = await fetch('my-monitors');
     if (response.ok === true) {
         const data = await response.json();
 	console.log(data);
 	f.monitors = data["monitors"];
+	f.muted = data["muted"];
     }
+}
 
+async function updateMuted(f)
+{
+    const formData = new FormData();
+    formData.append('muted', f.muted);
+
+    const response = await fetch('set-muted', { method: "POST", body: formData });
+    if (response.ok === true) {
+        const data = await response.json();
+	console.log(data);
+    }
+    else {
+	console.log("error");
+    }
+    
+    return false;
 }
 
 async function removeOOMonitorAndSync(f, v)
@@ -111,8 +125,6 @@ async function removeOOMonitorAndSync(f, v)
 	    console.log(data);
 	    f.monitors = data["monitors"];
 	}
-
-	
     }
     else {
 	console.log("error");

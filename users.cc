@@ -348,15 +348,17 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
       int64_t count;
     };
     vector<pair<string, ScannerCombo> >scanners;
-    std::lock_guard<std::mutex> l(cr.lsqw.sqwlock);
-    for(auto& ts: rows) {
-      if(auto iter = g_scanmakers.find(eget(ts,"soort")); iter != g_scanmakers.end()) {
-	ScannerCombo sc;
-	sc.ptr = iter->second(cr.lsqw.sqw, get<string>(ts["id"]));
-	sc.count = get<int64_t>(ts["cnt"]);
-	scanners.emplace_back(get<string>(ts["id"]), std::move(sc));
-
-      } // XXXX this is wrong we don't have an autolocking sqlwriter not to use it
+    {
+      std::lock_guard<std::mutex> l(cr.lsqw.sqwlock);
+      for(auto& ts: rows) {
+	if(auto iter = g_scanmakers.find(eget(ts,"soort")); iter != g_scanmakers.end()) {
+	  ScannerCombo sc;
+	  sc.ptr = iter->second(cr.lsqw.sqw, get<string>(ts["id"]));
+	  sc.count = get<int64_t>(ts["cnt"]);
+	  scanners.emplace_back(get<string>(ts["id"]), std::move(sc));
+	  
+	} // XXXX this is wrong we don't have an autolocking sqlwriter not to use it
+      }
     }
     
     nlohmann::json j;
@@ -374,6 +376,15 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
       jmonitors.push_back(jmon);
     }
     j["monitors"] = jmonitors;
+    try {
+      rows = cr.lsqw.query("select muted from users where user=?", {cr.user});
+      if(!rows.empty()) {
+	j["muted"] = iget(rows[0], "muted") ? true : false;
+      }
+    }
+    catch(...) {
+      cout << "Could not get muted status for id "<< cr.user<< endl;
+    }
     return j;
   });
 
