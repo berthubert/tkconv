@@ -69,6 +69,13 @@ executable('tkindex', 'tkindex.cc', 'support.cc', 'siphash.cc', 'meta.cc',
 	cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep])
 
+executable('tktool', 'tktool.cc', 'support.cc', 'siphash.cc', 'meta.cc',
+	dependencies: [sqlitedep, json_dep, fmt_dep,
+	simplesockets_dep,
+	cpphttplib, sqlitewriter_dep, pugi_dep,
+	argparse_dep, vcs_dep])
+
+
 executable('tkpull', 'tkpull.cc', 'support.cc', 'siphash.cc', 'meta.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib,
 	simplesockets_dep,
