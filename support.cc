@@ -8,6 +8,7 @@
 #include <filesystem>
 #include "siphash.h"
 #include <sclasses.hh>
+#include "httplib.h"
 #include "base64.hpp"
 #include "peglib.h"
 #include <locale>
@@ -622,8 +623,50 @@ QuotedWord <-  < '"'  [^"]*  '"' >
   return retval;
 }
 
-std::string deHTML(const std::string& html)
+std::string deHTML(const std::string& html, const std::string& rep)
 {
   std::regex html_re("<[^>]*>");
-  return std::regex_replace(html, html_re, " ");
+  return std::regex_replace(html, html_re, rep);
+}
+
+#include <string>
+#include <string_view>
+#include <algorithm>
+#include <cctype>
+
+std::string trim_both(std::string_view str)
+{
+    auto is_not_space = [](unsigned char ch) {
+        return !std::isspace(ch);
+    };
+
+    auto first = std::find_if(str.begin(), str.end(), is_not_space);
+    auto last = std::find_if(str.rbegin(), str.rend(), is_not_space).base();
+
+    if (first >= last)
+        return {};
+
+    return std::string(first, last);
+}
+
+string getContentsFromUrl(const std::string& url)
+{
+  string host;
+  if(auto pos = url.find('/', 8);  pos != string::npos) {
+    // 01234567
+    // https://
+    host = url.substr(0, pos);
+  }
+  httplib::Client cli(host);
+  cli.set_connection_timeout(15, 0); 
+  cli.set_read_timeout(15, 0); 
+  cli.set_write_timeout(15, 0); 
+  cli.set_follow_location(true);
+  
+  auto res = cli.Get(url);
+  if(!res)  {
+    auto err = res.error();
+    throw runtime_error("Oops retrieving '"+url+"': "+httplib::to_string(err));
+  }
+  return res->body;
 }

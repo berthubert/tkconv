@@ -109,7 +109,7 @@ std::string getDateDBFormat(time_t t);
 std::string getNowDBFormat();
 std::string toQuotedPrintable(const std::string& in);
 
-std::string deHTML(const std::string& html);
+std::string deHTML(const std::string& html, const std::string& rep=" ");
 
 template<typename T, typename R>
 R genget(const T& cont, const std::string& fname)
@@ -138,3 +138,7 @@ int64_t iget(const T& cont, const std::string& fname)
 std::string convertToSQLiteFTS5(const std::string& in);
 std::string enrichHTML(const std::string& html, SQLiteWriter& sqlw);
 std::string getContentsOfFile(const std::string& fname);
+
+std::string trim_both(std::string_view str);
+
+std::string getContentsFromUrl(const std::string& url);
