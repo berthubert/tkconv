@@ -192,26 +192,6 @@ x         "hash": "0c2f34fe8af84928dc2ea835836ca6ed1c457f4d"
    
 */
    
-string getUrl(const std::string& url)
-{
-  string host;
-  if(auto pos = url.find('/', 8);  pos != string::npos) {
-    // 01234567
-    // https://
-    host = url.substr(0, pos);
-  }
-  httplib::Client cli(host);
-  cli.set_connection_timeout(15, 0); 
-  cli.set_read_timeout(15, 0); 
-  cli.set_write_timeout(15, 0); 
-  
-  auto res = cli.Get(url);
-  if(!res)  {
-    auto err = res.error();
-    throw runtime_error("Oops retrieving '"+url+"': "+httplib::to_string(err));
-  }
-  return res->body;
-}
 
 void storeRODocument(const std::string& id, string suffix, const std::string& content)
 {
