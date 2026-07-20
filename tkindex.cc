@@ -105,6 +105,14 @@ int main(int argc, char** argv)
   catch(exception& e) {
     fmt::print("Error attaching oo.sqlite3, perhaps it does not yet exist? Error was: {}\n", e.what());
   }
+
+  try {
+    todo.query("ATTACH DATABASE 'ic.sqlite3' as ic");
+  }
+  catch(exception& e) {
+    fmt::print("Error attaching ic.sqlite3, perhaps it does not yet exist? Error was: {}\n", e.what());
+  }
+
   
   std::regex dregex(R"(\d{4}-\d{2}-\d{2})");
   if(!regex_match(limit, dregex)) {
@@ -144,6 +152,16 @@ int main(int argc, char** argv)
     fmt::print("Error retrieving OODocuments, perhaps the oo.sqlite3 database does not yet exist? Error was: {}\n", e.what());
   }
 
+  decltype(wantDocs) wantIC;
+  try {
+    wantIC = todo.queryT("select entryId||'-'||nummer as id, icdocument.titel, startdatum datum, 0 contentLength, retrievalTime bijgewerkt, 'ICDocument' category, intro as onderwerp from ICDocument,ICEntry where icdocument.entryid = icentry.id  and startdatum > ?", {limit});
+    fmt::print("There are {} ICDocuments in the tk database that need to be in the index\n", wantIC.size());
+  }
+  catch(exception& e) {
+    fmt::print("Error retrieving ICDocuments, perhaps the ic.sqlite3 database does not yet exist? Error was: {}\n", e.what());
+  }
+
+  
   // query voor verslagen is ingewikkeld want we willen alleen de nieuwste versie indexeren
   // en sterker nog alle oude versies wissen
   fmt::print("Getting verslagen since {}\n", limit);
@@ -215,6 +233,9 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   for(auto& e : wantOO) {
     exists.insert(eget(e, "id"));
   }
+  for(auto& e : wantIC) {
+    exists.insert(eget(e, "id"));
+  }
 
   
   // we build up a to-delete table
@@ -222,7 +243,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   bool workToDo=false;
   for(const auto& si : skipids) {
     if(!exists.count(si.first)) {
-      cout<<si.first<<" is in indexed, but no longer in Document, Verslag, OODocument, or Activiteit or Toezegging table, will be removed\n";
+      cout<<si.first<<" is in indexed, but no longer in Document, Verslag, OODocument, ICDocument or Activiteit or Toezegging table, will be removed\n";
       sqlw.addValue({{"id", si.first}}, "aux1.todel");
       workToDo = true;
     }
@@ -273,6 +294,13 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
       else if(!haveExternalIdFileRightSize(si.first, si.second.contentLength, "oo", ".pdf")) {
 	fmt::print("Document {} enclosure for indexed document with id {} is wrong size (!= {}), reindexing\n", si.second.category, si.first, si.second.contentLength);
 	reindex.insert(si.first); 
+      }
+    }
+    else if(si.second.category=="ICDocument") {
+      //      cout<<"Checking OODocument "<<si.first<<": "<<haveExternalIdFile(si.first, "oo", ".pdf")<<", improved: "<< haveExternalIdFile(si.first, "improvoo", ".pdf") << endl;
+      if(!haveExternalIdFile(si.first, "ic", ".pdf")) {
+	fmt::print("We miss ICDocument enclosure for indexed document with id {}\n", si.first);
+	dropids.insert(si.first);
       }
     }
     else { // this is a document
@@ -326,6 +354,9 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
     wantAll.push_back(wv);
 
   for(const auto& wv : wantOO)
+    wantAll.push_back(wv);
+
+  for(const auto& wv : wantIC)
     wantAll.push_back(wv);
 
   
@@ -459,6 +490,27 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 	  }
 	  wantAll[n]["contentLength"] = (int64_t)fsiz; // need to put in the _actual_ length
 	}
+      }
+      else if(eget(wantAll[n], "category") == "ICDocument") {
+	string fname = makePathForExternalID(id, "ic", ".pdf", false);
+	size_t fsiz=0;
+	if(!haveExternalIdFile(id, "ic", ".pdf", &fsiz)) {
+	  fmt::print("OODocument file {} not present\n", fname);
+	  notpresent++;
+	  continue;
+	}
+	text = textFromFile(fname);
+	if(text.empty()) {
+	  fmt::print("{} is not an ICDocument file we can deal with\n", fname);
+	  {
+	    lock_guard<mutex> p(m);
+	    cfdb.reportFailure(id, "ICDocument", "No text from file");
+	  }
+	  
+	  wrong++;
+	  continue;
+	}
+	wantAll[n]["contentLength"] = (int64_t)fsiz; // need to put in the _actual_ length
       }
       else {
 	string fname = makePathForId(id);

@@ -117,6 +117,27 @@ std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query,
       r.bijgewerkt = eget(ood[0], "bijgewerkt"); // UTC issue XXX
       r.verantwoordelijke = eget(ood[0], "verantwoordelijke");
     }
+    else if(category == "ICDocument") {
+      auto pos = id.rfind('-');
+      if(pos == string::npos) {
+	fmt::print("Weird, could not parse IDocument combined id '{}'", id);
+      }
+      string entryid = id.substr(0, pos);
+      string nummer = id.substr(pos+1);
+      
+      auto icd = d_sqw.queryT("SELECT id, icentry.titel || ': ' || icdocument.titel titel, intro, retrievalTime bijgewerkt, startdatum datum, departementen from ic.ICDocument, ic.ICEntry where icentry.id = icdocument.entryId and id=? and nummer=?", {entryid, nummer});
+      
+      if(icd.empty()) {
+	fmt::print("Weird, could not find ICDocument {}-{} ({})in tk", entryid, nummer, id);
+	continue;
+      }
+      r.nummer = id;
+      r.relurl = "icdoc.html?id=" +entryid+"&nummer="+nummer;
+      r.titel = eget(icd[0], "titel"); 
+      r.onderwerp = eget(icd[0],"titel");
+      r.bijgewerkt = eget(icd[0], "bijgewerkt"); // UTC issue XXX
+      r.verantwoordelijke = eget(icd[0], "departementen"); // undo JSON
+    }
 
     else {
       cout<<"Unknown category '"<<category<<"'\n";

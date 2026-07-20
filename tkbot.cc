@@ -65,6 +65,20 @@ string getDescription(SQLiteWriter& sqlw, const std::string& nummer, const std::
       return eget(res[0], "titel");
     else return "";
   }
+  else if(category=="ICDocument") {
+    auto pos = nummer.rfind('-');
+    if(pos == string::npos) {
+      fmt::print("Weird, could not parse IDocument combined id '{}'", nummer);
+      return "";
+    }
+    string entryid =nummer.substr(0, pos);
+    string num = nummer.substr(pos+1);
+
+    auto res = sqlw.queryT("select icdocument.titel from ic.ICDocument, ic.ICEntry where id=? and icdocument.entryId=icentry.id and nummer=?", {entryid, num});
+    if(!res.empty())
+      return eget(res[0], "titel");
+    else return "";
+  }
 
   else if(category=="Activiteit") {
     auto res = sqlw.queryT("select soort||' '||onderwerp as onderwerp,datum from Activiteit where nummer=?",
@@ -156,6 +170,7 @@ int main(int argc, char** argv)
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
   tp.setInit([](SQLiteWriter& sqlw) {
     sqlw.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+    sqlw.query("ATTACH DATABASE 'ic.sqlite3' as ic");
   });
 
   
@@ -175,6 +190,7 @@ int main(int argc, char** argv)
       own = make_unique<SQLiteWriter>("tkindex-small.sqlite3", SQLWFlag::ReadOnly);
       own->query("ATTACH DATABASE 'tk.sqlite3' as meta");
       own->query("ATTACH DATABASE 'oo.sqlite3' as oo");
+      own->query("ATTACH DATABASE 'ic.sqlite3' as ic");
     }
     
     for(size_t n = ctr++; n < scanners.size(); n = ctr++) {
