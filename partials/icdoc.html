@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.titel }}{% endblock %}
+{% block og.title %}{{ meta.titel }}{% endblock %}
+{% block og.description %}{{ meta.startdatum}} {{ meta.titel }}{% endblock %}
+
+{% block main %}
+<hgroup>
+<h1>{{ meta.ititel }}: {{ meta.dtitel }}</h1>
+</hgroup>
+<p>
+  Uitgebreide informatie over <a href="ic.html?id={{meta.id}}">de consultatie behorend bij dit document</a>, inclusief reacties, is te vinden op <a href="https://internetconsultatie.nl/{{meta.id}}">deze pagina op internetconsultatie.nl</a>.
+</p>
+<p>
+  <h4>Korte omschrijving consultatie</h4>
+  {{meta.intro}}
+</p>
+{% if length(otherdocs) > 0 %}
+<h3>Overige documenten die horen bij deze consultatie</h3>
+<ul>
+  {% for a in otherdocs %}
+  <li><a href="./icdoc.html?id={{a.entryId}}&nummer={{a.nummer}}">{{a.titel}}</a> </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+🔗<a href="./getrawic/{{meta.id}}/{{meta.nummer}}">Directe link naar PDF</a>
+<br>
+<iframe width='95%'  height='1024' src='./getrawic/{{meta.id}}/{{meta.nummer}}'></iframe>
+
+{% endblock %}
+	

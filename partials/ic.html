@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.titel }}{% endblock %}
+{% block og.title %}{{ meta.titel }}{% endblock %}
+{% block og.description %}{{ meta.startdatum}} {{ meta.titel }}{% endblock %}
+
+{% block main %}
+<hgroup>
+<h1>{{ meta.titel }}</h1>
+<h4>Internetconsultatie van {{ meta.startdatum }} - {{ meta.einddatum}} ({{ join(meta.deps, ", ") }})</h4>
+</hgroup>
+<p>
+  
+  Uitgebreide informatie, inclusief reacties, is te vinden op <a href="https://internetconsultatie.nl/{{meta.id}}">deze pagina op internetconsultatie.nl</a>.
+</p>
+<p>
+  <h4>Korte omschrijving</h4>
+  {{meta.intro}}
+  <p></p>
+  {{meta.introplus}}
+  
+</p>
+{% if length(docs) > 0 %}
+<h3>Bijgevoegde documenten</h3>
+<ul>
+  {% for a in docs %}
+  <li><a href="./icdoc.html?id={{a.entryId}}&nummer={{a.nummer}}">{{a.titel}}</a> </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}
+	

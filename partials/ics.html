@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Alle internetconsultaties{% endblock %}
+{% block og.title %}Alle internetconsultaties{% endblock %}
+{% block og.description %}Alle open.overheid.nl documenten{% endblock %}
+
+{% block div %}
+{% endblock %}
+
+
+{% block main %}
+<h1>Internetconsultaties</h1>
+<table class="striped">
+  <thead>
+    <tr>
+      <th>Startdatum</th>
+      <th>Einddatum</th>
+      <th>Departement</th>
+      <th>Titel</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in ics %}
+    <tr>
+      <td>{{d.startdatum}}</td>
+      <td>{{d.einddatum}}</td>
+      <td>{{join(d.deps, " | ")}}</td>
+      <td><a href="ic.html?id={{d.id}}" title='{{d.intro  + d.introplus}}'>{{d.titel}}</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  setInterval(function() { window.location.reload();}, 60*1000);
+</script>
+
+{% endblock %}
+	

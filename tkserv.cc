@@ -366,6 +366,14 @@ auto getVerslagen(SQLiteWriter& sqlw, int days)
   return tmp;
 }
 
+auto getConsultaties(SQLiteWriter& sqlw, int days)
+{
+  string f = fmt::format("{:%Y-%m-%d}", fmt::localtime(time(0) - days*86400));
+  auto ics = sqlw.queryT("select startdatum datum, retrievalTime bijgewerkt, * from ICEntry where startdatum > ? order by startdatum desc, rowid desc", {f});
+  return ics;
+}
+
+
 string onderwerpToFilename(const std::string& onderwerp)
 {
   string ret = onderwerp;
@@ -424,6 +432,7 @@ int main(int argc, char** argv)
   ThingPool<SQLiteWriter> tp("tk.sqlite3", SQLWFlag::ReadOnly);
   tp.setInit([](SQLiteWriter& sqlw) {
     sqlw.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+    sqlw.query("ATTACH DATABASE 'ic.sqlite3' as ic");
   });
   
   signal(SIGPIPE, SIG_IGN); // every TCP application needs this
@@ -550,6 +559,29 @@ int main(int argc, char** argv)
     string content = getContentsOfFile(fname);
     res.set_content(content, "application/pdf");
   });
+
+  sws.d_svr.Get("/getrawic/:id/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string id=req.path_params.at("id"); 
+    string nummer=req.path_params.at("nummer");
+    // database should protect us against this, but what if internetconsultatie.nl turns evil
+    if(id.find('.') != string::npos || nummer.find('.') != string::npos)
+      return;
+    cout<<"getrawic id: "<<id<<", nummer: "<<nummer<<endl;
+
+    auto ret=tp.getLease()->queryT("select * from ICDocument where entryid=? and nummer=? order by rowid desc limit 1", {id, nummer});
+
+    if(ret.empty()) {
+      res.set_content(fmt::format("Could not find a ICDocument with id {} nummer {}", id, nummer), "text/plain");
+      res.status = 404;
+      return;
+    }
+    // ok it exists in the database
+    string fname= makePathForExternalID(id+"-"+nummer, "ic", ".pdf", false);
+    
+    string content = getContentsOfFile(fname);
+    res.set_content(content, "application/pdf");
+  });
+
   
   sws.d_svr.Get("/personphoto/:nummer", [&tp](const httplib::Request &req, httplib::Response &res) {
     string nummer=req.path_params.at("nummer"); // 1234
@@ -742,6 +774,77 @@ int main(int argc, char** argv)
     return make_pair<string,string>(e.render_file("./partials/personen.html", data), "text/html");
   });
 
+  sws.d_svr.Get("/ic.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string id = req.get_param_value("id");
+    auto sqlw = tp.getLease();
+
+    auto rows =sqlw->queryT("select * from ICEntry where id=?", {id});
+    if(rows.empty()) {
+      res.status=404;
+      res.set_content("Geen internetconsultatie met id "+id, "text/plain");
+      return; 
+    }
+    nlohmann::json data;
+
+
+    
+    data["meta"] = packResultsJson(rows)[0];
+    nlohmann::json j= nlohmann::json::parse((string)data["meta"]["departementen"]);
+    data["meta"]["deps"]=j;
+    
+    auto docs = sqlw->queryT("select * from ICDocument where entryid=?", {id});
+    data["docs"]=packResultsJson(docs);
+
+    inja::Environment e;
+
+    res.set_content(e.render_file("./partials/ic.html", data), "text/html");
+  });
+
+  sws.d_svr.Get("/icdoc.html", [&tp](const httplib::Request &req, httplib::Response &res) {
+    string id = req.get_param_value("id");
+    string nummer = req.get_param_value("nummer");
+    auto sqlw = tp.getLease();
+
+    auto rows =sqlw->queryT("select *,ICDocument.titel as dtitel,ICEntry.titel as ititel from ICEntry, ICDocument where id=? and nummer=? and ICDocument.entryId=ICentry.id", {id, nummer});
+    if(rows.empty()) {
+      res.status=404;
+      res.set_content("Geen document met id "+id+" en nummer " +nummer, "text/plain");
+      return; 
+    }
+    nlohmann::json data;
+    data["meta"] = packResultsJson(rows)[0];
+
+    auto otherdocs = sqlw->queryT("select * from ICDocument where entryid=? and nummer != ?", {id, nummer});
+    data["otherdocs"]=packResultsJson(otherdocs);
+
+    inja::Environment e;
+
+    res.set_content(e.render_file("./partials/icdoc.html", data), "text/html");
+  });
+
+  
+  sws.wrapGet({}, "/ics.html", [&tp](auto& cr) {
+    nlohmann::json data;
+    auto sqlw = tp.getLease();
+    auto ics = sqlw->queryT("select * from ICentry");
+
+    data["ics"] = packResultsJson(ics);
+    for(auto& di : data["ics"]) {
+      nlohmann::json j= nlohmann::json::parse((string)di["departementen"]);
+      di["deps"] = j;
+      
+      string rt = di["retrievalTime"];
+      if(rt.size() > 10)
+	rt[10]=' ';
+      di["retrievalTime"] = rt;
+    }
+    inja::Environment e;
+    
+    return make_pair<string,string>(e.render_file("./partials/ics.html", data), "text/html");
+    
+    
+  });
+  
   sws.wrapGet({}, "/oods.html", [&tp](auto& cr) {
     nlohmann::json data;
 
@@ -1180,6 +1283,7 @@ int main(int argc, char** argv)
 
       rv["datum"]=datum;
       time_t updated = getTstampUTC(rv["updated"]);
+      
       rv["bijgewerkt"] = fmt::format("{:%Y\xe2\x80\x91%m\xe2\x80\x91%d\xc2\xa0%H:%M}", fmt::localtime(updated));
       //      rd["bijgewerkt"]=
       rv["afkorting"]="Steno";
@@ -1191,6 +1295,40 @@ int main(int argc, char** argv)
       out.push_back(rv);
     }
 
+    auto recentConsultaties = packResultsJson(getConsultaties(sqlw.get(), 8));
+    for(auto& rv : recentConsultaties) {
+      string bijgewerkt = rv["bijgewerkt"];
+      // 2026-07-19T21:57:31
+      // 2026-07-19 21:57
+      bijgewerkt.resize(16);
+      replaceSubstring(bijgewerkt, "T", "\xc2\xa0"); // &nsbp;
+      replaceSubstring(bijgewerkt, "-", "\xe2\x80\x91"); // Non-Breaking Hyphen[1]
+      rv["bijgewerkt"]=bijgewerkt;
+      
+      rv["onderwerp"]=rv["titel"];
+      rv["soort"] = "Consultatie";
+      rv["titel"] = "Consultatie"; // somehow
+
+      string shortnummer = ((string)rv["id"]).substr(0, 20);
+      if(shortnummer.size()==20)
+	shortnummer += "\xe2\x80\xa6"; // ellipsis
+      rv["shortnummer"] = shortnummer;
+      
+      if(!rv["departementen"].empty()) {
+	nlohmann::json deps = nlohmann::json::parse((string)rv["departementen"]);
+	rv["afkorting"] = deps[0];
+	rv["naam"] = rv["afkorting"];
+      }
+      out.push_back(rv);
+    }
+
+    for(auto& o : out) {
+      string datum = o["datum"];
+      replaceSubstring(datum, "-", "\xe2\x80\x91"); // Non-Breaking Hyphen[1]
+      o["datum"]=datum;
+    }
+    
+    // beware, 'bijgewerkt' needs to have &nbsp; and non-breaking dashes for all entries
     sort(out.begin(), out.end(), [](auto& a, auto& b) {
       return std::make_tuple((string)a["datum"], (string) a["bijgewerkt"]) >
 	std::make_tuple((string)b["datum"], (string) b["bijgewerkt"]);
@@ -2091,6 +2229,7 @@ int main(int argc, char** argv)
     SQLiteWriter idx("tkindex.sqlite3", SQLWFlag::ReadOnly);
     idx.query("ATTACH DATABASE 'tk.sqlite3' as meta");
     idx.query("ATTACH DATABASE 'oo.sqlite3' as oo");
+    idx.query("ATTACH DATABASE 'ic.sqlite3' as ic");
     
     static auto s_uc = make_shared<int>(0);
     cout<<"Search: '"<<term<<"', limit '"<<limit<<"', soorten: '"<<soorten<<"', " <<
