@@ -826,7 +826,7 @@ int main(int argc, char** argv)
   sws.wrapGet({}, "/ics.html", [&tp](auto& cr) {
     nlohmann::json data;
     auto sqlw = tp.getLease();
-    auto ics = sqlw->queryT("select * from ICentry");
+    auto ics = sqlw->queryT("select * from ICentry order by startdatum desc, retrievalTime desc limit 280");
 
     data["ics"] = packResultsJson(ics);
     for(auto& di : data["ics"]) {
