@@ -393,6 +393,10 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
     throw std::runtime_error("Illegal character in from or to address");
   }
 
+  string senderdomain="opentk.hostname";
+  if(auto pos = from.find('@'); pos != string::npos)
+    senderdomain = from.substr(pos + 1);
+
   ComboAddress mailserver(server, 25);
   Socket s(mailserver.sin4.sin_family, SOCK_STREAM);
 
@@ -445,9 +449,7 @@ void sendEmail(const std::string& server, const std::string& from, const std::st
 
   
   sc.writen("Subject: "+esubject+"\r\n");
-  
-
-  sc.writen(fmt::format("Message-Id: <{}@opentk.hostname>\r\n", getRandom64()));
+  sc.writen(fmt::format("Message-Id: <{}@{}>\r\n", getRandom64(), senderdomain));
   
   //Date: Thu, 28 Dec 2023 14:31:37 +0100 (CET)
   sc.writen(fmt::format("Date: {:%a, %d %b %Y %H:%M:%S %z (%Z)}\r\n", fmt::localtime(time(0))));
