@@ -20,7 +20,7 @@ std::vector<ScannerHit> ZoekScanner::get(SQLiteWriter& sqlw)
 {
   SearchHelper sh(sqlw);
   
-  auto matches = sh.search(d_query, {}, d_cutoff);
+  auto matches = sh.search(d_query, {}, {}, d_cutoff);
   //  std::cout<<"Got "<<matches.size()<<" matches for '"<<d_query<<"' with d_cutoff "<<d_cutoff<"\n";
   // nummer/identifier, datum, category
   std::vector<ScannerHit> ret;

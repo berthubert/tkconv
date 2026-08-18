@@ -208,7 +208,7 @@ struct ZaakScanner : Scanner
     for(auto& h : hits)
       already.insert(eget(h,"nummer"));
     
-    auto sresults = sh.search(d_nummer, {"Document"}, d_cutoff);
+    auto sresults = sh.search(d_nummer, {"Document"}, {}, d_cutoff);
     for(const auto& sr : sresults) {
       if(already.count(sr.nummer))
 	continue;

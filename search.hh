@@ -39,6 +39,7 @@ struct SearchHelper
 
   std::vector<Result> search(const std::string& query,
 			     const std::set<std::string>& categories={},
+			     const std::set<std::string>& sorts={},
 			     const std::string& cutoff="", unsigned int mseclimit=10000,
 			     unsigned int itemlimit = 0);
   
