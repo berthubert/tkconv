@@ -413,7 +413,7 @@ int main(int argc, char** argv)
   args.add_argument("--rnd-admin-password").help("Create admin user if necessary, and set a random password").default_value(string(""));
   args.add_argument("--smtp-server").help("IP address or address:port of SMTP smart host").default_value("10.0.0.2");
   args.add_argument("--sender-email").help("From address of email we send").default_value("opentk@hubertnet.nl");
-  args.add_argument("--base-url").help("URL of this instance without trailing slash, for use in email").default_value("https://berthub.eu/tkconv");
+  args.add_argument("--base-url").help("URL of this instance without trailing slash, for use in e.g. email").default_value("https://berthub.eu/tkconv");
   args.add_argument("--dev").help("Increase SQLite log verbosity").flag();
   try {
     args.parse_args(argc, argv);
@@ -500,7 +500,7 @@ int main(int argc, char** argv)
     if(ret.empty()) {
       ret = sqlw->queryT("select * from Verslag where id=? order by rowid desc limit 1", {nummer});
       if(ret.empty()) {
-        res.set_content(fmt::format("Could not find a Verslag with id {}", id), "text/plain");
+        res.status = 404;
         return;
       }
       id=nummer;
@@ -544,7 +544,6 @@ int main(int argc, char** argv)
     auto ret=oo.queryT("select * from OODocument where id=?", {nummer});
 
     if(ret.empty()) {
-      res.set_content(fmt::format("Could not find a OODocument with id {}", nummer), "text/plain");
       res.status = 404;
       return;
     }
@@ -571,7 +570,6 @@ int main(int argc, char** argv)
     auto ret=tp.getLease()->queryT("select * from ICDocument where entryid=? and nummer=? order by rowid desc limit 1", {id, nummer});
 
     if(ret.empty()) {
-      res.set_content(fmt::format("Could not find a ICDocument with id {} nummer {}", id, nummer), "text/plain");
       res.status = 404;
       return;
     }
@@ -590,7 +588,6 @@ int main(int argc, char** argv)
 
     if(ret.empty()) {
       res.status = 404;
-      res.set_content("No such persoon", "text/plain");
       return;
     }
     string id = get<string>(ret[0]["id"]);
@@ -606,7 +603,6 @@ int main(int argc, char** argv)
     auto docs = tp.getLease()->queryT("select nummer from documentversie,document where externeidentifier=? and documentversie.documentid=document.id", {extid});
     if(docs.empty()) {
       res.status = 404;
-      res.set_content(fmt::format("No such external identifier {}", extid), "text/plain");
       return;
     }
     string dest = get<string>(docs[0]["nummer"]);
@@ -625,7 +621,6 @@ int main(int argc, char** argv)
       toevoeging=dossierid.substr(pos+1);
       if(auto pos2 = toevoeging.find_first_of("./&?<> ") ; pos2 != string::npos) {
 	res.status = 404;
-	res.set_content(fmt::format("Ongeldige link", nummer), "text/plain");
 	return;
       }
     }
@@ -633,7 +628,6 @@ int main(int argc, char** argv)
     auto docs = tp.getLease()->queryT("select count(1) c from kamerstukdossier where nummer=? and toevoeging=?", {nummer, toevoeging});
     if(docs.empty() || iget(docs[0], "c")==0) {
       res.status = 404;
-      res.set_content(fmt::format("Er is geen kamerstukdossier met nummer {} en toevoeging {}", nummer, toevoeging), "text/plain");
       return;
     }
     res.status = 301;
@@ -654,8 +648,10 @@ int main(int argc, char** argv)
     nlohmann::json j = nlohmann::json::object();
 
     auto comm = sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting from Commissie where id=?", {id});
-    if(comm.empty())
+    if(comm.empty()) {
+      res.status=404;
       return;
+    }
     j["commissie"] = packResultsJson(comm)[0];
     
     j["leden"] = packResultsJson(sqlw->queryT("select Commissie.naam, commissie.afkorting cafkorting, commissiezetel.gewicht, CommissieZetelVastPersoon.functie cfunctie, persoon.*, fractie.afkorting fafkorting from Commissie,CommissieZetel,CommissieZetelVastPersoon, Persoon,fractiezetelpersoon,fractiezetel,fractie where Persoon.id=commissiezetelvastpersoon.PersoonId and CommissieZetel.commissieId = Commissie.id and CommissieZetelVastpersoon.CommissieZetelId = commissiezetel.id and fractiezetel.id=fractiezetelpersoon.fractiezetelid and fractie.id=fractiezetel.fractieid and fractiezetelpersoon.persoonId = Persoon.id and commissie.id=? and fractie.datumInactief='' and fractiezetelpersoon.totEnMet='' and CommissieZetelVastPersoon.totEnMet='' order by commissiezetel.gewicht", {id})); 
@@ -673,7 +669,6 @@ int main(int argc, char** argv)
     auto lid = packResultsJson(sqlw->queryT("select * from Persoon where persoon.nummer=?", {nummer}));
     if(lid.empty()) {
       res.status=404;
-      res.set_content("Geen kamerlid met nummer "+to_string(nummer), "text/plain");
       return;
     }
 
@@ -781,7 +776,6 @@ int main(int argc, char** argv)
     auto rows =sqlw->queryT("select * from ICEntry where id=?", {id});
     if(rows.empty()) {
       res.status=404;
-      res.set_content("Geen internetconsultatie met id "+id, "text/plain");
       return; 
     }
     nlohmann::json data;
@@ -808,7 +802,6 @@ int main(int argc, char** argv)
     auto rows =sqlw->queryT("select *,ICDocument.titel as dtitel,ICEntry.titel as ititel from ICEntry, ICDocument where id=? and nummer=? and ICDocument.entryId=ICentry.id", {id, nummer});
     if(rows.empty()) {
       res.status=404;
-      res.set_content("Geen document met id "+id+" en nummer " +nummer, "text/plain");
       return; 
     }
     nlohmann::json data;
@@ -1074,7 +1067,6 @@ int main(int argc, char** argv)
     auto sqlret = sqlw->queryT("select document.nummer num from document,kamerstukdossier where kamerstukdossierid=kamerstukdossier.id and kamerstukdossier.nummer=? and volgnummer=? and toevoeging=?",
 			      {kstnum, volgnummer, toevoeging});
     if(sqlret.empty()) {
-      res.set_content("No such kst", "text/plain");
       res.status = 404;
       return;
 
@@ -1092,7 +1084,7 @@ int main(int argc, char** argv)
     auto ret=sqlw->queryT("select * from Activiteit where nummer=? order by rowid desc limit 1", {nummer});
     
     if(ret.empty()) {
-      res.set_content("Found nothing!!", "text/plain");
+      res.status = 404;
       return;
     }
     nlohmann::json r = nlohmann::json::object();
@@ -1577,7 +1569,6 @@ int main(int argc, char** argv)
 	ret = sqlw->queryT("select contentType from Verslag where id=?", {id});
 	if(ret.empty()) {
 	  fmt::print("Kon {} niet vinden, niet als document, niet als verslag\n", id);
-	  res.set_content("Found nothing!!", "text/plain");
 	  res.status=404;
 	  return;
 	}
@@ -1587,7 +1578,6 @@ int main(int argc, char** argv)
     else {
       auto ret=sqlw->queryT("select * from Document where nummer=? order by rowid desc limit 1", {nummer});
       if(ret.empty()) {
-	res.set_content("Found nothing!!", "text/plain");
 	res.status=404;
 	return;
       }
@@ -1625,7 +1615,6 @@ int main(int argc, char** argv)
 
     if(act.empty()) {
       res.status=404;
-      res.set_content("Activiteit niet gevonden - soms verwijdert de Tweede Kamer documenten, vergaderingen, verslagen etc. Probeer het later nog eens!", "text/plain");
       return;
     }
     inja::Environment e;
@@ -1643,7 +1632,6 @@ int main(int argc, char** argv)
 
     if(acts.empty()) {
       res.status=404;
-      res.set_content("Activiteit niet gevonden", "text/plain");
       return;
     }
 
@@ -1764,7 +1752,6 @@ int main(int argc, char** argv)
     auto deets = tp.getLease()->queryT("select * from commissie where id=?", {id});
     if(deets.empty()) {
       res.status = 404;
-      res.set_content("Geen commissie met id "+id, "text/plain");
       return;
     }
     
@@ -1795,7 +1782,6 @@ int main(int argc, char** argv)
     if(!meta.empty())
       data["meta"] = packResultsJson(meta)[0];
     else {
-      res.set_content(fmt::format("Kan kamerstukdossier {} {} niet vinden", nummer, toevoeging), "text/plain");
       res.status = 404;
       return;
     }
@@ -1828,7 +1814,6 @@ int main(int argc, char** argv)
     nlohmann::json data = nlohmann::json::object();
     auto ret=sqlw->queryT("select Document.*, DocumentVersie.externeidentifier, DocumentVersie.versienummer, DocumentVersie.extensie from Document left join DocumentVersie on DocumentVersie.documentId = Document.id where nummer=? limit 1", {nummer});
     if(ret.empty()) {
-      res.set_content("Found nothing in document.html!!", "text/plain");
       res.status = 404;
       return;
     }
@@ -2065,7 +2050,6 @@ int main(int argc, char** argv)
     auto verslagen = packResultsJson(tp.getLease()->queryT("select *,substr(datum,0,11) datum from vergadering,verslag where verslag.vergaderingid=vergadering.id and status != 'Casco' and vergadering.id=? order by datum desc, verslag.updated desc limit 1", {id}));
     if(verslagen.empty()) {
       res.status = 404;
-      res.set_content("Geen vergadering gevonden", "text/plain");
       return;
     }
 
@@ -2095,7 +2079,6 @@ int main(int argc, char** argv)
     auto oodocs = packResultsJson(lease->queryT("select * from OODocument where id=?", {id}));
     if(oodocs.empty()) {
       res.status = 404;
-      res.set_content("Geen documenten gevonden", "text/plain");
       return;
     }
 
@@ -2410,12 +2393,14 @@ int main(int argc, char** argv)
     res.status = 500; 
   });
 
-  sws.d_svr.set_error_handler([](const auto& req, auto& res) {
+  sws.d_svr.set_error_handler([&args](const auto& req, auto& res) {
     inja::Environment e;
     e.set_html_autoescape(true);
     nlohmann::json data;
     string error = fmt::format("Error {} {} @ {}", res.status, httplib::status_message(res.status), time(0));
     data["error"] = error;
+    data["status"] = res.status;
+    data["base-url"] = args.get<string>("--base-url");
       
     cout<<"Error: "<<req.path<<" '"<< error <<"'"<<endl;
     res.set_content(e.render_file("./partials/error.html", data), "text/html");
