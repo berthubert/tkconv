@@ -32,13 +32,17 @@ int main(int argc, char** argv)
   user_show_command.add_argument("email").help("email address of the user").required();
   user_command.add_subparser(user_show_command);
 
+  argparse::ArgumentParser user_rm_command("rm");
+  user_rm_command.add_description("Remove a user");
+  user_rm_command.add_argument("email").help("email address of the user").required();
+  user_rm_command.add_argument("--yes").help("actually make it happen").flag();  
+  user_command.add_subparser(user_rm_command);
+
+  
   argparse::ArgumentParser user_search_command("search");
   user_search_command.add_description("Search for users");
   user_search_command.add_argument("substr").help("substring to search on").required();
   user_command.add_subparser(user_search_command);
-
-  
-  
   args.add_subparser(user_command);
 
 
@@ -97,6 +101,24 @@ int main(int argc, char** argv)
 	fmt::print("{}\n", eget(r, "email"));
       }
     }
+    else if(user_command.is_subcommand_used(user_rm_command)) {
+      string email = user_rm_command.get("email");
+      auto res = sqlw.queryT("select user from users where email=?", {email});
+      if(res.empty()) {
+	cout<<"No such user "<<email<<endl;
+      }
+      else if(user_rm_command["--yes"] == true) {
+	cout<<"Going to delete user "<<email<<endl;
+	sqlw.queryT("delete from users where email=?", {email});
+      }
+      else {
+	cout<<"Need to pass --yes as well!"<<endl;
+      }	
 
+    }
+  }
+  else {
+    std::cout << std::endl << args;
+    std::exit(1);
   }
 }
