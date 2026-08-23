@@ -2238,6 +2238,7 @@ int main(int argc, char** argv)
     dt.start();
 
     int mseclimit = 10000;
+    int itemlimit = 280;
 
     shared_ptr<int> uc = s_uc;
     
@@ -2258,7 +2259,14 @@ int main(int argc, char** argv)
 
     fmt::print("Categories: {}\n", categories);
 
-    auto sres = sh.search(term, categories, limit, mseclimit, 280);
+    auto sres = sh.search(term, categories, limit, mseclimit, itemlimit + 1);
+    bool truncated = false;
+
+    if (sres.size() > itemlimit) {
+      sres.pop_back();
+      truncated = true;
+    }
+
     nlohmann::json results = nlohmann::json::array();
     for(const auto& r : sres) {
       
@@ -2283,13 +2291,16 @@ int main(int argc, char** argv)
 	  }));
 				       
     }
+
     
     // soorten!
     auto usec = dt.lapUsec();
     fmt::print("Got {} matches in {} msec\n", results.size(), usec/1000.0);
     g_stats.searchUsec += usec;
     nlohmann::json response=nlohmann::json::object();
+
     response["results"]= results;
+    response["truncated"] = truncated;
 
     response["milliseconds"] = usec/1000.0;
     res.set_content(response.dump(), "application/json");

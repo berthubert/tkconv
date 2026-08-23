@@ -306,7 +306,12 @@ async function getSearchResults(f)
 	rssurl.searchParams.set("q", f.searchQuery);
 	f.rssurl = rssurl.href;
 
-	f.message = `< ${Math.ceil(data["milliseconds"])} milliseconden`;
+	if (data["truncated"]) {
+	    f.message = `De nieuwste ${f.foundDocs.length} resultaten worden getoond - probeer een specifiekere zoekvraag.`;
+	} else {
+	    f.message = `${f.foundDocs.length} resultaten in < ${Math.ceil(data["milliseconds"])} milliseconden`;
+	}
+
 	f.busy=false;
 	orderByDate(f, false);
     }
