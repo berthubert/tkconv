@@ -20,6 +20,7 @@
 #include "search.hh"
 #include "ical.hh"
 #include "sitemaps.hh"
+#include "suggest.hh"
 #include <sqlite3.h>
 
 using namespace std;
@@ -453,6 +454,13 @@ int main(int argc, char** argv)
   
   std::mutex userdblock;
   LockedSqw ulsqw{userdb, userdblock};
+
+  Suggester suggester;
+  try {
+    SQLiteWriter s("tkindex.sqlite3", SQLWFlag::ReadOnly);
+    suggester = suggester_from_table(&s);
+  }
+  catch(...){}
   
   SimpleWebSystem sws(tp, ulsqw);
   sws.d_svr.set_keep_alive_max_count(1); 
@@ -2215,7 +2223,7 @@ int main(int argc, char** argv)
     res.set_content(e.render_file("./partials/stemmingen.html", data), "text/html");
   });
 
-  sws.d_svr.Post("/search", [](const httplib::Request &req, httplib::Response &res) {
+  sws.d_svr.Post("/search", [&suggester](const httplib::Request &req, httplib::Response &res) {
     string term = req.get_file_value("q").content;
     string twomonths = req.get_file_value("twomonths").content;
     string soorten = req.get_file_value("soorten").content;
@@ -2290,6 +2298,13 @@ int main(int argc, char** argv)
     g_stats.searchUsec += usec;
     nlohmann::json response=nlohmann::json::object();
     response["results"]= results;
+
+    if (results.size() < 20) {
+      string suggestion = suggester.correct_query(term);
+
+      if (suggestion != term)
+        response["suggest"] = suggestion;
+    }
 
     response["milliseconds"] = usec/1000.0;
     res.set_content(response.dump(), "application/json");
