@@ -95,7 +95,7 @@ executable('oppull', 'oppull.cc', 'support.cc', 'siphash.cc',
 
 
 executable('tkserv', 'tkserv.cc', 'support.cc', 'siphash.cc', 'sws.cc', 'users.cc', 'scanmon.cc', 'search.cc',
-		     'enrich.cc', 'ical.cc', 'sitemaps.cc', 'suggest.cc',
+		     'enrich.cc', 'ical.cc', 'sitemaps.cc', 'suggest.cc', 'qparser.cc',
 	dependencies: [sqlitedep, json_dep,
 	simplesockets_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep,
 	argparse_dep, vcs_dep, bcryptcpp_dep])
@@ -115,6 +115,6 @@ executable('playground', 'playground.cc', 'support.cc', 'siphash.cc',
 #	argparse_dep, vcs_dep])
 
 
-executable('testrunner', 'testrunner.cc', 'ical.cc', 'icaltest.cc', 'support.cc',  'siphash.cc', 'search.cc', 'meta.cc',
+executable('testrunner', 'testrunner.cc', 'ical.cc', 'icaltest.cc', 'support.cc',  'siphash.cc', 'search.cc', 'meta.cc', 'qparser.cc',
 dependencies: [sqlitedep, json_dep, fmt_dep, sqlitedep, sqlitewriter_dep, doctest_dep, cpphttplib, simplesockets_dep])
 

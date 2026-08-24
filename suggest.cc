@@ -1,10 +1,11 @@
 #include "suggest.hh"
 
+#include "qparser.hh"
+
 using std::nullptr_t;
 using std::string;
 
 #include "fstlib.h"
-#include "peglib.h"
 #include "sqlwriter.hh"
 
 string Suggester::spell(string q) {
@@ -30,48 +31,11 @@ string Suggester::spell(string q) {
 }
 
 string Suggester::correct_query(string in) {
-  peg::parser p;
-
-  // the BareWord is like that because of UTF-8
-  auto ret = p.load_grammar(R"a(
-    Root <- (Paren / BareWord / QuotedWord)+
-    Paren <- ('(' / ')')
-    BareWord      <- < [^" ()]+ > 
-    QuotedWord <-  '"'  < [^"]* >  '"' 
-    %whitespace <- [\t ]*
-    )a");
-  if(!ret)
-    throw std::runtime_error("bad grammar");
-
-  p["BareWord"] = [this](const peg::SemanticValues &vs) {
-    return spell(vs.token_to_string());
+  auto fn = [this](const string& s) {
+    return spell(s);
   };
 
-  p["QuotedWord"] = [this](const peg::SemanticValues &vs) {
-    return "\"" + spell(vs.token_to_string()) + "\"";
-  };
-
-  p["Paren"] = [](const peg::SemanticValues &vs) {
-    return vs.token_to_string();
-  };
-  
-  p["Root"] = [](const peg::SemanticValues &vs) {
-    return vs.transform<string>();
-  };
-
-  std::vector<string> result;
-  int rc = p.parse(in, result);
-
-  if(!rc)
-    return in; // we tried
-  
-  string retval;
-  for(const auto& r : result) {
-    if(!retval.empty())
-      retval.append(1, ' ');
-    retval += r;
-  }
-  return retval;
+  return transformQuery(in, fn, fn);
 }
 
 Suggester suggester_from_pairs(const std::vector<std::pair<string, uint64_t>> &pairs) {

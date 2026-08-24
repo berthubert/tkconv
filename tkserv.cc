@@ -21,6 +21,7 @@
 #include "ical.hh"
 #include "sitemaps.hh"
 #include "suggest.hh"
+#include "qparser.hh"
 #include <sqlite3.h>
 
 using namespace std;

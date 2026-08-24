@@ -13,6 +13,7 @@
 #include "nlohmann/json.hpp"
 #include "meta.hh"
 #include "support.hh"
+#include "qparser.hh"
 
 using namespace std;
 
