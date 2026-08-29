@@ -33,12 +33,12 @@ struct LockedSqw
     return packResultsJson(result);
   }
   
-  void addValue(const std::initializer_list<std::pair<const char*, SQLiteWriter::var_t>>& values, const std::string& table="data")
+  void addValue(const std::initializer_list<std::pair<std::string, SQLiteWriter::var_t>>& values, const std::string& table="data")
   {
     std::lock_guard<std::mutex> l(sqwlock);
     sqw.addValue(values, table);
   }
-  void addValue(const std::vector<std::pair<const char*, SQLiteWriter::var_t>>& values, const std::string& table="data")
+  void addValue(const std::vector<std::pair<std::string, SQLiteWriter::var_t>>& values, const std::string& table="data")
   {
     std::lock_guard<std::mutex> l(sqwlock);
     sqw.addValue(values, table);
@@ -117,10 +117,10 @@ struct SimpleWebSystem
     {
       return sws.getIP(req);
     }
-    void log(const std::initializer_list<std::pair<const char*, SQLiteWriter::var_t>>& fields)
+    void log(const std::initializer_list<std::pair<std::string, SQLiteWriter::var_t>>& fields)
     {
       // add agent?
-      std::vector<std::pair<const char*, SQLiteWriter::var_t>> values{{"user", user}, {"ip", getIP()}, {"tstamp", time(0)}};
+      std::vector<std::pair<std::string, SQLiteWriter::var_t>> values{{"user", user}, {"ip", getIP()}, {"tstamp", time(0)}};
       for(const auto& f : fields)
         values.push_back(f);
       lsqw.addValue(values, "log");
