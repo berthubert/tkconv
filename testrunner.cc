@@ -13,6 +13,7 @@
 #include "nlohmann/json.hpp"
 #include "meta.hh"
 #include "support.hh"
+#include <inja.hpp>
 
 using namespace std;
 
@@ -143,5 +144,19 @@ Dit was een bericht van <a href="https://berthub.eu/tkconv/">OpenTK</a>.
   sendEmail("10.0.0.2", "opentk@hubertnet.nl", "bert@hubertnet.nl", "[opentk] Monitor lid Ines Kostić", text, html);
   
 
+}
+
+TEST_CASE("Inja template syntax") {
+  inja::Environment env;
+
+  for (const auto& entry : std::filesystem::directory_iterator("partials")) {
+    std::filesystem::path ext = entry.path().extension();
+    
+    if (ext == ".html" || ext == ".txt") {
+      SUBCASE(entry.path().c_str()) {
+        CHECK_NOTHROW(env.parse_template(entry.path()));
+      }
+    }
+  }
 }
 
