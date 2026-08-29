@@ -66,7 +66,7 @@ TEST_CASE("Search" * doctest::skip())
   sqw.query("ATTACH DATABASE 'tk.sqlite3' as meta");
 
   SearchHelper sh(sqw);
-  auto ret = sh.search("Werkbezoek Knooppunten internationaal", {"Activiteit", "Toezegging"}, "2024-11-01");
+  auto ret = sh.search("Werkbezoek Knooppunten internationaal", {"Activiteit", "Toezegging"}, {}, "2024-11-01");
   for(const auto& r : ret) {
     cout<<r.nummer<<" ("<<r.datum<<"): "<<r.onderwerp<<" / " << r.titel<<"\n";
   }

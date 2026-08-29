@@ -3,7 +3,7 @@
 using namespace std;
 
 
-std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query, const std::set<string>& categories, const std::string& cutoff, unsigned int mseclimit, unsigned int itemlimit)
+std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query, const std::set<string>& categories, const std::set<string>& sorts, const std::string& cutoff, unsigned int mseclimit, unsigned int itemlimit)
 {
   std::vector<SearchHelper::Result> ret;
   // nummer, category, relurl, score, date, snippet, title
@@ -16,9 +16,19 @@ std::vector<SearchHelper::Result> SearchHelper::search(const std::string& query,
       continue;
     categoriesstr+= "'" + c + "'";
   }
-  auto matches = d_sqw.queryT("SELECT uuid, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip,  category, bm25(docsearch) as score FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category in ("+categoriesstr+")) order by rowid desc"
+
+  string sortsstr;
+  for(const auto& s : sorts) {
+    if(!sortsstr.empty())
+      sortsstr += ", ";
+    if(s.find_first_of("'\"") != string::npos)
+      continue;
+    sortsstr += "'" + s + "'";
+  }
+
+  auto matches = d_sqw.queryT("SELECT uuid, datum, snippet(docsearch,-1, '<b>', '</b>', '...', 20) as snip, category, bm25(docsearch) as score FROM docsearch WHERE docsearch match ? and (datum >= ? or datum='') and (? or category in ("+categoriesstr+")) and (? or (case category when 'Document' then (select soort from meta.Document where id=uuid) when 'Activiteit' then (select soort from meta.Activiteit where id=uuid) end) in ("+sortsstr+")) order by rowid desc"
 			      + (itemlimit ? " limit "+to_string(itemlimit) : ""),
-			      {query, cutoff, categories.empty()}, mseclimit);
+			      {query, cutoff, categories.empty(), sorts.empty()}, mseclimit);
 
   for(auto& m : matches) {
     Result r;

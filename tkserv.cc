@@ -2253,23 +2253,25 @@ int main(int argc, char** argv)
     SearchHelper sh(idx);
 
     set<string> categories;
-    if(soorten=="activiteiten")
+    set<string> sorts;
+    if(soorten=="activiteiten") {
       categories.insert("Activiteit");
+    } else if(soorten=="moties") {
+      categories.insert("Document");
+      sorts.insert("Motie");
+    } else if(soorten=="vragenantwoorden") {
+      categories.insert("Document");
+      sorts.insert("Schriftelijke vragen");
+      sorts.insert("Antwoord schriftelijke vragen");
+      sorts.insert("Antwoord schriftelijke vragen (nader)");
+    }
 
     fmt::print("Categories: {}\n", categories);
+    fmt::print("Sorts: {}\n", sorts);
 
-    auto sres = sh.search(term, categories, limit, mseclimit, 280);
+    auto sres = sh.search(term, categories, sorts, limit, mseclimit, 280);
     nlohmann::json results = nlohmann::json::array();
     for(const auto& r : sres) {
-      
-      if(soorten=="moties" && r.soort != "Motie")
-	continue;
-      else if(soorten=="vragenantwoorden" &&
-	 (r.soort != "Schriftelijke vragen" &&
-	  r.soort != "Antwoord schriftelijke vragen" &&
-	  r.soort != "Antwoord schriftelijke vragen (nader)"))
-	continue;
-
       results.push_back(nlohmann::json({
 	    {"nummer", r.nummer},
 	    {"datum", r.datum},
@@ -2281,7 +2283,6 @@ int main(int argc, char** argv)
 	    {"bijgewerkt", r.bijgewerkt},
 	    {"persoonnummer", r.persoonnummer}
 	  }));
-				       
     }
     
     // soorten!
