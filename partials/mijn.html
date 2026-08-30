@@ -192,7 +192,7 @@ selected: "1 dag"}' x-init="doMijnInit($data)"
       </thead>
       <tbody>
       <template x-for="m in monitors">
-	<tr><td x-text="m.type"></td><td x-text="m.description"></td>
+	<tr><td x-text="m.type"></td><td><a x-bind:href="m.href" x-text="m.description"></a></td>
 	  <td><span x-text="m.cnt"></span></td>
 	  <td>
 	    <select x-model="m.interval" @change="updateInterval($data, m.id, m.interval)"> 

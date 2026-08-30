@@ -367,8 +367,10 @@ void addTkUserManagement(SimpleWebSystem& sws, const std::string& mailserver,
     for(auto& [id, sc] : scanners) {
       auto& [ptr, count] = sc;
       nlohmann::json jmon;
-      jmon["description"] = ptr->describe(cr.tp.getLease().get());
+      auto sqlw = cr.tp.getLease();
+      jmon["description"] = ptr->describe(sqlw.get());
       jmon["type"] = ptr->getType();
+      jmon["href"] = ptr->getLink();
       jmon["id"] = id;
       jmon["cnt"] = count;
       jmon["interval"] = ptr->d_interval;

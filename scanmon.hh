@@ -22,6 +22,7 @@ struct ScannerHit
 struct Scanner
 {
   virtual std::string describe(SQLiteWriter& sqlw) = 0;
+  virtual std::string getLink() = 0;
   virtual std::string getType() = 0;
   virtual std::vector<ScannerHit> get(SQLiteWriter& sqlw) = 0;
   auto getRow(SQLiteWriter& sqlw, const std::string& id)
@@ -86,6 +87,12 @@ struct CommissieScanner : Scanner
     }
     return naam;
   }
+
+  std::string getLink() override
+  {
+    return "commissie.html?id=" + d_commissieid;
+  }
+
   std::string d_commissieid;
 };
 
@@ -147,6 +154,12 @@ struct PersoonScanner : Scanner
     }
     return "Persoon " + naam;
   }
+
+  std::string getLink() override
+  {
+    return "persoon.html?nummer=" + d_nummer;
+  }
+
   std::string d_nummer;
 };
 
@@ -181,6 +194,12 @@ struct ActiviteitScanner : Scanner
     }
     return "Activiteit " + d_nummer+": "+ onderwerp;
   }
+
+  std::string getLink() override
+  {
+    return "activiteit.html?nummer=" + d_nummer;
+  }
+
   std::string d_nummer;
 };
 
@@ -228,6 +247,12 @@ struct ZaakScanner : Scanner
     }
     return "Zaak " + d_nummer+": "+ onderwerp;
   }
+
+  std::string getLink() override
+  {
+    return "zaak.html?nummer=" + d_nummer;
+  }
+
   std::string d_nummer;
 };
 
@@ -263,6 +288,12 @@ struct KsdScanner : Scanner
     }
     return "Kamerstukdossier " + d_nummer+ " " +d_toevoeging+": "+ onderwerp;
   }
+
+  std::string getLink() override
+  {
+    return "ksd.html?ksd=" + d_nummer + "&toevoeging=" + d_toevoeging;
+  }
+
   std::string d_nummer, d_toevoeging;
 };
 
@@ -317,6 +348,19 @@ struct ToezeggingenScanner : Scanner
     else
       return "???";
   }
+
+  std::string getLink() override
+  {
+    if(d_fractie.empty() && d_voortouwAfkorting.empty())
+      return "toezeggingen.html";
+    else if(!d_fractie.empty())
+      return "toezeggingen.html?fractie="+d_fractie;
+    else if(!d_voortouwAfkorting.empty())
+      return "toezeggingen.html?commissie="+d_voortouwAfkorting;
+    else
+      return "toezeggingen.html";
+  }
+
   std::string d_fractie, d_voortouwAfkorting;
 };
 
@@ -342,6 +386,13 @@ struct OODocumentVerantwoordelijkeScanner : Scanner
   {
     return "Open.overheid.nl documenten van "+d_verantwoordelijke;
   }
+
+  std::string getLink() override
+  {
+    // no way yet to link to specific verantwoordelijke
+    return "oods.html";
+  }
+
   std::string d_verantwoordelijke;
 };
 
@@ -371,6 +422,11 @@ struct GeschenkScanner : Scanner
   {
     return "Geschenken";
   }
+
+  std::string getLink() override
+  {
+    return "geschenken.html";
+  }
 };
 #endif
 
@@ -385,6 +441,12 @@ struct ZoekScanner : Scanner
   std::string describe(SQLiteWriter& sqlw) override;
   std::string d_query;
   std::string d_categorie;
+
+  std::string getLink() override
+  {
+    return "search.html?q=" + d_query;
+  }
+
 };
 
 extern std::map<std::string, decltype(&ZaakScanner::make)> g_scanmakers;
