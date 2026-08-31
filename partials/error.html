@@ -2,12 +2,15 @@
 {% block title %}Error{% endblock %}
 {% block og.title %}{{ error }}{% endblock %}
 {% block og.description %}Een TKConv error: {{ error }}{% endblock %}
+{% block extrameta %}<base href="{{ base-url }}/">{% endblock %}
 
 {% block main %}
 <hr>
-<H1>Storing</H1>
+<h1>{% if status == 404 %}Niet gevonden{% else %}Storing{% endif %}</h1>
 <p>
-Er is helaas iets misgegaan. De errormelding:
+{% if status == 404 %}De gevraagde pagina is niet gevonden.{% else %}Er is helaas iets misgegaan.{% endif %}
+
+De errormelding:
 
 <div style="color: red; font-size: 200%;">
 <center>
