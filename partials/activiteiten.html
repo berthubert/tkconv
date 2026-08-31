@@ -4,15 +4,43 @@
 {% block og.description %}Activiteiten Tweede Kamer{% endblock %}
 
 {% block main %}
-<h4>Recente en toekomstige activiteiten
-  {%if meta.commissie != "" %}
-  van de {{ meta.commissienaam }}
-  {%endif%}
+<h4>
+  {% if meta.datum != "" %}
+  Alle activiteiten op {{ meta.datum }}
+  {% else %}
+  Recente en toekomstige activiteiten
+  {% if meta.commissie != "" %}
+  van de {{ default(meta.commissienaam, "commissie") }}
+  {% endif %}
+  {% endif %}
 </h4>
-<p>
-  Activiteiten vanaf vier dagen geleden. Of <a href="#vandaag">spring ⏩ naar vandaag</a>.
-</p>
+<nav>
+  <ul>
+    <li>
+      {% if meta.datum == "" %}
+      Activiteiten vanaf vier dagen geleden.
+      {% else %}
+      Er zijn {{ length(data) }} resultaten gevonden voor de opgegeven datum.
+      {% endif %}
+    </li>
+  </ul>
+  <ul>
+    {% if meta.datum == "" %}
+    <li><a href="#vandaag">⏩ Spring naar vandaag</a></li>
+    <li><a href="./activiteiten.html?datum={{meta.vandaag}}">🗓️ Datum kiezen</a></li>
+    {% else %}
+    <li><a href="./activiteiten.html">⏩ Terug naar overzicht</a></li>
+    <li style="padding-top: 0; padding-bottom: 0;">
+      <form id="datum" style="display: inline">
+        <input style="display: inline; width: auto" type="date" name="datum" value="{{meta.datum}}">
+        <input style="display: inline; width: auto" type="submit" value="►">
+      </form>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
 <center>
+  {% if meta.datum == "" %}
   {%if meta.commissie != "" %}
   <a href="./activiteiten.html">Alles</a>
   {%else%}
@@ -24,6 +52,7 @@
     <abbr title="{{d.naam}}">{{ d.afko }}</abbr>
     {% if d.afko != meta.commissie %}</a>{%else%}</b>{%endif%}
 {% endfor %}
+{% endif %}
 </center>
 <table class="striped">
   <thead>

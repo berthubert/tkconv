@@ -1658,12 +1658,22 @@ int main(int argc, char** argv)
   });
 
   sws.d_svr.Get("/activiteiten.html", [&tp](const httplib::Request &req, httplib::Response &res) {
-    // from 4 days ago into the future
-    string dlim = getDateDBFormat(time(0)-4*86400);
+    string earliest, latest;
+    string dlim = req.get_param_value("datum");
+
+    if (dlim.empty()) {
+      // from 4 days ago into the future
+      earliest = getDateDBFormat(time(0)-4*86400);
+      latest = getDateDBFormat(time(0)+20*365*86400);
+    } else {
+      // only one day. don't offer wider ranges for now
+      earliest = getDateDBFormat(getDateTimestamp(dlim));
+      latest = getDateDBFormat(getDateTimestamp(dlim));
+    }
 
     string today = getTodayDBFormat();
     
-    auto acts = packResultsJson(tp.getLease()->queryT("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp, besloten, voortouwAfkorting, voortouwNaam from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where datum > ? order by datum asc", {dlim}));
+    auto acts = packResultsJson(tp.getLease()->queryT("select Activiteit.datum datum, activiteit.bijgewerkt bijgewerkt, activiteit.nummer nummer, naam, noot, onderwerp, besloten, voortouwAfkorting, voortouwNaam from Activiteit left join Reservering on reservering.activiteitId=activiteit.id  left join Zaal on zaal.id=reservering.zaalId where Activiteit.datum between date(?) and date(?, '+1 day') order by datum asc", {earliest, latest}));
 
     bool noMarkerYet = true;
     struct Commie
@@ -1700,6 +1710,8 @@ int main(int argc, char** argv)
     nlohmann::json data = nlohmann::json::object();
     data["data"] = acts;
     data["meta"]["commissie"] = commissie; 
+    data["meta"]["datum"] = dlim.empty() ? "" : earliest;
+    data["meta"]["vandaag"] = today;
     data["meta"]["commies"] = nlohmann::json::array();
     for(const auto& c : commies) {
       nlohmann::json commie = nlohmann::json::object();
