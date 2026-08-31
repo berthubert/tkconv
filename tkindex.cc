@@ -190,6 +190,12 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
   sqlw.queryT("create table if not exists indexed as select datum, uuid,contentLength,bijgewerkt, category from docsearch");
   sqlw.queryT("create unique index if not exists uuididx on indexed(uuid)");
 
+  // for spell checking, see suggest.cc
+  sqlw.queryT(R"(
+CREATE VIRTUAL TABLE IF NOT EXISTS vocab USING fts5vocab(docsearch, row); 
+  )");
+  sqlw.queryT("create table if not exists lexicon (term text primary key not null, doc integer not null)");
+
   if (args["--cleanup"] == true) {
     fmt::print("Cleaning up documents that are older than {}\n", limit);
     sqlw.queryT("delete from indexed where datum < ? and category != 'PersoonGeschenk'", {limit});
@@ -582,4 +588,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docsearch USING fts5(onderwerp, titel, tekst,
 
   fmt::print("Indexed {} new documents, of which {} were reindexes. {} weren't present, {} of unsupported type, {} were indexed already\n",
 	     (int)indexed, reindex.size(), (int)notpresent, (int)wrong, (int)skipped);
+
+  // see suggest.cc; must happen after docsearch table is updated. terms
+  // that appear in very few documents (typos, OCR mistakes...) are ignored.
+  fmt::println("Rebuilding lexicon table for spelling suggestions...");
+  sqlw.queryT("delete from lexicon");
+  sqlw.queryT("insert into lexicon select term, doc from vocab where doc >= 20");
+  fmt::println("tkindex complete.");
 }

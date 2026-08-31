@@ -306,6 +306,18 @@ async function getSearchResults(f)
 	rssurl.searchParams.set("q", f.searchQuery);
 	f.rssurl = rssurl.href;
 
+	if (f.alternatief == '' && data.suggest) {
+            const link = document.createElement('a');
+            const href = new URL(location.href);
+            href.searchParams.set('q', data.suggest);
+            href.searchParams.set('twomonths', f.twomonths);
+            href.searchParams.set('soorten', f.soorten);
+            link.href = href;
+            link.innerText = data.suggest;
+
+            f.alternatief = `<p><em>Bedoelt u mogelijk ${link.outerHTML}?</em></p>`;
+	}
+
 	f.message = `< ${Math.ceil(data["milliseconds"])} milliseconden`;
 	f.busy=false;
 	orderByDate(f, false);
