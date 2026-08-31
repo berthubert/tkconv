@@ -1,0 +1,43 @@
+.stuknummer {
+  display: block;
+}
+
+ol.whitespace-small {
+    padding-left: 1em;
+}
+
+ol.whitespace-small > li {
+    margin-left: 1em;
+    padding-left: 1.5em;
+}
+
+ul.whitespace-small {
+    padding-left: 1em;
+}
+
+ul.expliciet > li {
+    list-style-type: none;
+    padding-left: 2.5em;
+}
+
+ul.whitespace-small > li > p.labeled {
+    margin-left: 2.5em;
+    left: -2.5em;
+}
+
+p.labeled {
+    position: relative;
+}
+
+ul.whitespace-small > li > p.labeled span.ol {
+    margin-left: -2.5em;
+    position: absolute;
+}
+
+.wijziging > .artikel, .wijziging > .wijzig-divisie {
+    margin-left: 2em;
+}
+
+.ondertekening {
+    font-style: italic;
+}
