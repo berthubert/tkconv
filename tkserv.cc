@@ -1353,7 +1353,7 @@ int main(int argc, char** argv)
 
     string commissie = req.get_param_value("commissie");
     string fractie = req.get_param_value("fractie");
-    
+
     auto toez =  packResultsJson(tp.getLease()->queryT("select toezegging.id, tekst, toezegging.nummer, ministerie, status, naamToezegger, substr(activiteit.datum, 0, 11) datum, kamerbriefNakoming, datumNakoming, activiteit.nummer activiteitNummer, persoon.nummer pnummer, initialen, tussenvoegsel, achternaam, functie, fractie.afkorting as fractienaam, voortouwAfkorting, voortouwNaam from Toezegging,Activiteit left join Persoon on persoon.id = toezegging.persoonId left join Fractie on fractie.id = toezegging.fractieId where  Toezegging.activiteitId = activiteit.id and status != 'Voldaan' order by activiteit.datum desc"));
     
     map<string, unsigned int> mincount, voortouwcount, fractiecount;
@@ -1367,8 +1367,6 @@ int main(int argc, char** argv)
       }
       if(t.count("fractienaam"))
 	fractiecount[t["fractienaam"]]++;
-
-
     }
 
     nlohmann::json jmincount, jvoortouwcount, jfractiecount;
@@ -1386,8 +1384,6 @@ int main(int argc, char** argv)
 	  jfractiecount.push_back(nlohmann::json({{"item", item},  {"escitem", urlEscape(item)}, {"count", count}}));
       }
     }
-    
-    // use pnummer
 
     nlohmann::json filtered = nlohmann::json::array();
     if(!commissie.empty()) {
@@ -1403,8 +1399,16 @@ int main(int argc, char** argv)
 	  filtered.push_back(t);
       }
     }
-    else
-      filtered = toez;
+    else {
+      int limit = 1000;
+      filtered.clear();
+      for(const auto& t : toez) {
+	if(!(limit--))
+	  break;
+		
+	filtered.push_back(t);
+      }
+    }
     
     inja::Environment e;
     e.set_html_autoescape(true);
