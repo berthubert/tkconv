@@ -2,6 +2,7 @@
 #include "scanmon.hh"
 #include "pugixml.hpp"
 #include "search.hh"
+#include "qparser.hh"
 #include <fmt/chrono.h>
 #include <string>
 #include <vector>

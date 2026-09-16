@@ -135,7 +135,6 @@ int64_t iget(const T& cont, const std::string& fname)
 }
 
 
-std::string convertToSQLiteFTS5(const std::string& in);
 std::string enrichHTML(const std::string& html, SQLiteWriter& sqlw);
 std::string getContentsOfFile(const std::string& fname);
 
