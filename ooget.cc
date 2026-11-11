@@ -7,6 +7,7 @@
 #include "httplib.h"
 #include "sqlwriter.hh"
 #include "pugixml.hpp"
+#include "meta.hh"
 
 using namespace std;
 
@@ -392,14 +393,23 @@ int main(int argc, char** argv)
 
   auto entries = sqlw.queryT("select ooentry.id as id from OOEntry left join OODocument on ooentry.id = oodocument.id where oodocument.id is null;");
   int count=1;
+  ThrottleDB tdb;
   for(const auto& e : entries) {
+    string theurl;
     try {      
       string id = eget(e, "id");
       cout<<"Trying to get "<<id<<" ("<<count<<"/"<<entries.size()<<"): ";
       count++;
       cout.flush();
+
+
+      theurl= "https://open.overheid.nl/overheid/openbaarmakingen/api/v0/zoek/"+id;
+      if(tdb.shouldThrottle(theurl, 86400, 2)) {
+	cout<<"Skipping URL for a bit since it has been failing"<<endl;
+	continue;
+      }
       sleep(1);
-      string theurl= "https://open.overheid.nl/overheid/openbaarmakingen/api/v0/zoek/"+id;
+      
       auto res = cli.Get(theurl);
       
       if(!res) {
@@ -411,6 +421,7 @@ int main(int argc, char** argv)
       //    cout<<"Got: '"<<res->body.c_str()<<"'" <<endl;
 
       if(res->body.empty()) {
+	tdb.report(theurl, "empty response");
 	cout<<"Got empty response from "<<theurl<<", status: "<<res->status<<endl;
 	continue;
       }
@@ -418,6 +429,7 @@ int main(int argc, char** argv)
       
       auto document=details["document"];
       if(details["versies"][0]["bestanden"].empty()) {
+	tdb.report(theurl, "no bestanden");
 	cout<<"No bestanden, skipping"<<endl;
 	continue;
       }
@@ -545,6 +557,8 @@ int main(int argc, char** argv)
     }
     catch(std::exception& e) {
       cout<<"Error: "<<e.what()<<endl;
+      if(!theurl.empty())
+	tdb.report(theurl, e.what());
     }
   }
 }

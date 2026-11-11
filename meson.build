@@ -43,7 +43,7 @@ executable('icget', 'icget.cc', 'support.cc', 'siphash.cc',
 	argparse_dep, vcs_dep])
 
 
-executable('ooget', 'ooget.cc', 'support.cc', 'siphash.cc', 
+executable('ooget', 'ooget.cc', 'support.cc', 'siphash.cc', 'meta.cc',
 	dependencies: [sqlitedep, json_dep, fmt_dep, cpphttplib, sqlitewriter_dep, pugi_dep, simplesockets_dep,
 	argparse_dep, vcs_dep])
 

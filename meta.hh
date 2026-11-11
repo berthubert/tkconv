@@ -10,6 +10,7 @@ class ThrottleDB
 public:
   ThrottleDB();
   void report(const std::string& thing, const std::string& reason="");
+  // if it failed more than limit times in the last limitSeconds seconds
   bool shouldThrottle(const std::string& thing, int limitSeconds, int limit);
 
 private:
