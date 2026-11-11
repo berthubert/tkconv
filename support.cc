@@ -77,7 +77,7 @@ string getContentsOfFile(const std::string& fname)
 string makePathForId(const std::string& id, const std::string& prefix, const std::string& suffix, bool makepath)
 {
   if(id.size() < 10)
-    throw runtime_error("Incomplete ID requested");
+    throw runtime_error("Incomplete ID requested: '"+id+"'");
   // 92c78e5c-0bc0-4d3e-b1df-d43a100124bb
   if(id.find_first_not_of("0123456789-abcdef") != string::npos)
     throw runtime_error("Invalid ID");
