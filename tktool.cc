@@ -14,6 +14,16 @@ int main(int argc, char** argv)
 {
   argparse::ArgumentParser args("tktool", "0.0");
   
+  argparse::ArgumentParser document_command("document");
+  document_command.add_description("Manage documents");
+
+  argparse::ArgumentParser document_path_command("path");
+  std::vector<std::string> ids;
+  document_path_command.add_argument("ids").append().nargs(1, 32000).store_into(ids);
+  document_command.add_subparser(document_path_command);
+
+  args.add_subparser(document_command);
+
   argparse::ArgumentParser user_command("user");
   user_command.add_description("Manage users");
 
@@ -53,7 +63,16 @@ int main(int argc, char** argv)
     std::cout << err.what() << std::endl << args;
     std::exit(1);
   }
-  if(args.is_subcommand_used(user_command)) {
+
+  if(args.is_subcommand_used(document_command)) {
+    if(document_command.is_subcommand_used(document_path_command)) {
+      for(const auto& id : ids) {
+	cout << makePathForId(id) << "\n";
+      }
+    }
+  }
+    
+  else if(args.is_subcommand_used(user_command)) {
     SQLiteWriter sqlw("user.sqlite3");
     bool mute =user_command.is_subcommand_used(user_mute_command);
     if(mute || user_command.is_subcommand_used(user_unmute_command)) {
